@@ -1,59 +1,59 @@
 # AGENTS.md
 
-## 1. Project purpose
+## 1. 프로젝트 목적
 
-This repository contains the prototype and future implementation of a support-equipment management system for enterprise users.
+이 저장소는 전사 사용자를 위한 지원장비 관리시스템의 프로토타입과 향후 실제 구현을 관리한다.
 
-The current phase is requirements discovery and interactive UI prototyping. The database schema, backend framework, API contract, authentication model, and detailed business rules are not final.
+현재 단계는 요구사항 발굴 및 인터랙티브 UI 프로토타이핑이다. 데이터베이스 스키마, 백엔드 프레임워크, API 계약, 인증 방식 및 상세 업무 규칙은 아직 확정되지 않았다.
 
-Do not treat provisional mock fields or relationships as confirmed production requirements.
+임시 목업 필드나 관계를 확정된 운영 요구사항으로 간주하지 않는다.
 
-## 2. Current source of truth
+## 2. 현재 기준 자료
 
-Use the following files as the primary visual references:
+다음 파일을 최우선 화면 디자인 기준으로 사용한다.
 
 - `docs/mockups/dashboard.png`
 - `docs/mockups/equipment-search.png`
 - `docs/mockups/change-history.png`
 
-Do not edit, regenerate, crop, or overwrite the reference images unless the user explicitly requests it.
+사용자가 명시적으로 요청하지 않는 한 기준 이미지를 수정·재생성·자르기·덮어쓰기 하지 않는다.
 
-When requirements conflict, follow this order:
+요구사항이 충돌하면 다음 우선순위를 적용한다.
 
-1. The user's latest explicit instruction
-2. Repository specifications and decision records
-3. This `AGENTS.md`
-4. Existing implementation
-5. Reasonable assumptions
+1. 사용자의 가장 최근 명시적 지시
+2. 저장소의 요구사항 문서 및 의사결정 기록
+3. 이 `AGENTS.md`
+4. 기존 구현
+5. 합리적 가정
 
-If a business rule is uncertain, record it as an open question instead of silently deciding it.
+업무 규칙이 불확실하면 임의로 결정하지 말고 미확정 질문으로 기록한다.
 
-## 3. Scope of the first prototype
+## 3. 1차 프로토타입 범위
 
-The initial interactive prototype contains three primary screens:
+초기 인터랙티브 프로토타입은 다음 세 화면으로 구성한다.
 
-1. Main dashboard
-2. Equipment search
-3. Equipment change history
+1. 메인 대시보드
+2. 장비 검색
+3. 장비 변경 이력
 
-The prototype must use mock data and must not depend on a finalized database or production backend.
+프로토타입은 목업 데이터를 사용하며, 확정된 데이터베이스나 운영 백엔드에 의존하지 않아야 한다.
 
-Build reusable application structure, shared components, interaction states, and a replaceable data-access layer. Avoid implementing production CRUD, authentication, authorization, or database migrations until explicitly requested.
+재사용 가능한 애플리케이션 구조, 공통 컴포넌트, 화면 상태 및 교체 가능한 데이터 접근 계층을 만든다. 사용자가 명시적으로 요청하기 전에는 운영용 전체 CRUD, 인증·인가 또는 데이터베이스 마이그레이션을 구현하지 않는다.
 
-## 4. Frontend direction
+## 4. 프론트엔드 방향
 
-Unless the user approves a different choice, use:
+사용자가 다른 선택을 승인하지 않는 한 다음 기술을 사용한다.
 
 - React
 - TypeScript
 - Vite
 - MUI Core
-- MUI Icons or Lucide icons
-- A node-based graph library such as React Flow for the replacement-history tree
+- MUI Icons 또는 Lucide 아이콘
+- 대체품 계보 트리를 위한 React Flow 등의 노드 기반 그래프 라이브러리
 
-Use stable package versions and pin them in the lockfile. Do not introduce paid MUI X features without confirming licensing.
+안정 버전의 패키지를 사용하고 잠금 파일에 버전을 고정한다. 라이선스를 확인하지 않은 상태에서 유료 MUI X 기능을 도입하지 않는다.
 
-Preferred source organization:
+권장 소스 구조는 다음과 같다.
 
 ```text
 src/
@@ -68,168 +68,168 @@ src/
 └── utils/
 ```
 
-Pages and UI components must not import mock JSON directly. Use this dependency direction:
+페이지와 UI 컴포넌트에서 목업 JSON을 직접 가져오지 않는다. 다음 의존 방향을 적용한다.
 
 ```text
-Page or component
-→ query hook
-→ service interface
-→ mock adapter now / real API adapter later
+페이지 또는 컴포넌트
+→ 조회 Hook
+→ Service 인터페이스
+→ 현재 Mock Adapter / 향후 실제 API Adapter
 ```
 
-Keep backend DTOs, frontend view models, and database entities conceptually separate.
+백엔드 DTO, 프론트엔드 View Model 및 데이터베이스 Entity를 개념적으로 분리한다.
 
-## 5. Design and UX rules
+## 5. 디자인 및 UX 규칙
 
-The target is a modern 2026 enterprise product with clear information hierarchy and high usability. Avoid the appearance of a legacy manufacturing ERP or generic AI-generated admin template.
+명확한 정보 우선순위와 높은 사용성을 갖춘 2026년형 전사 제품을 목표로 한다. 오래된 제조업 ERP 또는 일반적인 AI 생성형 관리자 템플릿처럼 보이지 않아야 한다.
 
-Mandatory rules:
+필수 규칙은 다음과 같다.
 
-- No emoji in the interface or source data
-- Use only official MUI Icons or Lucide-style icons
-- No decorative Chinese characters, Japanese characters, broken Korean glyphs, or unexplained foreign text
-- No excessive gradients, glassmorphism, oversized shadows, or unnecessarily rounded cards
-- No meaningless charts or decorative metrics
-- Keep typography, spacing, frame dimensions, colors, borders, and interaction patterns consistent across all screens
-- Korean text must render clearly with an appropriate Korean font stack
-- Treat 1440×900 as the primary desktop design baseline while preserving the proportions of the reference mockups
-- Implement loading, empty, error, selected, disabled, and modal/drawer states when relevant
-- Preserve keyboard accessibility, visible focus states, semantic labels, and sufficient color contrast
+- 화면과 목업 데이터에 이모지를 사용하지 않는다.
+- 공식 MUI Icons 또는 Lucide 계열 아이콘만 사용한다.
+- 장식용 한자·일본어, 깨진 한글 또는 맥락 없는 외국어를 사용하지 않는다.
+- 과도한 그라데이션, 글래스모피즘, 큰 그림자 또는 불필요하게 둥근 카드를 사용하지 않는다.
+- 의미 없는 차트나 장식용 지표를 사용하지 않는다.
+- 모든 화면에서 글꼴, 여백, 프레임 규격, 색상, 테두리 및 상호작용 방식을 일관되게 유지한다.
+- 적절한 한글 글꼴 스택을 사용해 한글을 선명하게 표시한다.
+- 1440×900을 기본 데스크톱 디자인 기준으로 사용하되 기준 시안의 비율을 유지한다.
+- 필요한 경우 로딩, 빈 결과, 오류, 선택, 비활성화 및 모달·드로어 상태를 구현한다.
+- 키보드 접근성, 명확한 포커스 표시, 의미 있는 레이블 및 충분한 색상 대비를 유지한다.
 
-Use design tokens for colors, typography, spacing, radius, shadows, and component heights. Do not scatter arbitrary pixel values across page files.
+색상, 타이포그래피, 여백, 모서리 반경, 그림자 및 컴포넌트 높이는 디자인 토큰으로 관리한다. 페이지 파일 곳곳에 임의의 픽셀값을 흩어 놓지 않는다.
 
-## 6. Fixed prototype conventions
+## 6. 고정된 프로토타입 규칙
 
-The following values are intentional prototype conventions:
+다음 값은 의도적으로 정한 프로토타입 규칙이다.
 
-- Logged-in user: `김책임`
-- Employee ranks: `책임` and `선임` only
-- Do not use employee ranks such as `사원`, `대리`, or `과장`
-- Do not include the sidebar menu item `기준정보 관리`
-- Use placeholders such as `XXXXXX`, `A장비`, `B장비`, `가 사업`, `나 사업`, and `다 사업`
-- Do not invent realistic confidential-looking part numbers, contracts, contacts, schedules, or personnel data
+- 로그인 사용자: `김책임`
+- 직급: `책임`, `선임`만 사용
+- `사원`, `대리`, `과장` 등의 직급을 사용하지 않는다.
+- 사이드바에 `기준정보 관리` 메뉴를 포함하지 않는다.
+- `XXXXXX`, `A장비`, `B장비`, `가 사업`, `나 사업`, `다 사업`과 같은 단순한 목업값을 사용한다.
+- 실제 기밀정보처럼 보이는 품번, 계약, 연락처, 일정 또는 인사정보를 임의로 만들지 않는다.
 
-Dashboard consistency:
+대시보드 수치 규칙:
 
 - 확인이 필요한 업무: 12건
 - 납품 지연: 3건
 - 단종·대체 검토: 5건
 - 변경 승인 대기: 4건
-- The 12 required-action items must remain consistent with 3 + 5 + 4
+- 확인이 필요한 업무 12건은 3 + 5 + 4와 항상 일치해야 한다.
 
-Equipment search:
+장비 검색 규칙:
 
-- Preserve the approved overall layout unless the user requests a redesign
-- Support search, filtering, sorting, pagination, row selection, and a detail panel in the prototype
-- Keep search/filter state separate from displayed result data
+- 사용자가 재설계를 요청하지 않는 한 승인된 전체 레이아웃을 유지한다.
+- 프로토타입에서 검색, 필터링, 정렬, 페이지 이동, 행 선택 및 상세 패널을 지원한다.
+- 검색·필터 상태와 화면에 표시하는 결과 데이터를 분리한다.
 
-Change history:
+변경 이력 규칙:
 
-- Replacement lineage must be the visual focus
-- Show at least five hierarchy depths in the prototype dataset
-- Use smooth, readable connections rather than awkward right-angle bends
-- Keep the entire graph understandable through fit-to-view, zoom, pan, controls, and a minimap when appropriate
-- A single equipment item may belong to multiple projects
-- Use simple project labels such as `사업: 가`, `사업: 가 · 나`, and `사업: 나 · 다`
-- Selecting a node or log entry must expose detailed history in a drawer or modal
-- Do not assume replacement is one-to-one; branching and multiple successors may exist
+- 대체품 계보를 화면의 시각적 중심으로 구성한다.
+- 프로토타입 데이터에서 최소 5단계 깊이를 보여준다.
+- 어색한 직각 연결 대신 부드럽고 읽기 쉬운 연결선을 사용한다.
+- 필요에 따라 전체 화면 맞춤, 확대·축소, 이동, 컨트롤 및 미니맵을 제공해 전체 그래프를 파악할 수 있게 한다.
+- 하나의 장비는 여러 사업에 속할 수 있다.
+- `사업: 가`, `사업: 가 · 나`, `사업: 나 · 다`와 같은 단순한 사업 표기를 사용한다.
+- 노드 또는 로그를 선택하면 드로어나 모달에서 상세 이력을 확인할 수 있어야 한다.
+- 대체 관계를 일대일로 단정하지 않는다. 분기 및 여러 후속 대체품이 존재할 수 있다.
 
-## 7. Data and backend boundaries
+## 7. 데이터 및 백엔드 경계
 
-The persistent data model is not finalized. Do not create a production schema from screen fields alone.
+영속 데이터 모델은 아직 확정되지 않았다. 화면 필드만 보고 운영용 데이터베이스 스키마를 만들지 않는다.
 
-For now, treat the following as provisional domain concepts rather than confirmed tables:
+현재는 다음 항목을 확정 테이블이 아닌 임시 도메인 개념으로 취급한다.
 
-- Equipment
-- Part number
-- Project
-- Equipment-project relationship
-- Delivery destination and schedule
-- Contract
-- Person or role assignment
-- Calibration information
-- Change request
-- Approval action
-- Audit event
-- Replacement relationship
+- 장비
+- 품번
+- 사업
+- 장비-사업 관계
+- 납지 및 납품 일정
+- 계약
+- 담당자 또는 역할 배정
+- 교정정보
+- 변경 신청
+- 승인 처리
+- 감사 이벤트
+- 대체 관계
 
-Important modeling assumptions that require explicit confirmation:
+다음 모델링 조건은 반드시 명시적으로 확인해야 한다.
 
-- Cardinality of equipment and projects
-- One-to-one versus one-to-many or many-to-many replacement relations
-- Effective start and end dates
-- Project-specific replacement relations
-- Current state versus immutable history
-- Approval-state transitions
-- Permissions and data-retention rules
+- 장비와 사업의 관계 수
+- 대체 관계가 일대일·일대다·다대다 중 어느 형태인지
+- 적용 시작일과 종료일
+- 사업별 대체 관계 존재 여부
+- 현재 상태와 변경 불가능한 과거 이력의 구분
+- 승인 상태 전이
+- 권한 및 데이터 보존 규칙
 
-Use mock APIs or request handlers that can later be replaced by a real backend. Centralize endpoint paths, request types, response types, error mapping, and mock fixtures.
+향후 실제 백엔드로 교체할 수 있는 Mock API 또는 요청 처리기를 사용한다. Endpoint 경로, 요청 타입, 응답 타입, 오류 매핑 및 목업 Fixture를 중앙에서 관리한다.
 
-## 8. Security and confidentiality
+## 8. 보안 및 기밀정보
 
-This repository must contain generic prototype material only.
+이 저장소에는 일반화된 프로토타입 자료만 포함해야 한다.
 
-Never add:
+다음 정보를 절대 추가하지 않는다.
 
-- Real company part numbers or equipment data
-- Real contract prices or delivery schedules
-- Real employee names, departments, phone numbers, or email addresses
-- Internal documents or screenshots containing confidential information
-- Company credentials, tokens, API keys, server addresses, or `.env` files
+- 실제 회사 품번 또는 장비 데이터
+- 실제 계약 단가 또는 납품 일정
+- 실제 직원 이름, 부서, 전화번호 또는 이메일 주소
+- 기밀정보가 포함된 사내 문서 또는 화면 캡처
+- 회사 계정정보, Token, API Key, 서버 주소 또는 `.env` 파일
 
-Use `.env.example` for configuration examples and placeholders only.
+환경 설정 예시는 실제 값 없이 `.env.example`과 Placeholder만 사용한다.
 
-## 9. Working method
+## 9. 작업 방식
 
-Before implementing a task:
+작업을 구현하기 전에 다음 절차를 따른다.
 
-1. Read this file and the relevant mockup or specification
-2. State assumptions and identify unresolved business rules
-3. Keep the change limited to the requested scope
-4. Reuse existing design tokens and shared components
-5. Add or update tests for behavior that can regress
-6. Compare the result with the reference mockup
+1. 이 파일과 관련 시안 또는 요구사항 문서를 읽는다.
+2. 가정과 미확정 업무 규칙을 식별한다.
+3. 변경 범위를 요청받은 작업으로 제한한다.
+4. 기존 디자인 토큰과 공통 컴포넌트를 재사용한다.
+5. 회귀 가능성이 있는 동작에 테스트를 추가하거나 갱신한다.
+6. 결과를 기준 시안과 비교한다.
 
-Do not refactor unrelated code during a scoped feature task.
+범위가 정해진 기능 작업 중에 관련 없는 코드를 리팩터링하지 않는다.
 
-Do not overwrite user changes or delete files merely to simplify implementation.
+구현을 단순화하기 위해 사용자 변경사항을 덮어쓰거나 파일을 삭제하지 않는다.
 
-For Git work:
+Git 작업 규칙:
 
-- Do not push directly to `main` unless the user explicitly requests it
-- Prefer a focused branch such as `agent/equipment-search`
-- Keep commits small and intentional
-- Use concise commit messages such as `feat: implement equipment search filters`
-- Open a draft pull request for implementation work unless the user requests another workflow
+- 사용자가 명시적으로 요청하지 않는 한 `main`에 직접 Push하지 않는다.
+- `agent/equipment-search`와 같이 범위가 명확한 Branch를 사용한다.
+- Commit은 작고 의도적으로 구성한다.
+- `feat: implement equipment search filters`와 같이 간결한 Commit 메시지를 사용한다.
+- 사용자가 다른 방식을 요청하지 않는 한 구현 작업은 Draft Pull Request로 생성한다.
 
-## 10. Verification requirements
+## 10. 검증 요구사항
 
-After the project scripts exist, run the relevant available checks before handing off work. At minimum, implementation changes should pass the repository's defined equivalents of:
+프로젝트 Script가 준비된 이후에는 작업을 전달하기 전에 사용 가능한 관련 검사를 실행한다. 최소한 구현 변경사항은 저장소에 정의된 다음 검사의 동등한 절차를 통과해야 한다.
 
-- Type checking
-- Linting
-- Unit tests
-- Production build
-- Targeted interaction or end-to-end tests when applicable
+- Type Check
+- Lint
+- Unit Test
+- Production Build
+- 필요한 경우 대상 Interaction 또는 End-to-End Test
 
-Also verify manually:
+다음 항목도 직접 확인한다.
 
-- No Korean text corruption
-- No prohibited ranks or menu items
-- User name remains `김책임`
-- Dashboard counts are internally consistent
-- Reference images were not modified
-- Layout remains usable at the 1440×900 desktop baseline
-- Loading, empty, error, and selected states do not break the layout
+- 한글 깨짐이 없는지
+- 금지된 직급이나 메뉴가 포함되지 않았는지
+- 사용자명이 `김책임`으로 유지되는지
+- 대시보드 수치가 서로 일치하는지
+- 기준 이미지를 수정하지 않았는지
+- 1440×900 데스크톱 기준에서 레이아웃을 정상적으로 사용할 수 있는지
+- 로딩, 빈 결과, 오류 및 선택 상태에서 레이아웃이 깨지지 않는지
 
-If a check cannot run, report the exact reason. Do not claim verification that was not performed.
+검사를 실행할 수 없다면 정확한 사유를 보고한다. 실제로 수행하지 않은 검증을 완료했다고 표현하지 않는다.
 
-## 11. Decision discipline
+## 11. 의사결정 원칙
 
-Separate facts into three categories:
+사실을 다음 세 범주로 구분한다.
 
-- Confirmed: explicitly approved by the user
-- Assumed: temporarily selected for prototyping
-- Open: requires business or technical confirmation
+- 확정: 사용자가 명시적으로 승인한 내용
+- 가정: 프로토타입을 위해 임시로 선택한 내용
+- 미확정: 업무 또는 기술 검토가 필요한 내용
 
-Record material architectural or business-rule decisions in repository documentation when those files are introduced. Do not rely on chat history as the only source of project context.
+관련 문서가 생성된 이후에는 중요한 아키텍처 및 업무 규칙 결정을 저장소 문서에 기록한다. 대화 기록만을 프로젝트 기준으로 사용하지 않는다.
