@@ -1,0 +1,115 @@
+export type EquipmentStatus = '사용 중' | '대체 검토' | '보류';
+export type DeliveryStatus = '예정' | '진행' | '완료';
+export type ManagerRole = '지원장비 담당자' | '구매 담당자';
+export type AssignmentType = '정' | '부';
+
+export interface CodeLabel {
+  code: string;
+  name: string;
+}
+
+export interface Manager {
+  id: number;
+  name: string;
+  role: ManagerRole;
+  assignmentType: AssignmentType;
+}
+
+export interface Delivery {
+  id: number;
+  destination: string;
+  quantity: number;
+  deliveryDate: string;
+  receiptDate?: string;
+  status: DeliveryStatus;
+}
+
+export interface BusinessApplication {
+  integratedId: number;
+  business: string;
+  aircraftType: string;
+  deliveries: Delivery[];
+}
+
+export interface Equipment {
+  itemId: number;
+  itemNum: string;
+  itemNameKor: string;
+  itemNameEng: string;
+  itemUsageKor: string;
+  itemUsageEng: string;
+  category: CodeLabel;
+  manufacturer: string;
+  systems: CodeLabel[];
+  maintenanceLevels: CodeLabel[];
+  applications: BusinessApplication[];
+  managers: Manager[];
+  status: EquipmentStatus;
+  recentChangeDate: string;
+}
+
+export interface EquipmentFilters {
+  query: string;
+  aircraftType: string;
+  business: string;
+  system: string;
+  category: string;
+  manager: string;
+  destination: string;
+  status: string;
+}
+
+export type EquipmentSortKey =
+  | 'itemNum'
+  | 'itemNameKor'
+  | 'aircraftType'
+  | 'business'
+  | 'system'
+  | 'category'
+  | 'manager'
+  | 'destination'
+  | 'status'
+  | 'recentChangeDate';
+
+export type SortDirection = 'asc' | 'desc';
+
+export interface DashboardMetric {
+  id: 'attention' | 'registered' | 'delivery' | 'delay' | 'replacement' | 'approval';
+  label: string;
+  value: number;
+  unit: string;
+  tone: 'brand' | 'neutral' | 'info' | 'error' | 'warning';
+  helper: string;
+}
+
+export interface MonthlyDelivery {
+  month: string;
+  plan: number;
+  actual: number | null;
+  achievement: number | null;
+}
+
+export interface ChangeSummary {
+  id: string;
+  equipmentName: string;
+  content: string;
+  category: string;
+  requester: string;
+  changedAt: string;
+  status: '완료' | '검토 중';
+}
+
+export interface UpcomingDelivery {
+  equipmentName: string;
+  itemNum: string;
+  deliveryDate: string;
+  daysLeft: number;
+  status: '임박';
+}
+
+export interface DashboardData {
+  metrics: DashboardMetric[];
+  monthlyDeliveries: MonthlyDelivery[];
+  changes: ChangeSummary[];
+  upcomingDeliveries: UpcomingDelivery[];
+}
