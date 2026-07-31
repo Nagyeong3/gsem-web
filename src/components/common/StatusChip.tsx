@@ -1,4 +1,5 @@
 import { Chip } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import type { EquipmentStatus } from '../../types/domain';
 
 interface StatusChipProps {
@@ -6,24 +7,27 @@ interface StatusChipProps {
 }
 
 const toneMap = {
-  '사용 중': { color: '#0867F2', background: '#EEF5FF', border: '#86B7FF' },
-  '대체 검토': { color: '#C65E00', background: '#FFF5E9', border: '#F5B56F' },
-  보류: { color: '#52647D', background: '#F3F5F8', border: '#C8D3E0' },
-  완료: { color: '#128148', background: '#ECF9F1', border: '#88D6AA' },
-  '검토 중': { color: '#C65E00', background: '#FFF5E9', border: '#F5B56F' },
-  임박: { color: '#D92733', background: '#FFF0F1', border: '#F08C94' },
+  '사용 중': 'primary',
+  '대체 검토': 'warning',
+  보류: 'neutral',
+  완료: 'success',
+  '검토 중': 'warning',
+  임박: 'error',
 } as const;
 
 export function StatusChip({ status }: StatusChipProps) {
+  const theme = useTheme();
   const tone = toneMap[status];
+  const color =
+    tone === 'neutral' ? theme.palette.text.secondary : theme.palette[tone].main;
   return (
     <Chip
       label={status}
       variant="outlined"
       sx={{
-        color: tone.color,
-        bgcolor: tone.background,
-        borderColor: tone.border,
+        color,
+        bgcolor: alpha(color, theme.palette.mode === 'dark' ? 0.14 : 0.08),
+        borderColor: alpha(color, theme.palette.mode === 'dark' ? 0.62 : 0.45),
       }}
     />
   );

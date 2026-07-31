@@ -18,7 +18,8 @@ export function SectionCard({ title, action, children, sx }: SectionCardProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #E8EDF3',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Typography component="h2" sx={{ fontSize: 15, fontWeight: 700 }}>
