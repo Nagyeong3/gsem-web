@@ -404,11 +404,11 @@ components:
       enum: [IN_USE, REPLACEMENT_REVIEW, ON_HOLD]
     DeliveryStatus:
       type: string
-      description: 실제 납품 상태값 확인이 필요합니다.
+      description: 납품 상태의 의미는 예정·진행·완료이며 영문 전송 코드는 API 설계값입니다.
       enum: [PLANNED, IN_PROGRESS, COMPLETED]
     ManagerAssignment:
       type: object
-      required: [userId, name, role, assignmentType]
+      required: [userId, name]
       properties:
         userId:
           type: integer
@@ -416,9 +416,11 @@ components:
           type: string
         role:
           type: string
+          description: DB에서 값이 없을 수 있습니다.
           enum: [SUPPORT_EQUIPMENT_MANAGER, PURCHASING_MANAGER]
         assignmentType:
           type: string
+          description: 정·부 구분은 현재 DB 미반영 확장 후보입니다.
           enum: [PRIMARY, SECONDARY]
     Vendor:
       type: object
@@ -475,7 +477,6 @@ components:
         - itemId
         - itemNumber
         - itemNameKor
-        - itemType
         - category
         - aircraftTypes
         - businesses
@@ -497,7 +498,7 @@ components:
           $ref: "#/components/schemas/ItemType"
         category:
           $ref: "#/components/schemas/Code"
-        manufacturer:
+        vendor:
           $ref: "#/components/schemas/Vendor"
         aircraftTypes:
           type: array

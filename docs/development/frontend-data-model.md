@@ -48,7 +48,7 @@ src/types/domain.ts
 | `itemNameKor` | `itemNameKor` | 그대로 |
 | `itemNameEng` | `itemNameEng` | 값 없음은 빈 문자열 또는 `-` 표시 |
 | `category` | `category` | 그대로 |
-| `manufacturer.name` | `manufacturer` | 중첩 객체에서 이름 추출 |
+| `vendor.name` | `manufacturer` | 현재 View Model 명칭과 다르므로 업체명만 추출 |
 | `subsystems` | `systems` | 이름 변경 |
 | `maintenanceLevels` | `maintenanceLevels` | 그대로 |
 | `businesses`, `aircraftTypes` | `applications` | 목록 DTO만으로 완전 복원 불가 |
@@ -186,7 +186,7 @@ GET /api/v1/items
 | 사업별 납품 | 현재 상세 View Model에서 지원 |
 | 서버 페이징 | 현재 미구현, HTTP 전환 단계에서 필요 |
 | 필터 코드/ID 사용 | 현재 표시명 기반, Mapper 필요 |
-| 관리 품목 유형 | 현재 `category`만 존재하여 별도 `itemType` 추가 필요 |
+| 관리 품목 유형 | 요구사항에는 있으나 현재 ERD 저장 위치가 없어 `itemType`은 선택값 |
 | SERD·품보·교정 | 현재 상세 View Model에 없음 |
 | 단종·대체 Graph | 현재 타입과 화면 미구현 |
 | 공통 오류 | 현재 페이지별 처리, HTTP Client 도입 시 통합 필요 |
@@ -202,4 +202,3 @@ GET /api/v1/items
 - 라우팅
 
 `src/types/api.ts`는 아직 화면에서 Import하지 않는다. 계약 검토 후 HTTP Adapter 구현 시 연결한다.
-

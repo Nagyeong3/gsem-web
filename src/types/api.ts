@@ -61,7 +61,7 @@ export type ItemTypeDto =
 /** 가정: 프로토타입 화면 표현을 위한 임시 상태값. */
 export type ItemStatusDto = 'IN_USE' | 'REPLACEMENT_REVIEW' | 'ON_HOLD';
 
-/** 가정: ERD 설명에서 확인된 임시 납품 상태값. */
+/** 의미 확정: 납품 예정·진행·완료. 영문 전송 코드 자체는 API 설계값이다. */
 export type DeliveryStatusDto = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED';
 
 export type ManagerRoleDto = 'SUPPORT_EQUIPMENT_MANAGER' | 'PURCHASING_MANAGER';
@@ -70,8 +70,10 @@ export type AssignmentTypeDto = 'PRIMARY' | 'SECONDARY';
 export interface ManagerAssignmentDto {
   userId: number;
   name: string;
-  role: ManagerRoleDto;
-  assignmentType: AssignmentTypeDto;
+  /** DB 컬럼은 존재하지만 현재 값이 없을 수 있다. */
+  role?: ManagerRoleDto;
+  /** 정·부 구분은 현재 DB에 반영되지 않은 확장 후보다. */
+  assignmentType?: AssignmentTypeDto;
 }
 
 export interface DeliveryDto {
@@ -98,9 +100,10 @@ export interface ItemSummaryDto {
   itemNumber: string;
   itemNameKor: string;
   itemNameEng?: string;
-  itemType: ItemTypeDto;
+  /** 요구사항에는 존재하지만 현재 ERD의 저장 위치는 미정이다. */
+  itemType?: ItemTypeDto;
   category: CodeDto;
-  manufacturer?: {
+  vendor?: {
     vendorId: number;
     name: string;
   };

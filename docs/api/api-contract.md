@@ -198,11 +198,11 @@ GET /api/v1/items
 | 이름 | 형식 | 의미 | 상태 |
 |---|---|---|---|
 | `query` | string | 품번·국영문 품명·국영문 용도 통합 검색 | 부분 확정 |
-| `itemType` | enum | 관리 품목 유형 | 확정 |
+| `itemType` | enum | 관리 품목 유형, 현재 ERD 저장 위치 없음 | 요구사항 확정·저장 미정 |
 | `aircraftTypeCode` | string | 적용 기종 | 확정 |
 | `businessId` | integer | 적용 사업 | 확정 |
 | `subsystemCode` | string | 적용 계통 | 확정 |
-| `categoryCode` | string | 장비/품목 구분 | 부분 확정 |
+| `categoryCode` | string | 장비구분 | 확정 |
 | `managerUserId` | integer | 담당자 | 부분 확정 |
 | `destinationId` | integer | 납지 | 부분 확정 |
 | `status` | enum | 사용·획득 상태 | 미확정 |
@@ -229,8 +229,8 @@ GET /api/v1/items/{itemId}
 다음 정보를 하나의 화면용 응답으로 조합한다.
 
 - 품번과 국·영문 품명·용도
-- 관리 품목 유형과 분류
-- 제조사
+- 관리 품목 유형과 장비구분
+- 업체
 - 적용 사업과 기종
 - 계통과 정비 계단
 - 담당자
@@ -268,7 +268,7 @@ GET /api/v1/deliveries
 - 계획·발주·입고·납품 수량의 개별 관리 여부
 - 부분 납품 처리
 - 지연 자동 판정 기준
-- `delivery_month`, `receipt_month`가 실제 날짜인지 월 단위인지
+- DB 컬럼명은 `*_month`지만 값은 `YYYY-MM-DD` 날짜
 
 ### 6.2 변경 이력 목록과 상세
 
@@ -311,21 +311,36 @@ GET /api/v1/items/{itemId}/replacement-graph
 | API 개념 | 현재 ERD 후보 | 매핑 판단 |
 |---|---|---|
 | 품목 기본정보 | `Item` | 직접 조회 후보 |
-| 품목 유형·분류 | `Item.code_CATEG`, 공통코드 | `code_CATEG` 의미와 품목 유형 구분 방식 확인 필요 |
-| 제조사 | `Item.bender_id`, `Bender` | `Bender` 철자와 제조사·구매처 구분 확인 필요 |
+| 관리 품목 유형 | 현재 ERD에 없음 | 요구사항은 확정됐으나 저장 위치는 추후 추가 |
+| 장비구분 | `Item.code_CATEG`, `Common_Code_Detail` | `CATEG`: 일반공구·특수공구·시험장비 등 |
+| 업체 | `Item.bender_id`, `Bender` | 확인된 컬럼은 `bender_id`, `bender_name`이며 제조사·구매처 구분은 미정 |
 | 사업 적용 | `Integrated_Info`, `Business` | `item_id`, `business_id`로 조합 |
 | 기종 | `Business.code_ATYPE`, 공통코드 | 사업에 종속된 기종으로 현재 해석 |
 | 계통 | `Match_Item_SubSystem`, 공통코드 | 품목별 복수 관계 |
 | 정비 계단 | `Match_Item_LevelOfMaintenance`, 공통코드 | 품목별 복수 관계 |
 | 납품 | `Contract_Delivery`, `Delivery_Destination` | `integrated_id` 기준 사업 적용별 복수 관계 |
-| 담당자 | `Match_Managing_User`, `User` | 아래 충돌사항 확인 필요 |
+| 담당자 | `Match_Managing_User`, `User` | 품목 단위로 집계하며 물리적으로 사업 연계정보마다 반복 저장 |
 
-### 담당자 관계 충돌
+### 공통코드 구조
 
-- 업무 설명: 담당자는 품목 전체 기준이며 현재 한 명, 향후 정·부 복수 확장 가능
-- ERD 사진: `Match_Managing_User`가 `integrated_id`를 보유하여 사업 적용별 담당자로 해석될 수 있음
+`Common_Code_Detail`은 `code`, `group_code`, `code_name`, `sort_order`, `is_used`로 구성된다.
 
-API 1차 응답은 담당자를 품목 단위 배열로 집계하고 원본 저장 관계를 노출하지 않는다. 실제 DB 연결 전에 품목 전체 담당자인지 사업별 담당자인지 확인한다.
+| `group_code` | 의미 | 연결 필드 |
+|---|---|---|
+| `ATYPE` | 기체 | `Business.code_ATYPE` |
+| `CATEG` | 장비구분 | `Item.code_CATEG` |
+| `LOM` | 정비계단 | `Match_Item_LevelOfMaintenance.code_LOM` |
+| `SSYST` | 계통 | `Match_Item_SubSystem.code_SSYST` |
+
+필터 선택지는 `is_used=1`인 상세 코드를 `sort_order` 순서로 제공한다.
+
+### 담당자 저장과 API 집계
+
+- 업무 규칙상 담당자는 품목 단위이며 한 품목에 여러 명이 배정될 수 있다.
+- 현재 DB는 `Match_Managing_User.integrated_id`로 연결되므로 같은 품목이 여러 사업에 속하면 동일 담당자가 각 `Integrated_Info`에 반복 저장된다.
+- API는 `item_id`, `user_id` 기준으로 중복을 제거하여 품목 단위 담당자 배열로 반환한다.
+- `role`은 Nullable이며 정·부 구분은 현재 DB에 반영되지 않았다.
+- 저장 구조는 ERD 확정 과정에서 변경될 수 있으므로 API가 중복 저장 방식을 노출하지 않는다.
 
 ### `Integrated_Info` 유일성
 
@@ -351,4 +366,3 @@ API 1차 응답은 담당자를 품목 단위 배열로 집계하고 원본 저�
 6. Mock/API 전환 환경변수 적용
 7. 실제 ERD·MS Access 연결 시 Repository 매핑
 8. Contract Test로 OpenAPI와 실제 응답 검증
-
