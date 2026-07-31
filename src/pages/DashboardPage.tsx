@@ -23,6 +23,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -51,14 +52,6 @@ const iconByMetric: Record<DashboardMetric['id'], typeof Inventory2Outlined> = {
   approval: TaskAltOutlined,
 };
 
-const colorByTone = {
-  brand: '#FFFFFF',
-  neutral: '#66758C',
-  info: '#0867F2',
-  error: '#E52B36',
-  warning: '#E87500',
-} as const;
-
 const attentionItems = [
   { label: '납품 지연', count: 3, tone: 'error' as const, status: '보류' },
   { label: '단종·대체 미확정', count: 5, tone: 'warning' as const, status: '대체 검토' },
@@ -66,10 +59,20 @@ const attentionItems = [
 ];
 
 export function DashboardPage() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState('');
+  const colorByTone = {
+    brand: '#FFFFFF',
+    neutral: theme.palette.text.secondary,
+    info: theme.palette.primary.main,
+    error: theme.palette.error.main,
+    warning: theme.palette.warning.main,
+  } as const;
+  const chartGridColor = theme.palette.divider;
+  const chartTextColor = theme.palette.text.secondary;
 
   useEffect(() => {
     let active = true;
@@ -155,7 +158,7 @@ export function DashboardPage() {
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ fontSize: 20, color: '#66758C' }} />
+                    <Search sx={{ fontSize: 20, color: 'text.secondary' }} />
                   </InputAdornment>
                 ),
                 endAdornment: query ? (
@@ -201,11 +204,11 @@ export function DashboardPage() {
                 textAlign: 'left',
                 cursor: 'pointer',
                 color: primary ? '#FFFFFF' : 'text.primary',
-                bgcolor: primary ? '#0759D3' : '#FFFFFF',
-                borderColor: primary ? '#0759D3' : '#D9E2EC',
+                bgcolor: primary ? '#0759D3' : 'background.paper',
+                borderColor: primary ? '#0759D3' : 'divider',
                 transition: 'border-color 150ms ease, transform 150ms ease',
                 '&:hover': {
-                  borderColor: primary ? '#69A7FF' : '#86B7FF',
+                  borderColor: primary ? '#69A7FF' : 'primary.main',
                   transform: 'translateY(-1px)',
                 },
               }}
@@ -215,7 +218,9 @@ export function DashboardPage() {
                 <Typography sx={{ fontSize: primary ? 34 : 26, lineHeight: 1, fontWeight: 700 }}>
                   {metric.value.toLocaleString('ko-KR')}
                 </Typography>
-                <Typography sx={{ color: primary ? '#D7E8FF' : '#66758C', fontWeight: 600 }}>
+                <Typography
+                  sx={{ color: primary ? '#D7E8FF' : 'text.secondary', fontWeight: 600 }}
+                >
                   {metric.unit}
                 </Typography>
               </Box>
@@ -246,7 +251,9 @@ export function DashboardPage() {
                   placeItems: 'center',
                   borderRadius: '50%',
                   color: primary ? '#FFFFFF' : colorByTone[metric.tone],
-                  bgcolor: primary ? 'rgba(255,255,255,0.12)' : '#F3F6FA',
+                  bgcolor: primary
+                    ? 'rgba(255,255,255,0.12)'
+                    : alpha(theme.palette.text.secondary, 0.08),
                 }}
               >
                 <Icon sx={{ fontSize: 21 }} />
@@ -261,15 +268,15 @@ export function DashboardPage() {
           <Box sx={{ height: 210, px: 1, py: 1 }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data.monthlyDeliveries} margin={{ top: 12, right: 12, left: -12 }}>
-                <CartesianGrid vertical={false} stroke="#E8EDF3" strokeDasharray="2 2" />
+                <CartesianGrid vertical={false} stroke={chartGridColor} strokeDasharray="2 2" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 11, fill: '#52647D' }}
-                  axisLine={{ stroke: '#C8D3E0' }}
+                  tick={{ fontSize: 11, fill: chartTextColor }}
+                  axisLine={{ stroke: chartGridColor }}
                 />
                 <YAxis
                   yAxisId="count"
-                  tick={{ fontSize: 10, fill: '#52647D' }}
+                  tick={{ fontSize: 10, fill: chartTextColor }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -277,30 +284,47 @@ export function DashboardPage() {
                   yAxisId="rate"
                   orientation="right"
                   domain={[0, 125]}
-                  tick={{ fontSize: 10, fill: '#52647D' }}
+                  tick={{ fontSize: 10, fill: chartTextColor }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
                   contentStyle={{
-                    border: '1px solid #D9E2EC',
+                    border: `1px solid ${theme.palette.divider}`,
+                    backgroundColor: theme.palette.background.paper,
+                    color: theme.palette.text.primary,
                     borderRadius: 6,
                     fontSize: 11,
                     boxShadow: '0 8px 28px rgba(10,31,68,0.12)',
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, top: -2 }} />
-                <Bar yAxisId="count" dataKey="plan" name="계획 수량" fill="#B9D9FF" barSize={13} />
-                <Bar yAxisId="count" dataKey="actual" name="납품 실적" fill="#124A9C" barSize={13} />
+                <Bar
+                  yAxisId="count"
+                  dataKey="plan"
+                  name="계획 수량"
+                  fill={alpha(theme.palette.primary.main, 0.34)}
+                  barSize={13}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="actual"
+                  name="납품 실적"
+                  fill={theme.palette.primary.dark}
+                  barSize={13}
+                  isAnimationActive={false}
+                />
                 <Line
                   yAxisId="rate"
                   type="monotone"
                   dataKey="achievement"
                   name="달성률(%)"
-                  stroke="#0867F2"
+                  stroke={theme.palette.primary.main}
                   strokeWidth={2}
-                  dot={{ r: 3, fill: '#0867F2' }}
+                  dot={{ r: 3, fill: theme.palette.primary.main }}
                   connectNulls={false}
+                  isAnimationActive={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -331,13 +355,16 @@ export function DashboardPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  border: '1px solid #E8EDF3',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   borderLeft: `3px solid ${colorByTone[item.tone]}`,
                   borderRadius: 1,
-                  bgcolor: '#FFFFFF',
+                  bgcolor: 'background.paper',
                   color: 'text.primary',
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: '#F8FAFD' },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.08 : 0.035),
+                  },
                 }}
               >
                 <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{item.label}</Typography>
@@ -348,7 +375,7 @@ export function DashboardPage() {
                     {item.count}
                   </Typography>
                   <Typography sx={{ color: 'text.secondary' }}>건</Typography>
-                  <ChevronRight sx={{ ml: 1, fontSize: 18, color: '#66758C' }} />
+                  <ChevronRight sx={{ ml: 1, fontSize: 18, color: 'text.secondary' }} />
                 </Box>
               </Box>
             ))}
@@ -383,7 +410,7 @@ export function DashboardPage() {
                   <TableCell>{change.id}</TableCell>
                   <TableCell>{change.equipmentName}</TableCell>
                   <TableCell>{change.content}</TableCell>
-                  <TableCell sx={{ color: '#0867F2', fontWeight: 600 }}>
+                  <TableCell sx={{ color: 'primary.main', fontWeight: 600 }}>
                     {change.category}
                   </TableCell>
                   <TableCell>{change.requester}</TableCell>
@@ -421,7 +448,7 @@ export function DashboardPage() {
                   <TableCell>{delivery.equipmentName}</TableCell>
                   <TableCell>{delivery.itemNum}</TableCell>
                   <TableCell>{delivery.deliveryDate}</TableCell>
-                  <TableCell sx={{ color: '#E52B36', fontWeight: 700 }}>
+                  <TableCell sx={{ color: 'error.main', fontWeight: 700 }}>
                     D-{delivery.daysLeft}
                   </TableCell>
                   <TableCell align="center">

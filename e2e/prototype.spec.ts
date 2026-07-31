@@ -25,9 +25,7 @@ test('대시보드가 1440×900 기준으로 표시되고 검색 화면으로 �
     fullPage: false,
   });
 
-  await page.getByRole('link', { name: '장비 검색' }).click().catch(async () => {
-    await page.getByText('장비 검색', { exact: true }).first().click();
-  });
+  await page.getByRole('button', { name: '장비 검색' }).click();
   await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
 });
 
@@ -58,4 +56,46 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   expect(horizontalOverflow).toBe(false);
+});
+
+test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('지원장비 관리시스템 (GSEM)', { exact: true })).toHaveCount(2);
+
+  const selectedMenu = page.getByRole('button', { name: '대시보드' });
+  const selectedBackground = await selectedMenu.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  expect(selectedBackground).not.toBe('rgb(8, 103, 242)');
+
+  await page.getByRole('button', { name: '다크 모드로 전환' }).click();
+  await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('gsem-color-mode'))).toBe('dark');
+  await page.mouse.move(700, 700);
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(200);
+
+  await page.screenshot({
+    path: `${screenshotDirectory}/dashboard-dark.png`,
+    fullPage: false,
+  });
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(horizontalOverflow).toBe(false);
+
+  await page.goto('/equipment');
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
+  await expect(page.getByText('12건')).toBeVisible();
+  await page.screenshot({
+    path: `${screenshotDirectory}/equipment-search-dark.png`,
+    fullPage: false,
+  });
 });

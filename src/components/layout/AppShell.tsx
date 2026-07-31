@@ -2,8 +2,10 @@ import {
   AssignmentOutlined,
   ChevronLeft,
   DashboardOutlined,
+  DarkModeOutlined,
   ExpandMore,
   History,
+  LightModeOutlined,
   Menu,
   NotificationsNone,
   Search,
@@ -19,8 +21,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useThemeMode } from '../../theme/themeModeContext';
 
 interface AppShellProps {
   children: ReactNode;
@@ -37,6 +40,11 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const { mode, toggleMode } = useThemeMode();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -64,13 +72,14 @@ export function AppShell({ children }: AppShellProps) {
         >
           <Typography
             sx={{
-              fontSize: 14,
+              fontSize: 12.5,
+              lineHeight: 1.35,
               fontWeight: 700,
               letterSpacing: '-0.025em',
-              whiteSpace: 'nowrap',
+              whiteSpace: 'normal',
             }}
           >
-            지원장비 관리시스템
+            지원장비 관리시스템 (GSEM)
           </Typography>
         </Box>
 
@@ -99,10 +108,10 @@ export function AppShell({ children }: AppShellProps) {
                     borderRadius: 1,
                     color: '#FFFFFF',
                     '&.Mui-selected': {
-                      bgcolor: '#0867F2',
-                      boxShadow: 'inset 3px 0 0 #69A7FF',
+                      bgcolor: 'rgba(255,255,255,0.14)',
+                      boxShadow: 'inset 3px 0 0 rgba(255,255,255,0.78)',
                     },
-                    '&.Mui-selected:hover': { bgcolor: '#0759D3' },
+                    '&.Mui-selected:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.09)' },
                   }}
                 >
@@ -155,27 +164,51 @@ export function AppShell({ children }: AppShellProps) {
           alignItems: 'center',
           justifyContent: 'space-between',
           px: 2.5,
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #D9E2EC',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           '@media (max-width: 900px)': { left: 0 },
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <IconButton aria-label="메뉴 열기" size="small" onClick={() => setNoticeOpen(true)}>
-            <Menu sx={{ color: '#0B1B3D' }} />
+            <Menu sx={{ color: 'text.primary' }} />
           </IconButton>
-          <Typography sx={{ fontSize: 15, fontWeight: 700 }}>지원장비 관리시스템</Typography>
+          <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
+            지원장비 관리시스템 (GSEM)
+          </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Tooltip title={mode === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'}>
+            <IconButton
+              aria-label={mode === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'}
+              size="small"
+              onClick={toggleMode}
+            >
+              {mode === 'light' ? (
+                <DarkModeOutlined sx={{ color: 'text.secondary' }} />
+              ) : (
+                <LightModeOutlined sx={{ color: 'text.secondary' }} />
+              )}
+            </IconButton>
+          </Tooltip>
           <IconButton aria-label="알림" size="small" onClick={() => setNoticeOpen(true)}>
-            <NotificationsNone sx={{ color: '#273A59' }} />
+            <NotificationsNone sx={{ color: 'text.secondary' }} />
           </IconButton>
-          <Box sx={{ width: '1px', height: 24, bgcolor: '#D9E2EC', mx: 0.5 }} />
-          <Avatar sx={{ width: 32, height: 32, bgcolor: '#E8EDF3', color: '#66758C' }}>
+          <Box sx={{ width: '1px', height: 24, bgcolor: 'divider', mx: 0.5 }} />
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.09)' : '#E8EDF3',
+              color: 'text.secondary',
+            }}
+          >
             김
           </Avatar>
           <Typography sx={{ fontSize: 14, fontWeight: 700 }}>김책임</Typography>
-          <ExpandMore sx={{ fontSize: 18, color: '#52647D' }} />
+          <ExpandMore sx={{ fontSize: 18, color: 'text.secondary' }} />
         </Box>
       </Box>
 

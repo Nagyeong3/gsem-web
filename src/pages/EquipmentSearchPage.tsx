@@ -104,7 +104,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 1.5, py: 0.45 }}>
       <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography>
-      <Typography sx={{ color: '#273A59', fontSize: 12, fontWeight: 500 }}>{value}</Typography>
+      <Typography sx={{ color: 'text.primary', fontSize: 12, fontWeight: 500 }}>{value}</Typography>
     </Box>
   );
 }
@@ -117,7 +117,7 @@ function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ py: 1.5, borderTop: '1px solid #E8EDF3' }}>
+    <Box sx={{ py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
       <Typography sx={{ mb: 0.75, fontSize: 13, fontWeight: 700 }}>{title}</Typography>
       {children}
     </Box>
@@ -145,8 +145,9 @@ function EquipmentDetail({
         width: 336,
         flex: '0 0 336px',
         minHeight: 'calc(100vh - 58px)',
-        borderLeft: '1px solid #D9E2EC',
-        bgcolor: '#FFFFFF',
+        borderLeft: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
       }}
     >
       <Box
@@ -156,7 +157,8 @@ function EquipmentDetail({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #D9E2EC',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Typography sx={{ fontSize: 15, fontWeight: 700 }}>장비 상세</Typography>
@@ -348,8 +350,8 @@ export function EquipmentSearchPage() {
   };
 
   return (
-    <Box sx={{ display: 'flex', minWidth: 1080, bgcolor: '#FFFFFF' }}>
-      <Box sx={{ flex: 1, minWidth: 0, p: 3, bgcolor: '#F7F9FC' }}>
+    <Box sx={{ display: 'flex', minWidth: 1080, bgcolor: 'background.paper' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: 3, bgcolor: 'background.default' }}>
         <PageHeader
           title="장비 검색"
           description="품번과 지원장비 정보를 빠르게 조회합니다."
@@ -368,7 +370,7 @@ export function EquipmentSearchPage() {
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ fontSize: 20, color: '#66758C' }} />
+                    <Search sx={{ fontSize: 20, color: 'text.secondary' }} />
                   </InputAdornment>
                 ),
               },
@@ -454,7 +456,8 @@ export function EquipmentSearchPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 2,
-              borderTop: '1px solid #E8EDF3',
+              borderTop: '1px solid',
+              borderColor: 'divider',
             }}
           >
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -533,7 +536,7 @@ export function EquipmentSearchPage() {
           ) : filteredEquipment.length === 0 ? (
             <Box sx={{ height: 302, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
               <Box>
-                <Search sx={{ fontSize: 34, color: '#98A5B5' }} />
+                <Search sx={{ fontSize: 34, color: 'text.disabled' }} />
                 <Typography sx={{ mt: 1, fontWeight: 700 }}>검색 결과가 없습니다.</Typography>
                 <Typography sx={{ mt: 0.5, color: 'text.secondary' }}>
                   검색어 또는 필터 조건을 변경해보세요.
@@ -592,8 +595,18 @@ export function EquipmentSearchPage() {
                         }}
                         sx={{
                           cursor: 'pointer',
-                          '&.Mui-selected': { bgcolor: '#EEF5FF' },
-                          '&.Mui-selected:hover': { bgcolor: '#E4F0FF' },
+                          '&.Mui-selected': {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(108,168,255,0.14)'
+                                : '#EEF5FF',
+                          },
+                          '&.Mui-selected:hover': {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(108,168,255,0.2)'
+                                : '#E4F0FF',
+                          },
                         }}
                       >
                         <TableCell padding="checkbox">
