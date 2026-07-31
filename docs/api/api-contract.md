@@ -183,6 +183,8 @@ GET /api/v1/items/filter-options
 
 검색 화면에서 사용하는 기종, 사업, 계통, 품목 유형, 담당자, 납지 및 상태 선택지를 반환한다.
 
+납지는 공통코드가 아니라 `Delivery_Destination.delivery_dest_id`를 사용하므로 `{ destinationId, name }` 형태로 반환한다.
+
 **설계 이유**
 
 프론트가 공통코드 값과 표시명을 하드코딩하지 않도록 한다. 단, 항목 간 종속 필터가 필요한지는 미확정이다.

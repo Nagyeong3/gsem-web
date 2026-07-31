@@ -19,7 +19,7 @@
   - 장비 상세 패널
   - 로딩·빈 결과·오류 상태
 
-변경 이력, 변경 신청, 실제 다운로드, 실제 로그인, DB 연동과 운영 백엔드는 이번 구현 범위에서 제외했습니다.
+변경 이력, 변경 신청, 실제 다운로드, 실제 로그인, DB 연동과 운영 백엔드는 현재 구현 범위에서 제외했습니다.
 
 ## 기술 구성
 
@@ -74,10 +74,30 @@ npm run test:e2e
 → Mock Fixture
 ```
 
-향후 API가 확정되면 다음 Mock Service를 HTTP Adapter로 교체합니다.
+데이터 공급자는 환경변수로 전환합니다. 기본값은 `mock`이므로 별도 설정 없이 현재 프로토타입이 실행됩니다.
 
-- `src/services/dashboardService.ts`
-- `src/services/equipmentService.ts`
+```bash
+cp .env.example .env.local
+```
+
+HTTP API 연결 시험 시 `.env.local`을 다음처럼 변경합니다.
+
+```text
+VITE_DATA_SOURCE=api
+VITE_API_BASE_URL=/api/v1
+```
+
+구성 경계:
+
+```text
+페이지
+→ Service 인터페이스
+→ Mock Adapter 또는 HTTP Adapter
+→ API DTO Mapper
+→ 화면 View Model
+```
+
+실제 서버 주소, 계정정보와 Token은 저장소에 Commit하지 않습니다.
 
 화면 구조와 데이터 경계에 대한 설명은 `docs/development/prototype-architecture.md`를 참고합니다.
 

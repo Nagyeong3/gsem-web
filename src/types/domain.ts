@@ -11,8 +11,8 @@ export interface CodeLabel {
 export interface Manager {
   id: number;
   name: string;
-  role: ManagerRole;
-  assignmentType: AssignmentType;
+  role?: ManagerRole;
+  assignmentType?: AssignmentType;
 }
 
 export interface Delivery {
@@ -57,6 +57,32 @@ export interface EquipmentFilters {
   manager: string;
   destination: string;
   status: string;
+}
+
+export interface EquipmentFilterOptions {
+  aircraftTypes: string[];
+  businesses: string[];
+  systems: string[];
+  categories: string[];
+  managers: string[];
+  destinations: string[];
+  statuses: string[];
+}
+
+export interface EquipmentSearchRequest {
+  filters: EquipmentFilters;
+  sortKey: EquipmentSortKey;
+  sortDirection: SortDirection;
+  page: number;
+  size: number;
+}
+
+export interface EquipmentSearchResult {
+  items: Equipment[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export type EquipmentSortKey =

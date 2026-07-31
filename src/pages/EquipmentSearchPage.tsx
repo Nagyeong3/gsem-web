@@ -33,23 +33,22 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import {
   emptyEquipmentFilters,
-  filterEquipment,
   getAircraftTypes,
   getBusinesses,
   getDestinations,
-  sortEquipment,
   summarize,
   summarizeManagers,
 } from '../features/equipment-search/equipmentSearch';
-import { mockEquipmentService } from '../services/equipmentService';
+import { equipmentService } from '../services';
 import type {
   Equipment,
+  EquipmentFilterOptions,
   EquipmentFilters,
   EquipmentSortKey,
   SortDirection,
@@ -209,14 +208,14 @@ function EquipmentDetail({
               }}
             >
               <Chip
-                label={manager.assignmentType}
+                label={manager.assignmentType ?? '미지정'}
                 size="small"
                 variant="outlined"
                 color={manager.assignmentType === '정' ? 'primary' : 'default'}
               />
               <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{manager.name}</Typography>
               <Typography sx={{ color: 'text.secondary', fontSize: 11 }}>
-                {manager.role}
+                {manager.role ?? '역할 미지정'}
               </Typography>
             </Box>
           ))}
@@ -252,6 +251,18 @@ function EquipmentDetail({
 export function EquipmentSearchPage() {
   const [searchParams] = useSearchParams();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [selectedDetail, setSelectedDetail] = useState<Equipment | null>(null);
+  const [options, setOptions] = useState<EquipmentFilterOptions>({
+    aircraftTypes: [],
+    businesses: [],
+    systems: [],
+    categories: [],
+    managers: [],
+    destinations: [],
+    statuses: [],
+  });
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filters, setFilters] = useState<EquipmentFilters>({
@@ -266,11 +277,25 @@ export function EquipmentSearchPage() {
 
   useEffect(() => {
     let active = true;
-    mockEquipmentService
-      .getAll()
+    queueMicrotask(() => {
+      if (active) {
+        setLoading(true);
+        setError(false);
+      }
+    });
+    equipmentService
+      .search({ filters, sortKey, sortDirection, page, size: pageSize })
       .then((result) => {
         if (active) {
-          setEquipment(result);
+          setEquipment(result.items);
+          setTotalElements(result.totalElements);
+          setTotalPages(result.totalPages);
+          if (result.page !== page) setPage(result.page);
+          setSelectedId((current) =>
+            result.items.some((item) => item.itemId === current)
+              ? current
+              : (result.items[0]?.itemId ?? null),
+          );
           setLoading(false);
         }
       })
@@ -283,38 +308,57 @@ export function EquipmentSearchPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [filters, page, sortDirection, sortKey]);
 
-  const options = useMemo(
-    () => ({
-      aircraftTypes: [...new Set(equipment.flatMap(getAircraftTypes))].sort(),
-      businesses: [...new Set(equipment.flatMap(getBusinesses))].sort(),
-      systems: [...new Set(equipment.flatMap((item) => item.systems.map((system) => system.name)))].sort(),
-      categories: [...new Set(equipment.map((item) => item.category.name))].sort(),
-      managers: [...new Set(equipment.flatMap((item) => item.managers.map((manager) => manager.name)))].sort(),
-      destinations: [...new Set(equipment.flatMap(getDestinations))].sort(),
-      statuses: [...new Set(equipment.map((item) => item.status))].sort(),
-    }),
-    [equipment],
-  );
-
-  const filteredEquipment = useMemo(
-    () => sortEquipment(filterEquipment(equipment, filters), sortKey, sortDirection),
-    [equipment, filters, sortDirection, sortKey],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredEquipment.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const visibleEquipment = filteredEquipment.slice(
-    (safePage - 1) * pageSize,
-    safePage * pageSize,
-  );
-  const selectedEquipment =
+  const visibleEquipment = equipment;
+  const selectedSummary =
     selectedId === null
       ? null
-      : (filteredEquipment.find((item) => item.itemId === selectedId) ??
+      : (equipment.find((item) => item.itemId === selectedId) ??
         visibleEquipment[0] ??
         null);
+  const selectedEquipment =
+    selectedDetail?.itemId === selectedSummary?.itemId ? selectedDetail : selectedSummary;
+
+  useEffect(() => {
+    let active = true;
+    equipmentService
+      .getFilterOptions()
+      .then((result) => {
+        if (active) setOptions(result);
+      })
+      .catch(() => {
+        if (active) setError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (selectedId === null) {
+      queueMicrotask(() => {
+        if (active) setSelectedDetail(null);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    equipmentService
+      .getById(selectedId)
+      .then((result) => {
+        if (active) setSelectedDetail(result ?? null);
+      })
+      .catch(() => {
+        if (active) setSelectedDetail(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedId]);
 
   const updateFilter = (key: keyof EquipmentFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -502,7 +546,7 @@ export function EquipmentSearchPage() {
           <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700 }}>
             검색 결과{' '}
             <Box component="span" sx={{ color: 'primary.main' }}>
-              {filteredEquipment.length}건
+              {totalElements}건
             </Box>
           </Typography>
           <Tooltip title="개인별 컬럼 저장은 후속 프로토타입에서 제공할 예정입니다.">
@@ -533,7 +577,7 @@ export function EquipmentSearchPage() {
                 </Typography>
               </Box>
             </Box>
-          ) : filteredEquipment.length === 0 ? (
+          ) : equipment.length === 0 ? (
             <Box sx={{ height: 302, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
               <Box>
                 <Search sx={{ fontSize: 34, color: 'text.disabled' }} />
@@ -641,7 +685,7 @@ export function EquipmentSearchPage() {
           )}
         </Paper>
 
-        {!loading && !error && filteredEquipment.length > 0 && (
+        {!loading && !error && equipment.length > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Pagination
               page={safePage}
