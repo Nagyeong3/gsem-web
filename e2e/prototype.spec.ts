@@ -97,6 +97,7 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
+  await expect(page.getByText('10건', { exact: true })).toBeVisible();
 
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -163,6 +164,9 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
   for (const [route, heading, screenshot] of routes) {
     await page.goto(route);
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    if (route === '/deliveries') {
+      await expect(page.getByText('10건', { exact: true })).toBeVisible();
+    }
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
