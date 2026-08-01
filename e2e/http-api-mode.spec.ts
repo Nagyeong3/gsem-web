@@ -31,10 +31,11 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
   await expect(page.getByText('2,346', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: '장비 검색' }).click();
-  await expect(page.getByText('12건')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
   await page.getByLabel('사업').click();
   await page.getByRole('option', { name: '나 사업' }).click();
-  await expect(page.getByText('4건')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
 
   await page.goto('/equipment/1');
   await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
