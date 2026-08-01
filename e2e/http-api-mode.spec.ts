@@ -26,7 +26,7 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
     return dashboardService.getOverview();
   });
   expect((await overviewResponse).status()).toBe(200);
-  expect(overview.metrics.find((metric) => metric.id === 'ATTENTION')?.value).toBe(12);
+  expect(overview.metrics.find((metric) => metric.id === 'attention')?.value).toBe(12);
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('2,346', { exact: true })).toBeVisible();
 
