@@ -21,8 +21,8 @@ after(async () => {
   });
 });
 
-async function getJson(path) {
-  const response = await fetch(`${baseUrl}${path}`);
+async function getJson(path, init) {
+  const response = await fetch(`${baseUrl}${path}`, init);
   return { response, body: await response.json() };
 }
 
@@ -41,6 +41,20 @@ test('대시보드 핵심 수치 12건의 정합성을 유지한다', async () =
     metrics.get('ATTENTION'),
     metrics.get('DELAY') + metrics.get('REPLACEMENT') + metrics.get('APPROVAL'),
   );
+});
+
+test('대시보드 납품 예정일과 D-day가 한국 날짜 기준으로 일치한다', async () => {
+  const { body } = await getJson('/api/v1/dashboard/overview');
+  const koreaToday = new Date(Date.now() + 9 * 60 * 60 * 1_000).toISOString().slice(0, 10);
+  const todayTimestamp = Date.parse(`${koreaToday}T00:00:00Z`);
+
+  for (const delivery of body.data.upcomingDeliveries) {
+    const deliveryTimestamp = Date.parse(`${delivery.deliveryDate}T00:00:00Z`);
+    assert.equal(
+      (deliveryTimestamp - todayTimestamp) / (24 * 60 * 60 * 1_000),
+      delivery.daysLeft,
+    );
+  }
 });
 
 test('품목 검색이 필터·정렬·페이징을 서버에서 처리한다', async () => {
@@ -86,5 +100,112 @@ test('잘못된 페이지 크기와 정렬을 400 오류로 거부한다', async
   assert.deepEqual(
     body.error.fieldErrors.map((error) => error.field),
     ['size', 'sort'],
+  );
+});
+
+test('모든 검색 필터와 정렬 항목이 오류 없이 동작한다', async () => {
+  const filters = [
+    ['itemType', 'SUPPORT_EQUIPMENT'],
+    ['aircraftTypeCode', 'AT001'],
+    ['businessId', '1'],
+    ['subsystemCode', 'SS0001'],
+    ['categoryCode', 'CA0001'],
+    ['managerUserId', '1'],
+    ['destinationId', '1'],
+    ['status', 'IN_USE'],
+  ];
+  const sortFields = [
+    'itemNumber',
+    'itemNameKor',
+    'aircraftType',
+    'business',
+    'subsystem',
+    'category',
+    'manager',
+    'destination',
+    'status',
+    'recentChangeDate',
+  ];
+
+  for (const [name, value] of filters) {
+    const result = await getJson(`/api/v1/items?${name}=${value}&page=1&size=20`);
+    assert.equal(result.response.status, 200, `${name} 필터 실패`);
+    assert.ok(result.body.page.totalElements > 0, `${name} 필터 결과 없음`);
+  }
+
+  for (const field of sortFields) {
+    for (const direction of ['asc', 'desc']) {
+      const result = await getJson(
+        `/api/v1/items?sort=${field}%2C${direction}&page=1&size=20`,
+      );
+      assert.equal(result.response.status, 200, `${field},${direction} 정렬 실패`);
+    }
+  }
+});
+
+test('페이지를 나누어 조회해도 품목 중복이나 누락이 없다', async () => {
+  const first = await getJson('/api/v1/items?sort=itemNumber%2Casc&page=1&size=5');
+  const second = await getJson('/api/v1/items?sort=itemNumber%2Casc&page=2&size=5');
+  const third = await getJson('/api/v1/items?sort=itemNumber%2Casc&page=3&size=5');
+  const itemIds = [...first.body.data, ...second.body.data, ...third.body.data].map(
+    (item) => item.itemId,
+  );
+
+  assert.equal(itemIds.length, 12);
+  assert.equal(new Set(itemIds).size, 12);
+  assert.deepEqual(first.body.page, {
+    page: 1,
+    size: 5,
+    totalElements: 12,
+    totalPages: 3,
+  });
+});
+
+test('응답 Header와 CORS 허용 범위를 제한한다', async () => {
+  const allowed = await getJson('/api/v1/items?page=1&size=1', {
+    headers: { Origin: 'http://localhost:5173' },
+  });
+  assert.match(allowed.response.headers.get('content-type'), /^application\/json/);
+  assert.equal(allowed.response.headers.get('cache-control'), 'no-store');
+  assert.equal(allowed.response.headers.get('access-control-allow-origin'), 'http://localhost:5173');
+
+  const denied = await getJson('/api/v1/items?page=1&size=1', {
+    headers: { Origin: 'https://example.invalid' },
+  });
+  assert.equal(denied.response.headers.get('access-control-allow-origin'), null);
+});
+
+test('지원하지 않는 Method와 잘못된 페이지 값을 공통 오류로 반환한다', async () => {
+  const method = await getJson('/api/v1/items', { method: 'POST' });
+  assert.equal(method.response.status, 405);
+  assert.equal(method.body.error.code, 'METHOD_NOT_ALLOWED');
+
+  for (const query of ['page=0', 'page=abc', 'size=0']) {
+    const result = await getJson(`/api/v1/items?${query}`);
+    assert.equal(result.response.status, 400);
+    assert.equal(result.body.error.code, 'INVALID_REQUEST');
+  }
+});
+
+test('목업 데이터에 금지된 직급·실제 연락처·깨진 문자·한자가 없다', async () => {
+  const items = await getJson('/api/v1/items?page=1&size=100');
+  const details = await Promise.all(
+    items.body.data.map((item) => getJson(`/api/v1/items/${item.itemId}`)),
+  );
+  const serialized = JSON.stringify({
+    items: items.body.data,
+    details: details.map((detail) => detail.body.data),
+  });
+
+  assert.doesNotMatch(serialized, /사원|대리|과장|차장|부장/);
+  assert.doesNotMatch(serialized, /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/);
+  assert.doesNotMatch(serialized, /01[016789]-?\d{3,4}-?\d{4}/);
+  assert.doesNotMatch(serialized, /\uFFFD/);
+  assert.doesNotMatch(serialized, /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}/u);
+  assert.ok(items.body.data.every((item) => /^XXXXXX-\d{2}$/.test(item.itemNumber)));
+  assert.ok(
+    items.body.data
+      .flatMap((item) => item.managers)
+      .every((manager) => /(?:책임|선임)$/.test(manager.name)),
   );
 });

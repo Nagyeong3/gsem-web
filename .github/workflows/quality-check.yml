@@ -1,0 +1,51 @@
+name: 품질 검사
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop/prototype
+  push:
+    branches:
+      - develop/prototype
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: 타입·코드·계약·빌드 검사
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 저장소 확인
+        uses: actions/checkout@v4
+
+      - name: Node.js 준비
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: TypeScript 검사
+        run: npm run typecheck
+
+      - name: ESLint 검사
+        run: npm run lint
+
+      - name: 프론트 단위·통합 테스트
+        run: npm run test
+
+      - name: Stub API 계약 테스트
+        run: npm run test:stub
+
+      - name: 프로덕션 빌드
+        run: npm run build

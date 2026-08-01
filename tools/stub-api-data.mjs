@@ -91,6 +91,14 @@ const applicationSequence = [
 ];
 
 const deliveryStatusSequence = ['PLANNED', 'IN_PROGRESS', 'COMPLETED'];
+const dayInMilliseconds = 24 * 60 * 60 * 1_000;
+const koreaOffsetInMilliseconds = 9 * 60 * 60 * 1_000;
+
+function toKoreaDate(daysFromToday) {
+  return new Date(Date.now() + koreaOffsetInMilliseconds + daysFromToday * dayInMilliseconds)
+    .toISOString()
+    .slice(0, 10);
+}
 
 function uniqueBy(values, key) {
   return [...new Map(values.map((value) => [value[key], value])).values()];
@@ -248,7 +256,7 @@ export const dashboardOverview = {
     content: index === 2 ? '구성 변경' : '사양 변경',
     category: index === 2 ? '구성 변경' : '설계 변경',
     requesterName: index % 2 === 0 ? '김책임' : '이선임',
-    changedAt: item.recentChangeDate,
+    changedAt: toKoreaDate(-(index + 1)),
     status: index === 2 ? '검토 중' : '완료',
   })),
   upcomingDeliveries: itemDetails.slice(0, 4).map((item, index) => ({
@@ -256,7 +264,7 @@ export const dashboardOverview = {
     itemId: item.itemId,
     itemName: item.itemNameKor,
     itemNumber: item.itemNumber,
-    deliveryDate: item.applications[0].deliveries[0].deliveryDate,
+    deliveryDate: toKoreaDate(index * 2 + 2),
     daysLeft: index * 2 + 2,
     status: '임박',
   })),
