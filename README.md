@@ -18,8 +18,18 @@
   - 품목당 한 행 표시
   - 장비 상세 패널
   - 로딩·빈 결과·오류 상태
+- 장비 통합 상세
+  - 품목 기본정보와 복수 사업·기종·계통 표시
+  - 복수 담당자, 사업별 납지, SERD, 품보·교정 정보
+  - 단종·대체 관계 요약
+- 납품 일정 관리
+  - 사업·기종·납지·상태 필터와 통합 검색
+  - 계획·발주·입고·납품 수량 및 선택 일정 상세
+- 변경 신청 및 처리 현황
+  - 신청 목록, 검색·필터, 변경 전·후 비교
+  - 사유·근거·처리 과정 조회
 
-변경 이력, 변경 신청, 실제 다운로드, 실제 로그인, DB 연동과 운영 백엔드는 현재 구현 범위에서 제외했습니다.
+변경 이력 그래프, 실제 변경 승인·저장, 실제 다운로드, 실제 로그인, DB 연동과 운영 백엔드는 현재 구현 범위에서 제외했습니다.
 
 ## 기술 구성
 
@@ -69,6 +79,9 @@ VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
 
 - `docs/prototype-screenshots/dashboard.png`
 - `docs/prototype-screenshots/equipment-search.png`
+- `docs/prototype-screenshots/equipment-detail.png`
+- `docs/prototype-screenshots/delivery-schedule.png`
+- `docs/prototype-screenshots/change-request.png`
 
 ## 목업 데이터 교체 위치
 
@@ -145,3 +158,5 @@ npm run dev
 - 담당자의 `정`·`부` 구분은 화면 검증을 위한 속성이며 실제 저장 필드는 미확정입니다.
 - 검색 결과는 품목 하나당 한 행으로 표시합니다.
 - 실제 사내 품번, 사업명, 직원정보, 연락처와 계약정보를 포함하지 않습니다.
+- 변경 신청의 `접수`, `검토 중`, `처리 완료`와 처리 순서는 화면 검증용 가정입니다.
+- 지연 판정 규칙은 미확정이므로 프론트에서 날짜만으로 자동 판정하지 않습니다.
