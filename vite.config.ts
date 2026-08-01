@@ -7,9 +7,6 @@ export default defineConfig(({ mode }) => ({
     mode === 'api'
       ? {
           'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
-          'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-            'http://127.0.0.1:4010/api/v1',
-          ),
         }
       : undefined,
   server: {
