@@ -185,3 +185,35 @@ export interface DeliveryScheduleFilters {
   destination: string;
   status: string;
 }
+
+export type ChangeRequestStatus = '접수' | '검토 중' | '처리 완료';
+
+export interface ChangeDifference {
+  field: string;
+  label: string;
+  before?: string;
+  after?: string;
+}
+
+export interface ChangeRequest {
+  changeId: string;
+  itemId: number;
+  itemNum: string;
+  itemName: string;
+  changeType: string;
+  requestedBy: Manager;
+  requestedAt: string;
+  processedBy?: Manager;
+  processedAt?: string;
+  status: ChangeRequestStatus;
+  reason?: string;
+  basis?: string;
+  differences: ChangeDifference[];
+}
+
+export interface ChangeRequestFilters {
+  query: string;
+  changeType: string;
+  status: string;
+  requester: string;
+}
