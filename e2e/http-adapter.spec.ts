@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-test('Stub API 모드에서 대시보드와 장비 검색 흐름이 동작한다', async ({ page }) => {
+test('Stub API 모드에서 대시보드와 장비 검색 흐름이 동작한다', async ({ page, request }) => {
+  const health = await request.get('http://127.0.0.1:4010/health');
+  expect(health.ok()).toBe(true);
+  const overview = await request.get('http://127.0.0.1:5174/api/v1/dashboard/overview');
+  expect(overview.ok()).toBe(true);
+
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '지원장비 관리 현황' })).toBeVisible();
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
