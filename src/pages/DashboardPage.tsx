@@ -11,7 +11,6 @@ import {
 import {
   Box,
   Button,
-  CircularProgress,
   IconButton,
   InputAdornment,
   Paper,
@@ -24,7 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bar,
@@ -38,9 +37,11 @@ import {
   YAxis,
 } from 'recharts';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { StatusChip } from '../components/common/StatusChip';
 import { dashboardService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { DashboardData, DashboardMetric } from '../types/domain';
 
 const iconByMetric: Record<DashboardMetric['id'], typeof Inventory2Outlined> = {
@@ -61,9 +62,11 @@ const attentionItems = [
 export function DashboardPage() {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState(false);
   const [query, setQuery] = useState('');
+  const loadDashboard = useCallback(() => dashboardService.getOverview(), []);
+  const { data, isLoading, isError, refetch } = useAsyncQuery<DashboardData>({
+    queryFn: loadDashboard,
+  });
   const colorByTone = {
     brand: '#FFFFFF',
     neutral: theme.palette.text.secondary,
@@ -73,21 +76,6 @@ export function DashboardPage() {
   } as const;
   const chartGridColor = theme.palette.divider;
   const chartTextColor = theme.palette.text.secondary;
-
-  useEffect(() => {
-    let active = true;
-    dashboardService
-      .getOverview()
-      .then((result) => {
-        if (active) setData(result);
-      })
-      .catch(() => {
-        if (active) setError(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const attentionTotal = useMemo(
     () => attentionItems.reduce((sum, item) => sum + item.count, 0),
@@ -100,25 +88,26 @@ export function DashboardPage() {
     navigate(`/equipment${params.size ? `?${params.toString()}` : ''}`);
   };
 
-  if (error) {
+  if (isError) {
     return (
       <Box sx={{ p: 3 }}>
         <PageHeader
           title="지원장비 관리 현황"
           description="지원장비 정보와 납품·변경 현황을 확인합니다."
         />
-        <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
-          <ErrorOutlined color="error" />
-          <Typography sx={{ mt: 1, fontWeight: 700 }}>현황을 불러오지 못했습니다.</Typography>
-          <Button sx={{ mt: 2 }} variant="outlined" onClick={() => window.location.reload()}>
-            다시 불러오기
-          </Button>
+        <Paper variant="outlined">
+          <QueryStatePanel
+            state="error"
+            errorMessage="현황을 불러오지 못했습니다."
+            onRetry={refetch}
+            minHeight={320}
+          />
         </Paper>
       </Box>
     );
   }
 
-  if (!data) {
+  if (isLoading || !data) {
     return (
       <Box
         sx={{
@@ -127,12 +116,11 @@ export function DashboardPage() {
           placeItems: 'center',
         }}
       >
-        <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography sx={{ mt: 1.5, color: 'text.secondary' }}>
-            대시보드를 불러오고 있습니다.
-          </Typography>
-        </Box>
+        <QueryStatePanel
+          state="loading"
+          loadingMessage="대시보드를 불러오고 있습니다."
+          minHeight={360}
+        />
       </Box>
     );
   }

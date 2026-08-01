@@ -1,7 +1,6 @@
 import {
   Close,
   DownloadOutlined,
-  ErrorOutlined,
   History,
   OpenInNew,
   Refresh,
@@ -12,7 +11,6 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   FormControl,
   IconButton,
   InputAdornment,
@@ -33,9 +31,10 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { StatusChip } from '../components/common/StatusChip';
 import {
   emptyEquipmentFilters,
@@ -46,6 +45,7 @@ import {
   summarizeManagers,
 } from '../features/equipment-search/equipmentSearch';
 import { equipmentService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type {
   Equipment,
   EquipmentFilterOptions,
@@ -254,21 +254,6 @@ function EquipmentDetail({
 export function EquipmentSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [selectedDetail, setSelectedDetail] = useState<Equipment | null>(null);
-  const [options, setOptions] = useState<EquipmentFilterOptions>({
-    aircraftTypes: [],
-    businesses: [],
-    systems: [],
-    categories: [],
-    managers: [],
-    destinations: [],
-    statuses: [],
-  });
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [filters, setFilters] = useState<EquipmentFilters>({
     ...emptyEquipmentFilters,
     query: searchParams.get('q') ?? '',
@@ -277,45 +262,39 @@ export function EquipmentSearchPage() {
   const [sortKey, setSortKey] = useState<EquipmentSortKey>('itemNum');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<number | null>(1);
+  const [requestedSelectedId, setRequestedSelectedId] = useState<number | null>(1);
 
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => {
-      if (active) {
-        setLoading(true);
-        setError(false);
-      }
-    });
-    equipmentService
-      .search({ filters, sortKey, sortDirection, page, size: pageSize })
-      .then((result) => {
-        if (active) {
-          setEquipment(result.items);
-          setTotalElements(result.totalElements);
-          setTotalPages(result.totalPages);
-          if (result.page !== page) setPage(result.page);
-          setSelectedId((current) =>
-            result.items.some((item) => item.itemId === current)
-              ? current
-              : (result.items[0]?.itemId ?? null),
-          );
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [filters, page, sortDirection, sortKey]);
+  const searchEquipment = useCallback(
+    () => equipmentService.search({ filters, sortKey, sortDirection, page, size: pageSize }),
+    [filters, page, sortDirection, sortKey],
+  );
+  const equipmentQuery = useAsyncQuery({ queryFn: searchEquipment, keepPreviousData: true });
+  const loadFilterOptions = useCallback(() => equipmentService.getFilterOptions(), []);
+  const optionsQuery = useAsyncQuery<EquipmentFilterOptions>({ queryFn: loadFilterOptions });
+  const equipment = equipmentQuery.data?.items ?? [];
+  const totalElements = equipmentQuery.data?.totalElements ?? 0;
+  const totalPages = equipmentQuery.data?.totalPages ?? 1;
+  const options = optionsQuery.data ?? {
+    aircraftTypes: [], businesses: [], systems: [], categories: [],
+    managers: [], destinations: [], statuses: [],
+  };
 
   const safePage = Math.min(page, totalPages);
   const visibleEquipment = equipment;
+  const selectedId = requestedSelectedId === null
+    ? null
+    : equipment.some((item) => item.itemId === requestedSelectedId)
+      ? requestedSelectedId
+      : (equipment[0]?.itemId ?? null);
+  const loadSelectedEquipment = useCallback(
+    () => equipmentService.getById(selectedId ?? 0),
+    [selectedId],
+  );
+  const detailQuery = useAsyncQuery<Equipment | undefined>({
+    queryFn: loadSelectedEquipment,
+    enabled: selectedId !== null,
+    keepPreviousData: true,
+  });
   const selectedSummary =
     selectedId === null
       ? null
@@ -323,46 +302,7 @@ export function EquipmentSearchPage() {
         visibleEquipment[0] ??
         null);
   const selectedEquipment =
-    selectedDetail?.itemId === selectedSummary?.itemId ? selectedDetail : selectedSummary;
-
-  useEffect(() => {
-    let active = true;
-    equipmentService
-      .getFilterOptions()
-      .then((result) => {
-        if (active) setOptions(result);
-      })
-      .catch(() => {
-        if (active) setError(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    if (selectedId === null) {
-      queueMicrotask(() => {
-        if (active) setSelectedDetail(null);
-      });
-      return () => {
-        active = false;
-      };
-    }
-
-    equipmentService
-      .getById(selectedId)
-      .then((result) => {
-        if (active) setSelectedDetail(result ?? null);
-      })
-      .catch(() => {
-        if (active) setSelectedDetail(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [selectedId]);
+    detailQuery.data?.itemId === selectedSummary?.itemId ? detailQuery.data : selectedSummary;
 
   const updateFilter = (key: keyof EquipmentFilters, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -563,37 +503,12 @@ export function EquipmentSearchPage() {
         </Box>
 
         <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
-          {loading ? (
-            <Box sx={{ height: 302, display: 'grid', placeItems: 'center' }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <CircularProgress size={26} />
-                <Typography sx={{ mt: 1.25, color: 'text.secondary' }}>
-                  장비 정보를 불러오고 있습니다.
-                </Typography>
-              </Box>
-            </Box>
-          ) : error ? (
-            <Box sx={{ height: 302, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-              <Box>
-                <ErrorOutlined color="error" />
-                <Typography sx={{ mt: 1, fontWeight: 700 }}>
-                  장비 정보를 불러오지 못했습니다.
-                </Typography>
-              </Box>
-            </Box>
+          {equipmentQuery.isLoading ? (
+            <QueryStatePanel state="loading" loadingMessage="장비 정보를 불러오고 있습니다." minHeight={302} />
+          ) : equipmentQuery.isError ? (
+            <QueryStatePanel state="error" errorMessage="장비 정보를 불러오지 못했습니다." onRetry={equipmentQuery.refetch} minHeight={302} />
           ) : equipment.length === 0 ? (
-            <Box sx={{ height: 302, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-              <Box>
-                <Search sx={{ fontSize: 34, color: 'text.disabled' }} />
-                <Typography sx={{ mt: 1, fontWeight: 700 }}>검색 결과가 없습니다.</Typography>
-                <Typography sx={{ mt: 0.5, color: 'text.secondary' }}>
-                  검색어 또는 필터 조건을 변경해보세요.
-                </Typography>
-                <Button sx={{ mt: 1.5 }} variant="outlined" onClick={resetFilters}>
-                  검색 조건 초기화
-                </Button>
-              </Box>
-            </Box>
+            <QueryStatePanel state="empty" emptyMessage="검색 결과가 없습니다." emptyDescription="검색어 또는 필터 조건을 변경해보세요." onReset={resetFilters} minHeight={302} />
           ) : (
             <TableContainer sx={{ maxWidth: '100%', overflowX: 'auto' }}>
               <Table
@@ -633,12 +548,12 @@ export function EquipmentSearchPage() {
                         key={item.itemId}
                         hover
                         selected={selected}
-                        onClick={() => setSelectedId(item.itemId)}
+                        onClick={() => setRequestedSelectedId(item.itemId)}
                         tabIndex={0}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            setSelectedId(item.itemId);
+                            setRequestedSelectedId(item.itemId);
                           }
                         }}
                         sx={{
@@ -689,7 +604,7 @@ export function EquipmentSearchPage() {
           )}
         </Paper>
 
-        {!loading && !error && equipment.length > 0 && (
+        {!equipmentQuery.isLoading && !equipmentQuery.isError && equipment.length > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Pagination
               page={safePage}
@@ -705,7 +620,7 @@ export function EquipmentSearchPage() {
       {selectedEquipment && (
         <EquipmentDetail
           equipment={selectedEquipment}
-          onClose={() => setSelectedId(null)}
+          onClose={() => setRequestedSelectedId(null)}
           onOpenFullDetail={() => navigate(`/equipment/${selectedEquipment.itemId}`)}
         />
       )}

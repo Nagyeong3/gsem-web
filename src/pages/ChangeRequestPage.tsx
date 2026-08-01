@@ -1,15 +1,17 @@
 import { ArrowForward, AssignmentOutlined, Search } from '@mui/icons-material';
 import {
-  Box, Chip, CircularProgress, FormControl, InputAdornment, InputLabel, MenuItem, Paper,
+  Box, Chip, FormControl, InputAdornment, InputLabel, MenuItem, Paper,
   Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField,
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { changeRequestService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { ChangeRequest, ChangeRequestFilters, ChangeRequestStatus } from '../types/domain';
 
 const statusTone: Record<ChangeRequestStatus, 'default' | 'warning' | 'success'> = {
@@ -32,31 +34,31 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 export function ChangeRequestPage() {
   const theme = useTheme();
   const [searchParams] = useSearchParams();
-  const [requests, setRequests] = useState<ChangeRequest[]>([]);
-  const [allRequests, setAllRequests] = useState<ChangeRequest[]>([]);
-  const [selectedId, setSelectedId] = useState<string>();
-  const [loading, setLoading] = useState(true);
+  const [requestedSelectedId, setRequestedSelectedId] = useState<string>();
   const [filters, setFilters] = useState<ChangeRequestFilters>({ query: '', changeType: '', status: searchParams.get('status') ?? '', requester: '' });
 
-  useEffect(() => {
-    let active = true;
-    changeRequestService.list({ query: '', changeType: '', status: '', requester: '' }).then((items) => { if (active) setAllRequests(items); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => { if (active) setLoading(true); });
-    changeRequestService.list(filters).then((items) => {
-      if (!active) return;
-      const itemId = Number(searchParams.get('itemId'));
-      const filtered = Number.isInteger(itemId) && itemId > 0 ? items.filter((item) => item.itemId === itemId) : items;
-      setRequests(filtered);
-      setSelectedId((current) => filtered.some((item) => item.changeId === current) ? current : filtered[0]?.changeId);
-      setLoading(false);
-    }).catch(() => { if (active) { setRequests([]); setLoading(false); } });
-    return () => { active = false; };
-  }, [filters, searchParams]);
+  const itemIdParam = searchParams.get('itemId') ?? '';
+  const loadAllRequests = useCallback(
+    () => changeRequestService.list({ query: '', changeType: '', status: '', requester: '' }),
+    [],
+  );
+  const allRequestsQuery = useAsyncQuery<ChangeRequest[]>({ queryFn: loadAllRequests });
+  const loadRequests = useCallback(async () => {
+    const items = await changeRequestService.list(filters);
+    const itemId = Number(itemIdParam);
+    return Number.isInteger(itemId) && itemId > 0
+      ? items.filter((item) => item.itemId === itemId)
+      : items;
+  }, [filters, itemIdParam]);
+  const requestsQuery = useAsyncQuery<ChangeRequest[]>({
+    queryFn: loadRequests,
+    keepPreviousData: true,
+  });
+  const requests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
+  const allRequests = useMemo(() => allRequestsQuery.data ?? [], [allRequestsQuery.data]);
+  const selectedId = requestedSelectedId !== undefined && requests.some((item) => item.changeId === requestedSelectedId)
+    ? requestedSelectedId
+    : requests[0]?.changeId;
 
   const options = useMemo(() => ({
     types: [...new Set(allRequests.map((item) => item.changeType))].sort(),
@@ -75,7 +77,7 @@ export function ChangeRequestPage() {
 
     <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 390px', gap: 1.5 }}>
       <Paper variant="outlined" sx={{ overflow: 'hidden' }}><TableContainer><Table size="small" aria-label="변경 신청 목록"><TableHead><TableRow><TableCell>신청번호</TableCell><TableCell>대상 품번</TableCell><TableCell>품명</TableCell><TableCell>변경 유형</TableCell><TableCell>신청자</TableCell><TableCell>신청일</TableCell><TableCell>처리 상태</TableCell><TableCell>처리자</TableCell><TableCell>최근 처리일</TableCell></TableRow></TableHead><TableBody>
-        {loading ? <TableRow><TableCell colSpan={9} align="center" sx={{ height: 330 }}><CircularProgress size={26} /></TableCell></TableRow> : requests.length === 0 ? <TableRow><TableCell colSpan={9} align="center" sx={{ height: 330 }}>조회된 변경 신청이 없습니다.</TableCell></TableRow> : requests.map((item) => <TableRow key={item.changeId} hover selected={item.changeId === selectedId} onClick={() => setSelectedId(item.changeId)} sx={{ cursor: 'pointer' }}><TableCell sx={{ fontWeight: 600 }}>{item.changeId}</TableCell><TableCell>{item.itemNum}</TableCell><TableCell>{item.itemName}</TableCell><TableCell>{item.changeType}</TableCell><TableCell>{item.requestedBy.name}</TableCell><TableCell>{item.requestedAt.split(' ')[0]}</TableCell><TableCell><RequestStatus status={item.status} /></TableCell><TableCell>{item.processedBy?.name ?? '-'}</TableCell><TableCell>{item.processedAt?.split(' ')[0] ?? '-'}</TableCell></TableRow>)}
+        {requestsQuery.isLoading ? <TableRow><TableCell colSpan={9} sx={{ p: 0 }}><QueryStatePanel state="loading" loadingMessage="변경 신청을 불러오고 있습니다." minHeight={330} compact /></TableCell></TableRow> : requestsQuery.isError ? <TableRow><TableCell colSpan={9} sx={{ p: 0 }}><QueryStatePanel state="error" errorMessage="변경 신청을 불러오지 못했습니다." onRetry={requestsQuery.refetch} minHeight={330} /></TableCell></TableRow> : requests.length === 0 ? <TableRow><TableCell colSpan={9} sx={{ p: 0 }}><QueryStatePanel state="empty" emptyMessage="조회된 변경 신청이 없습니다." emptyDescription="검색 조건을 변경해보세요." minHeight={330} /></TableCell></TableRow> : requests.map((item) => <TableRow key={item.changeId} hover selected={item.changeId === selectedId} onClick={() => setRequestedSelectedId(item.changeId)} sx={{ cursor: 'pointer' }}><TableCell sx={{ fontWeight: 600 }}>{item.changeId}</TableCell><TableCell>{item.itemNum}</TableCell><TableCell>{item.itemName}</TableCell><TableCell>{item.changeType}</TableCell><TableCell>{item.requestedBy.name}</TableCell><TableCell>{item.requestedAt.split(' ')[0]}</TableCell><TableCell><RequestStatus status={item.status} /></TableCell><TableCell>{item.processedBy?.name ?? '-'}</TableCell><TableCell>{item.processedAt?.split(' ')[0] ?? '-'}</TableCell></TableRow>)}
       </TableBody></Table></TableContainer></Paper>
 
       <SectionCard title="선택 신청 상세"><Box sx={{ p: 2 }}>
