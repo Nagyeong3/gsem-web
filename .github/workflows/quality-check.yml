@@ -55,3 +55,12 @@ jobs:
 
       - name: 1440×900 브라우저 시나리오 검사
         run: npm run test:e2e
+
+      - name: 실행 화면 캡처 보관
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prototype-screenshots-${{ github.run_number }}
+          path: docs/prototype-screenshots/*.png
+          if-no-files-found: error
+          retention-days: 7
