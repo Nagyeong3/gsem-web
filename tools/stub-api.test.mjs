@@ -143,6 +143,48 @@ test('모든 검색 필터와 정렬 항목이 오류 없이 동작한다', asyn
   }
 });
 
+test('납품 일정 조회가 통합 검색과 업무 필터를 처리한다', async () => {
+  const all = await getJson('/api/v1/deliveries?page=1&size=100');
+  assert.equal(all.response.status, 200);
+  assert.ok(all.body.data.length > 0);
+  assert.ok(all.body.data.every((item) => Number.isInteger(item.plannedQuantity)));
+
+  const filtered = await getJson(
+    '/api/v1/deliveries?businessId=1&status=IN_PROGRESS&page=1&size=100',
+  );
+  assert.equal(filtered.response.status, 200);
+  assert.ok(filtered.body.data.length > 0);
+  assert.ok(
+    filtered.body.data.every(
+      (item) => item.business.businessId === 1 && item.status === 'IN_PROGRESS',
+    ),
+  );
+});
+
+test('변경 신청 조회가 상태·신청자·검색 조건을 처리한다', async () => {
+  const filtered = await getJson(
+    '/api/v1/change-events?status=PROCESSED&requesterUserId=1&page=1&size=100',
+  );
+  assert.equal(filtered.response.status, 200);
+  assert.equal(filtered.body.data.length, 2);
+  assert.ok(filtered.body.data.every((item) => item.requestedBy.name === '김책임'));
+
+  const searched = await getJson('/api/v1/change-events?query=XXXXXX-03&page=1&size=100');
+  assert.equal(searched.body.data[0].changeId, 'CHG-XXXXX-03');
+});
+
+test('대체 이력 그래프가 5단계와 분기 관계를 표현할 수 있는 데이터를 반환한다', async () => {
+  const graph = await getJson('/api/v1/items/1/replacement-graph');
+  assert.equal(graph.response.status, 200);
+  assert.equal(graph.body.data.nodes.length, 12);
+  assert.equal(graph.body.data.edges.length, 12);
+  assert.ok(graph.body.data.nodes.some((item) => item.businesses.length > 1));
+
+  const missing = await getJson('/api/v1/items/999/replacement-graph');
+  assert.equal(missing.response.status, 404);
+  assert.equal(missing.body.error.code, 'ITEM_NOT_FOUND');
+});
+
 test('페이지를 나누어 조회해도 품목 중복이나 누락이 없다', async () => {
   const first = await getJson('/api/v1/items?sort=itemNumber%2Casc&page=1&size=5');
   const second = await getJson('/api/v1/items?sort=itemNumber%2Casc&page=2&size=5');

@@ -32,7 +32,11 @@ const graph: ReplacementGraph = {
   })),
 };
 
-export const replacementHistoryService = {
+export interface ReplacementHistoryService {
+  getGraph(itemId?: number): Promise<ReplacementGraph>;
+}
+
+export const mockReplacementHistoryService: ReplacementHistoryService = {
   async getGraph(): Promise<ReplacementGraph> {
     return structuredClone(graph);
   },

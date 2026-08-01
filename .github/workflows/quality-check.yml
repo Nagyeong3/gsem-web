@@ -56,6 +56,9 @@ jobs:
       - name: 1440×900 브라우저 시나리오 검사
         run: npm run test:e2e
 
+      - name: Stub API 브라우저 연동 검사
+        run: npm run test:e2e:api
+
       - name: 실행 화면 캡처 보관
         if: always()
         uses: actions/upload-artifact@v4

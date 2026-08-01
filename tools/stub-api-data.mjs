@@ -270,6 +270,134 @@ export const dashboardOverview = {
   })),
 };
 
+export const deliverySchedules = itemDetails.flatMap((item) =>
+  item.applications.flatMap((application) =>
+    application.deliveries.map((delivery) => ({
+      deliveryId: delivery.deliveryId,
+      integratedInfoId: application.integratedInfoId,
+      item: {
+        itemId: item.itemId,
+        itemNumber: item.itemNumber,
+        itemName: item.itemNameKor,
+      },
+      business: application.business,
+      aircraftType: application.aircraftType,
+      destination: delivery.destination,
+      plannedQuantity: delivery.quantity,
+      orderedQuantity:
+        delivery.status === 'PLANNED' ? Math.max(0, delivery.quantity - 2) : delivery.quantity,
+      receivedQuantity:
+        delivery.status === 'COMPLETED'
+          ? delivery.quantity
+          : delivery.status === 'IN_PROGRESS'
+            ? Math.max(0, delivery.quantity - 3)
+            : 0,
+      deliveredQuantity: delivery.status === 'COMPLETED' ? delivery.quantity : 0,
+      deliveryDate: delivery.deliveryDate,
+      ...(delivery.receiptDate ? { receiptDate: delivery.receiptDate } : {}),
+      status: delivery.status,
+      delayed: false,
+      managers: item.managers,
+    })),
+  ),
+);
+
+export const changeEvents = [
+  {
+    changeId: 'CHG-XXXXX-01',
+    item: { itemId: 1, itemNumber: 'XXXXXX-01', itemName: 'A장비' },
+    changeType: '담당자 변경',
+    requestedBy: managers.kim,
+    requestedAt: '2026-07-29T09:20:00+09:00',
+    processedBy: managers.lee,
+    processedAt: '2026-07-30T14:10:00+09:00',
+    status: 'PROCESSED',
+    reason: '담당 업무 조정',
+    basis: '담당자 확인',
+    differences: [
+      { field: 'manager', label: '지원장비 담당자', before: '이선임', after: '김책임' },
+    ],
+  },
+  {
+    changeId: 'CHG-XXXXX-02',
+    item: { itemId: 2, itemNumber: 'XXXXXX-02', itemName: 'B장비' },
+    changeType: '품목 정보 변경',
+    requestedBy: managers.park,
+    requestedAt: '2026-07-28T10:05:00+09:00',
+    processedBy: managers.lee,
+    status: 'IN_REVIEW',
+    reason: '품목 용도 정보 보완',
+    basis: '검토 자료 확인',
+    differences: [
+      { field: 'usage', label: '국문 용도', before: '변경 전 용도', after: '변경 후 용도' },
+    ],
+  },
+  {
+    changeId: 'CHG-XXXXX-03',
+    item: { itemId: 3, itemNumber: 'XXXXXX-03', itemName: 'C장비' },
+    changeType: '대체품 검토',
+    requestedBy: managers.lee,
+    requestedAt: '2026-07-27T15:30:00+09:00',
+    status: 'RECEIVED',
+    reason: '단종 여부 확인 후 대체품 검토 필요',
+    basis: '단종 확인',
+    differences: [
+      { field: 'replacement', label: '대체품', before: '미지정', after: '검토 중' },
+    ],
+  },
+  {
+    changeId: 'CHG-XXXXX-04',
+    item: { itemId: 4, itemNumber: 'XXXXXX-04', itemName: 'D장비' },
+    changeType: '장비 구분 변경',
+    requestedBy: managers.kim,
+    requestedAt: '2026-07-25T11:00:00+09:00',
+    processedBy: managers.lee,
+    processedAt: '2026-07-26T16:20:00+09:00',
+    status: 'PROCESSED',
+    reason: '분류 기준 확인',
+    basis: '분류 정보 확인',
+    differences: [
+      { field: 'category', label: '장비 구분', before: '일반공구', after: '특수공구' },
+    ],
+  },
+];
+
+const replacementNodeIds = [1, 2, 6, 3, 7, 4, 8, 9, 5, 10, 11, 12];
+const replacementStatuses = [
+  'DISCONTINUED', 'DISCONTINUED', 'DISCONTINUED', 'IN_USE',
+  'DISCONTINUED', 'DISCONTINUED', 'DISCONTINUED', 'DISCONTINUED',
+  'IN_USE', 'REPLACEMENT_PLANNED', 'IN_USE', 'DISCONTINUED',
+];
+const replacementPairs = [
+  [1, 2], [1, 6], [2, 3], [2, 7], [6, 7], [3, 4],
+  [3, 8], [7, 9], [4, 5], [4, 10], [8, 11], [9, 12],
+];
+
+export const replacementGraph = {
+  rootItemId: 1,
+  nodes: replacementNodeIds.map((itemId, index) => {
+    const item = itemDetails[itemId - 1];
+    return {
+      itemId,
+      itemNumber: item.itemNumber,
+      itemName: index === 0 ? 'A장비' : item.itemNameKor,
+      businesses: item.businesses.map((business) => business.name),
+      status: replacementStatuses[index],
+    };
+  }),
+  edges: replacementPairs.map(([sourceItemId, targetItemId], index) => ({
+    relationId: `r${index + 1}`,
+    sourceItemId,
+    targetItemId,
+    changeId: `CHG-${String(index + 1).padStart(5, '0')}`,
+    changedAt: `2026-${String(Math.min(index + 1, 9)).padStart(2, '0')}-15`,
+    changeType: '단종 대체',
+    reason: `${itemDetails[sourceItemId - 1].itemNameKor} 단종에 따른 대체품 적용`,
+    requestedBy: managers.kim,
+    processedBy: managers.lee,
+  })),
+};
+
 export function toItemSummary(item) {
   const {
     itemUsageKor: _itemUsageKor,

@@ -1,6 +1,6 @@
-import { CalendarMonthOutlined, Check, FitScreen, Search } from '@mui/icons-material';
+import { CalendarMonthOutlined, Check, ErrorOutlined, FitScreen, Search } from '@mui/icons-material';
 import {
-  Box, Chip, FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select,
+  Box, Chip, CircularProgress, FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select,
   TextField, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -74,8 +74,23 @@ export function ChangeHistoryPage() {
   const [business, setBusiness] = useState('');
   const [status, setStatus] = useState('');
   const [selectedRelationId, setSelectedRelationId] = useState('r9');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => { replacementHistoryService.getGraph().then(setGraph); }, []);
+  useEffect(() => {
+    let active = true;
+    replacementHistoryService.getGraph()
+      .then((result) => {
+        if (active) setGraph(result);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
   const selectedRelation = graph.relations.find((item) => item.id === selectedRelationId);
   const connected = useMemo(() => findConnected(graph, selectedRelation), [graph, selectedRelation]);
   const visibleIds = useMemo(() => new Set(graph.items.filter((item) =>
@@ -110,6 +125,11 @@ export function ChangeHistoryPage() {
 
     <Box sx={{ minHeight: 0, flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 326px', gap: 1.5 }}>
       <Paper variant="outlined" sx={{ minWidth: 0, overflow: 'hidden', position: 'relative' }}>
+        {(loading || loadError) && <Box sx={{ position: 'absolute', inset: 0, zIndex: 4, display: 'grid', placeItems: 'center', bgcolor: 'background.paper' }}>
+          {loading
+            ? <CircularProgress size={28} />
+            : <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}><ErrorOutlined color="error" /><Typography sx={{ fontSize: 13 }}>변경 이력을 불러오지 못했습니다.</Typography></Box>}
+        </Box>}
         <Box sx={{ position: 'absolute', zIndex: 2, top: 12, left: 16, right: 16, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', pointerEvents: 'none' }}>
           {['1단계 (원본)', '2단계', '3단계', '4단계', '5단계 (현재)'].map((label) => <Typography key={label} sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textAlign: 'center' }}>{label}</Typography>)}
         </Box>

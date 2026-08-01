@@ -5,6 +5,9 @@ import { createStubApiServer } from '../../../tools/stub-api.mjs';
 import { ApiClient } from './apiClient';
 import { createHttpDashboardService } from './httpDashboardService';
 import { createHttpEquipmentService } from './httpEquipmentService';
+import { createHttpDeliveryScheduleService } from './httpDeliveryScheduleService';
+import { createHttpChangeRequestService } from './httpChangeRequestService';
+import { createHttpReplacementHistoryService } from './httpReplacementHistoryService';
 
 describe('Stub API와 프론트 HTTP Service 통합', () => {
   let server: {
@@ -97,5 +100,42 @@ describe('Stub API와 프론트 HTTP Service 통합', () => {
       status: 404,
       code: 'ITEM_NOT_FOUND',
     });
+  });
+
+  it('납품 일정 필터와 수량 정보를 HTTP 경계에서 유지한다', async () => {
+    const items = await createHttpDeliveryScheduleService(apiClient).list({
+      query: '',
+      business: '가 사업',
+      aircraftType: '',
+      destination: '',
+      status: '진행',
+    });
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => item.business === '가 사업' && item.status === '진행')).toBe(true);
+    expect(items.every((item) => item.plannedQuantity > 0)).toBe(true);
+  });
+
+  it('변경 신청의 상태·담당자·상세 비교 정보를 변환한다', async () => {
+    const service = createHttpChangeRequestService(apiClient);
+    const items = await service.list({
+      query: '',
+      changeType: '',
+      status: '처리 완료',
+      requester: '김책임',
+    });
+
+    expect(items).toHaveLength(2);
+    expect(items.every((item) => item.status === '처리 완료')).toBe(true);
+    expect((await service.getById('CHG-XXXXX-01'))?.differences).toHaveLength(1);
+  });
+
+  it('대체 이력 그래프를 5단계 화면 모델로 변환한다', async () => {
+    const graph = await createHttpReplacementHistoryService(apiClient).getGraph(1);
+
+    expect(graph.items).toHaveLength(12);
+    expect(graph.relations).toHaveLength(12);
+    expect(Math.max(...graph.items.map((item) => item.depth))).toBe(5);
+    expect(graph.items.some((item) => item.businesses.length > 1)).toBe(true);
   });
 });

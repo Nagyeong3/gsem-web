@@ -192,6 +192,11 @@ paths:
       description: 후속 화면용 계약입니다. 실제 납품 단계와 지연 판정은 미확정입니다.
       operationId: searchDeliveries
       parameters:
+        - name: query
+          in: query
+          description: 품번, 품명, 사업 또는 납지 통합 검색어
+          schema:
+            type: string
         - name: from
           in: query
           schema:
@@ -254,6 +259,16 @@ paths:
           in: query
           schema:
             type: string
+            description: 프로토타입 전송 코드
+            enum: [RECEIVED, IN_REVIEW, PROCESSED]
+        - name: changeType
+          in: query
+          schema:
+            type: string
+        - name: requesterUserId
+          in: query
+          schema:
+            type: integer
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Size"
       responses:
@@ -743,7 +758,7 @@ components:
         - business
         - aircraftType
         - destination
-        - quantity
+        - plannedQuantity
         - deliveryDate
         - status
         - managers
@@ -768,7 +783,17 @@ components:
           $ref: "#/components/schemas/Code"
         destination:
           $ref: "#/components/schemas/Code"
+        plannedQuantity:
+          type: integer
+          description: 계획 수량. 기존 ERD의 quantity에서 변환할 수 있다.
         quantity:
+          type: integer
+          description: 기존 ERD 및 초기 계약과의 전환용 호환 필드
+        orderedQuantity:
+          type: integer
+        receivedQuantity:
+          type: integer
+        deliveredQuantity:
           type: integer
         deliveryDate:
           type: string
@@ -814,6 +839,8 @@ components:
           format: date-time
         status:
           type: string
+          description: 프로토타입 전송 코드이며 실제 처리 순서는 미확정이다.
+          enum: [RECEIVED, IN_REVIEW, PROCESSED]
         reason:
           type: string
         basis:
@@ -878,3 +905,16 @@ components:
               effectiveTo:
                 type: string
                 format: date
+              changeId:
+                type: string
+              changedAt:
+                type: string
+                format: date
+              changeType:
+                type: string
+              reason:
+                type: string
+              requestedBy:
+                $ref: "#/components/schemas/ManagerAssignment"
+              processedBy:
+                $ref: "#/components/schemas/ManagerAssignment"
