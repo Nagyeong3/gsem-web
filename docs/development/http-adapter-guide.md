@@ -41,10 +41,20 @@ Mock Adapter도 검색·정렬·페이징을 Service 내부에서 처리하므�
 
 ```text
 VITE_DATA_SOURCE=api
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+VITE_API_BASE_URL=/api/v1
 ```
 
-백엔드가 동일 출처의 `/api/v1`을 제공하거나 개발 Proxy를 구성하면 상대 경로를 유지할 수 있다.
+개발 환경에서는 Vite Proxy가 `/api` 요청을 `http://127.0.0.1:4010`으로 전달한다.
+
+```bash
+# 터미널 1: OpenAPI 계약 검증용 Stub API
+npm run stub:api
+
+# 터미널 2: 프론트
+npm run dev
+```
+
+Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도구다. 운영 백엔드 프레임워크, 실제 DB 구조 또는 MS Access 연결 방식을 확정하지 않는다.
 
 ## 연결되는 Endpoint
 
@@ -100,3 +110,17 @@ VITE_API_BASE_URL=http://localhost:8080/api/v1
 - 실제 데이터가 없을 때 빈 배열과 선택 필드를 계약대로 반환하는가
 - 검색·정렬·페이징이 서버에서 처리되는가
 - 오류 응답이 `ApiErrorResponse` 형식인가
+
+## Stub API 검증
+
+```bash
+npm run test:stub
+```
+
+자동 검증 대상은 상태 확인, 대시보드 지표 정합성, 검색·정렬·페이징, 복수 사업 품목의 단일 행 반환, 상세 조회, 400·404 오류 계약이다.
+
+Stub API를 실행한 상태에서 브라우저 연결 흐름을 검증한다.
+
+```bash
+VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
+```

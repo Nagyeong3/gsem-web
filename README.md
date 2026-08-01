@@ -48,6 +48,7 @@ npm run dev
 npm run typecheck
 npm run lint
 npm run test
+npm run test:stub
 npm run build
 ```
 
@@ -56,6 +57,12 @@ npm run build
 ```bash
 npx playwright install chromium
 npm run test:e2e
+```
+
+Stub API를 실행한 상태에서 HTTP Adapter 연결만 별도로 검증하려면 다음 명령을 사용합니다.
+
+```bash
+VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
 ```
 
 실행 화면 캡처는 다음 위치에 생성됩니다.
@@ -86,6 +93,24 @@ HTTP API 연결 시험 시 `.env.local`을 다음처럼 변경합니다.
 VITE_DATA_SOURCE=api
 VITE_API_BASE_URL=/api/v1
 ```
+
+### 포함된 Stub API로 연결 시험
+
+운영 백엔드 기술과 DB 연결 방식은 아직 확정하지 않습니다. 저장소의 Stub API는 OpenAPI 계약과 프론트 HTTP Adapter를 미리 검증하기 위한 개발 도구이며 Node.js 기본 모듈만 사용합니다.
+
+첫 번째 터미널에서 Stub API를 실행합니다.
+
+```bash
+npm run stub:api
+```
+
+두 번째 터미널에서 프론트를 실행합니다.
+
+```bash
+npm run dev
+```
+
+`.env.local`은 위의 HTTP API 설정을 사용합니다. Vite가 `/api` 요청을 `http://127.0.0.1:4010`으로 전달하므로 브라우저에서는 기존과 동일하게 `http://localhost:5173`에 접속합니다. 상태 확인 주소는 `http://127.0.0.1:4010/health`입니다.
 
 구성 경계:
 
