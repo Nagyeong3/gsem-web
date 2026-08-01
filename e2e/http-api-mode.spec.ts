@@ -7,11 +7,23 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
+  await page.goto('/?__gsemDataSource=api');
+
+  const dataSource = await page.evaluate(async () => {
+    const { runtimeConfig } = await import('/src/config/runtime.ts');
+    return runtimeConfig.dataSource;
+  });
+  expect(dataSource).toBe('api');
+
   const overviewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/v1/dashboard/overview'),
   );
-  await page.goto('/?__gsemDataSource=api');
+  const overview = await page.evaluate(async () => {
+    const { dashboardService } = await import('/src/services/index.ts');
+    return dashboardService.getOverview();
+  });
   expect((await overviewResponse).status()).toBe(200);
+  expect(overview.metrics.find((metric) => metric.id === 'ATTENTION')?.value).toBe(12);
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('2,346', { exact: true })).toBeVisible();
 
