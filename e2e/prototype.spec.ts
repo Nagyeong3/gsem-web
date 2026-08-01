@@ -47,6 +47,9 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
   await expect(page.getByText('12건')).toBeVisible();
 
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
     path: `${screenshotDirectory}/equipment-search.png`,
     fullPage: false,
@@ -94,6 +97,12 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
+  await expect(page.getByText('10건', { exact: true })).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
 
   await page.getByLabel('진행 상태').click();
   await page.getByRole('option', { name: '완료' }).click();
@@ -106,8 +115,6 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   expect(bodyText).not.toContain('대리');
   expect(bodyText).not.toContain('과장');
 
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
@@ -117,6 +124,11 @@ test('변경 신청 목록에서 처리 현황과 변경 전후를 조회한다'
   await expect(page.getByRole('table', { name: '변경 신청 목록' })).toBeVisible();
   await expect(page.getByText('변경 전·후 비교')).toBeVisible();
   await expect(page.getByText('실제 승인 처리는 제공하지 않습니다.', { exact: false })).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-request.png`, fullPage: false });
 
   await page.getByLabel('처리 상태').click();
   await page.getByRole('option', { name: '검토 중' }).click();
@@ -130,8 +142,6 @@ test('변경 신청 목록에서 처리 현황과 변경 전후를 조회한다'
   expect(bodyText).not.toContain('대리');
   expect(bodyText).not.toContain('과장');
 
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${screenshotDirectory}/change-request.png`, fullPage: false });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
@@ -146,16 +156,23 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
   await page.getByRole('button', { name: '다크 모드로 전환' }).click();
 
   const routes = [
-    ['/equipment/1', '장비 통합 상세'],
-    ['/deliveries', '납품 일정 관리'],
-    ['/requests', '변경 신청 및 처리 현황'],
+    ['/equipment/1', '장비 통합 상세', 'equipment-detail-dark.png'],
+    ['/deliveries', '납품 일정 관리', 'delivery-schedule-dark.png'],
+    ['/requests', '변경 신청 및 처리 현황', 'change-request-dark.png'],
   ] as const;
 
-  for (const [route, heading] of routes) {
+  for (const [route, heading, screenshot] of routes) {
     await page.goto(route);
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    if (route === '/deliveries') {
+      await expect(page.getByText('10건', { exact: true })).toBeVisible();
+    }
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
     await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: `${screenshotDirectory}/${screenshot}`, fullPage: false });
   }
 
   expect(errors).toEqual([]);
