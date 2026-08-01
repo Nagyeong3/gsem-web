@@ -81,6 +81,18 @@ npm run test:e2e
 
 화면 구조와 데이터 경계에 대한 설명은 `docs/development/prototype-architecture.md`를 참고합니다.
 
+## API와 데이터 계약
+
+실제 백엔드 구현 전에 검토할 API·프론트 데이터 계약 초안은 다음 문서에 정리했습니다.
+
+- `docs/api/api-contract.md`: Endpoint, 검색·페이징·오류 규격과 ERD 매핑 기준
+- `docs/api/openapi.yaml`: OpenAPI 3.1 형식의 조회 API 초안
+- `docs/api/contract-review.md`: 요구사항·ERD·현재 코드 정합성 검토 결과
+- `docs/development/frontend-data-model.md`: API DTO와 프론트 View Model 분리 기준
+- `src/types/api.ts`: TypeScript API DTO 초안
+
+`확정`, `가정`, `미확정`을 구분했으며 실제 DB Entity나 운영 상태값을 확정하지 않습니다.
+
 ## 프로토타입 가정
 
 - 대시보드 지표는 실제 DB 집계 결과가 아닌 고정 목업값입니다.
