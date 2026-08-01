@@ -35,7 +35,8 @@ DB와 운영 백엔드가 확정되기 전에 모든 프로토타입 화면이 M
 | 프로덕션 빌드 | 통과 | Vite 빌드 완료 |
 | Git 공백 오류 | 통과 | `git diff --check` |
 | 로컬 Playwright | 환경 제약 | 설치된 Chromium이 실행 환경에서 SIGSEGV로 종료 |
-| GitHub Actions Playwright | 실행 예정 | PR에서 Mock·HTTP 모드를 각각 검사 |
+| GitHub Actions 기본 Playwright | 통과 | 실행 #42, 1440×900 시나리오 10개 |
+| GitHub Actions API Playwright | 통과 | 실행 #42, Stub HTTP 전체 조회 시나리오 1개 |
 
 ## 브라우저 검증 범위
 
@@ -45,6 +46,8 @@ GitHub Actions에서 다음 두 절차를 분리해 실행한다.
 2. Stub API와 API 모드 프론트를 함께 실행한 전체 조회 흐름 검사
 
 API 모드 검사는 대시보드, 장비 검색, 장비 상세, 납품 일정 필터, 변경 신청 필터, 5단계 대체 이력과 브라우저 콘솔 오류를 확인한다.
+
+검수 중 브라우저 네이티브 `fetch`의 실행 문맥이 깨져 HTTP 요청이 시작되지 않는 문제를 발견했다. `globalThis`에 바인딩한 `fetch`를 사용하도록 수정했으며, Stub과 Vite의 생명주기를 하나의 API E2E 실행기로 통합했다. 수정 후 GitHub Actions 실행 #42에서 기본 Mock 모드와 API 모드가 모두 통과했다.
 
 ## 미확정 사항
 
@@ -62,4 +65,4 @@ API 모드 검사는 대시보드, 장비 검색, 장비 상세, 납품 일정 �
 
 ## 최종 판정 기준
 
-GitHub Actions의 Mock·HTTP 브라우저 검사가 모두 통과하면 데이터 접근 계층을 다음 개발 단계의 기준으로 사용할 수 있다. 실패하면 PR을 병합하지 않고 로그를 기준으로 수정한다.
+GitHub Actions의 Mock·HTTP 브라우저 검사가 모두 통과했으므로 데이터 접근 계층을 다음 개발 단계의 기준으로 사용할 수 있다.
