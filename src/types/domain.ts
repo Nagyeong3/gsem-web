@@ -46,6 +46,25 @@ export interface Equipment {
   managers: Manager[];
   status: EquipmentStatus;
   recentChangeDate: string;
+  itemType?: string;
+  serd?: {
+    serdNumber?: string;
+    size?: string;
+    weight?: string;
+    primaryUsage?: string;
+  };
+  qualityAssuranceType?: CodeLabel;
+  calibration?: {
+    required: boolean;
+    cycleMonths?: number;
+    method?: '사내' | '사외';
+    provider?: string;
+  };
+  replacementSummary?: {
+    predecessors: number;
+    successors: number;
+    hasBranch: boolean;
+  };
 }
 
 export interface EquipmentFilters {

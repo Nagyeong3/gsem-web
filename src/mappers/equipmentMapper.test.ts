@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ItemSummaryDto } from '../types/api';
-import { toEquipmentSummary } from './equipmentMapper';
+import type { ItemDetailDto, ItemSummaryDto } from '../types/api';
+import { toEquipmentDetail, toEquipmentSummary } from './equipmentMapper';
 
 const summary: ItemSummaryDto = {
   itemId: 1,
@@ -38,5 +38,24 @@ describe('장비 DTO 변환', () => {
     const result = toEquipmentSummary(summary);
     expect(result.manufacturer).toBe('-');
     expect(result.recentChangeDate).toBe('-');
+  });
+
+  it('통합 상세의 품목 유형과 SERD·교정·대체 관계를 보존한다', () => {
+    const detail: ItemDetailDto = {
+      ...summary,
+      itemType: 'SUPPORT_EQUIPMENT',
+      applications: [],
+      serd: { serdNumber: 'XXXXXX' },
+      qualityAssuranceType: { code: 'QA0001', name: '표준 1형' },
+      calibration: { required: true, cycleMonths: 12, method: 'OUTSOURCED' },
+      replacementSummary: { predecessors: 1, successors: 2, hasBranch: true },
+    };
+
+    const result = toEquipmentDetail(detail);
+
+    expect(result.itemType).toBe('지원장비');
+    expect(result.serd?.serdNumber).toBe('XXXXXX');
+    expect(result.calibration).toMatchObject({ required: true, cycleMonths: 12, method: '사외' });
+    expect(result.replacementSummary).toEqual({ predecessors: 1, successors: 2, hasBranch: true });
   });
 });

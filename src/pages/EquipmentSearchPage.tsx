@@ -34,7 +34,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusChip } from '../components/common/StatusChip';
 import {
@@ -126,9 +126,11 @@ function DetailSection({
 function EquipmentDetail({
   equipment,
   onClose,
+  onOpenFullDetail,
 }: {
   equipment: Equipment;
   onClose: () => void;
+  onOpenFullDetail: () => void;
 }) {
   const businesses = getBusinesses(equipment);
   const aircraftTypes = getAircraftTypes(equipment);
@@ -235,13 +237,14 @@ function EquipmentDetail({
               </Button>
             </span>
           </Tooltip>
-          <Tooltip title="통합 상세 화면은 후속 프로토타입 범위입니다.">
-            <span>
-              <Button fullWidth variant="contained" endIcon={<OpenInNew />} disabled>
-                전체 상세
-              </Button>
-            </span>
-          </Tooltip>
+          <Button
+            fullWidth
+            variant="contained"
+            endIcon={<OpenInNew />}
+            onClick={onOpenFullDetail}
+          >
+            전체 상세
+          </Button>
         </Box>
       </Box>
     </Paper>
@@ -249,6 +252,7 @@ function EquipmentDetail({
 }
 
 export function EquipmentSearchPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [selectedDetail, setSelectedDetail] = useState<Equipment | null>(null);
@@ -699,7 +703,11 @@ export function EquipmentSearchPage() {
       </Box>
 
       {selectedEquipment && (
-        <EquipmentDetail equipment={selectedEquipment} onClose={() => setSelectedId(null)} />
+        <EquipmentDetail
+          equipment={selectedEquipment}
+          onClose={() => setSelectedId(null)}
+          onOpenFullDetail={() => navigate(`/equipment/${selectedEquipment.itemId}`)}
+        />
       )}
     </Box>
   );
