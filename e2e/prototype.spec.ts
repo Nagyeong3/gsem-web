@@ -237,6 +237,7 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
   await page.getByLabel('변경 이력 검색').fill('A-4장비');
   await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
   await page.getByLabel('변경 이력 검색').fill('');
+  await page.waitForTimeout(600);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/change-history.png`, fullPage: false });
 
