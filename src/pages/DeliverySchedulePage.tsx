@@ -38,12 +38,12 @@ const initialFilters: DeliveryScheduleFilters = {
   status: '',
 };
 
-function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  const labelId = `delivery-${label}`;
+function FilterSelect({ id, label, value, options, onChange }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  const labelId = `delivery-${id}-label`;
   return (
     <FormControl size="small" fullWidth>
       <InputLabel id={labelId}>{label}</InputLabel>
-      <Select labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+      <Select id={`delivery-${id}`} labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}>
         <MenuItem value="">전체</MenuItem>
         {options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
       </Select>
@@ -130,10 +130,10 @@ export function DeliverySchedulePage() {
       <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1.5fr repeat(4, minmax(130px, 1fr))', gap: 1 }}>
           <TextField value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="품번, 품명, 사업, 납지 검색" slotProps={{ htmlInput: { 'aria-label': '납품 일정 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
-          <FilterSelect label="사업" value={filters.business} options={options.businesses} onChange={(value) => setFilters((current) => ({ ...current, business: value }))} />
-          <FilterSelect label="기종" value={filters.aircraftType} options={options.aircraftTypes} onChange={(value) => setFilters((current) => ({ ...current, aircraftType: value }))} />
-          <FilterSelect label="납지" value={filters.destination} options={options.destinations} onChange={(value) => setFilters((current) => ({ ...current, destination: value }))} />
-          <FilterSelect label="진행 상태" value={filters.status} options={['예정', '진행', '완료']} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
+          <FilterSelect id="business" label="사업" value={filters.business} options={options.businesses} onChange={(value) => setFilters((current) => ({ ...current, business: value }))} />
+          <FilterSelect id="aircraft-type" label="기종" value={filters.aircraftType} options={options.aircraftTypes} onChange={(value) => setFilters((current) => ({ ...current, aircraftType: value }))} />
+          <FilterSelect id="destination" label="납지" value={filters.destination} options={options.destinations} onChange={(value) => setFilters((current) => ({ ...current, destination: value }))} />
+          <FilterSelect id="status" label="진행 상태" value={filters.status} options={['예정', '진행', '완료']} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
         </Box>
       </Paper>
 

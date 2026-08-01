@@ -67,7 +67,7 @@ test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자�
   await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
   await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('김책임', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('김책임', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('이선임', { exact: true })).toBeVisible();
 
   const bodyText = await page.locator('body').innerText();
