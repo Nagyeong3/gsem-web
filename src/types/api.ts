@@ -255,7 +255,13 @@ export interface DeliveryScheduleDto {
   };
   aircraftType: CodeDto;
   destination: CodeDto;
-  quantity: number;
+  /** 계획 수량. 기존 `quantity` 응답과의 전환 기간에는 둘 중 하나를 사용할 수 있다. */
+  plannedQuantity?: number;
+  /** ERD의 현재 수량 필드와 호환하기 위한 임시 필드다. */
+  quantity?: number;
+  orderedQuantity?: number;
+  receivedQuantity?: number;
+  deliveredQuantity?: number;
   deliveryDate: IsoDateString;
   receiptDate?: IsoDateString;
   status: DeliveryStatusDto;
@@ -264,6 +270,8 @@ export interface DeliveryScheduleDto {
 }
 
 /** 후속 화면용 조회 계약. 승인 상태 전이와 변경 유형 코드는 미확정이다. */
+export type ChangeEventStatusDto = 'RECEIVED' | 'IN_REVIEW' | 'PROCESSED';
+
 export interface ChangeEventDto {
   changeId: string;
   item: {
@@ -276,7 +284,8 @@ export interface ChangeEventDto {
   requestedAt: IsoDateTimeString;
   processedBy?: ManagerAssignmentDto;
   processedAt?: IsoDateTimeString;
-  status: string;
+  /** 프로토타입 전송 코드이며 실제 상태 전이는 미확정이다. */
+  status: ChangeEventStatusDto;
   reason?: string;
   basis?: string;
   differences: Array<{
@@ -304,5 +313,12 @@ export interface ReplacementGraphDto {
     businessIds?: number[];
     effectiveFrom?: IsoDateString;
     effectiveTo?: IsoDateString;
+    /** 아래 변경 상세 필드는 프로토타입 화면 조회용이며 실제 원천은 미확정이다. */
+    changeId?: string;
+    changedAt?: IsoDateString;
+    changeType?: string;
+    reason?: string;
+    requestedBy?: ManagerAssignmentDto;
+    processedBy?: ManagerAssignmentDto;
   }>;
 }

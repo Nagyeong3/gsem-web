@@ -2,16 +2,13 @@ import type {
   ItemDetailDto,
   ItemFilterOptionsDto,
   ItemSummaryDto,
-  ManagerAssignmentDto,
 } from '../types/api';
 import type {
-  AssignmentType,
   Equipment,
   EquipmentFilterOptions,
   EquipmentStatus,
-  Manager,
-  ManagerRole,
 } from '../types/domain';
+import { toManager } from './managerMapper';
 
 const statusMap: Record<ItemSummaryDto['status'], EquipmentStatus> = {
   IN_USE: '사용 중',
@@ -19,29 +16,12 @@ const statusMap: Record<ItemSummaryDto['status'], EquipmentStatus> = {
   ON_HOLD: '보류',
 };
 
-const managerRoleMap: Record<NonNullable<ManagerAssignmentDto['role']>, ManagerRole> = {
-  SUPPORT_EQUIPMENT_MANAGER: '지원장비 담당자',
-  PURCHASING_MANAGER: '구매 담당자',
-};
-
-const assignmentTypeMap: Record<
-  NonNullable<ManagerAssignmentDto['assignmentType']>,
-  AssignmentType
-> = {
-  PRIMARY: '정',
-  SECONDARY: '부',
-};
-
-function toManager(manager: ManagerAssignmentDto): Manager {
-  return {
-    id: manager.userId,
-    name: manager.name,
-    role: manager.role ? managerRoleMap[manager.role] : undefined,
-    assignmentType: manager.assignmentType
-      ? assignmentTypeMap[manager.assignmentType]
-      : undefined,
-  };
-}
+const itemTypeMap = {
+  SUPPORT_EQUIPMENT: '지원장비',
+  BASIC_ISSUE_ITEM: '기본불출품목',
+  FLIGHT_GEAR_INSPECTION_EQUIPMENT: '조종장구류 점검장비',
+  STANDARD: '표준기',
+} as const;
 
 function toSummaryApplications(dto: ItemSummaryDto): Equipment['applications'] {
   const length = Math.max(dto.businesses.length, dto.aircraftTypes.length, dto.destinations.length);
@@ -105,14 +85,7 @@ export function toEquipmentDetail(dto: ItemDetailDto): Equipment {
               : '완료',
       })),
     })),
-    itemType:
-      dto.itemType === 'SUPPORT_EQUIPMENT'
-        ? '지원장비'
-        : dto.itemType === 'BASIC_ISSUE_ITEM'
-          ? '기본불출품목'
-          : dto.itemType === 'FLIGHT_GEAR_INSPECTION_EQUIPMENT'
-            ? '조종장구류 점검장비'
-            : '표준기',
+    itemType: dto.itemType ? itemTypeMap[dto.itemType] : undefined,
     serd: dto.serd,
     qualityAssuranceType: dto.qualityAssuranceType,
     calibration: dto.calibration
