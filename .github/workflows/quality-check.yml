@@ -49,3 +49,9 @@ jobs:
 
       - name: 프로덕션 빌드
         run: npm run build
+
+      - name: Chromium 준비
+        run: npx playwright install --with-deps chromium
+
+      - name: 1440×900 브라우저 시나리오 검사
+        run: npm run test:e2e
