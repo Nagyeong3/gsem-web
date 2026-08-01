@@ -135,6 +135,32 @@ test('변경 신청 목록에서 처리 현황과 변경 전후를 조회한다'
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
+test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없이 표시된다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '다크 모드로 전환' }).click();
+
+  const routes = [
+    ['/equipment/1', '장비 통합 상세'],
+    ['/deliveries', '납품 일정 관리'],
+    ['/requests', '변경 신청 및 처리 현황'],
+  ] as const;
+
+  for (const [route, heading] of routes) {
+    await page.goto(route);
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+  }
+
+  expect(errors).toEqual([]);
+});
+
 test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('지원장비 관리시스템 (GSEM)', { exact: true })).toHaveCount(2);
