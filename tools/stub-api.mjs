@@ -30,7 +30,12 @@ function getGeneratedAt() {
 
 function setCorsHeaders(request, response) {
   const origin = request.headers.origin;
-  if (origin === 'http://localhost:5173' || origin === 'http://127.0.0.1:5173') {
+  const allowedOrigins = new Set([
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+  ]);
+  if (origin && allowedOrigins.has(origin)) {
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');
   }
