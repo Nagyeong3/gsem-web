@@ -68,6 +68,16 @@ export const equipmentFixtures: Equipment[] = [
     ],
     status: '사용 중',
     recentChangeDate: '2026-07-29',
+    itemType: '지원장비',
+    serd: {
+      serdNumber: 'XXXXXX',
+      size: 'XXXX × XXXX',
+      weight: 'XX kg',
+      primaryUsage: '장비 점검용',
+    },
+    qualityAssuranceType: { code: 'QA0001', name: '표준 1형' },
+    calibration: { required: true, cycleMonths: 12, method: '사외', provider: '-' },
+    replacementSummary: { predecessors: 1, successors: 2, hasBranch: true },
   },
   {
     itemId: 2,

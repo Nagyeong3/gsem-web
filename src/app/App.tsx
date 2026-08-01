@@ -11,6 +11,11 @@ const EquipmentSearchPage = lazy(() =>
     default: module.EquipmentSearchPage,
   })),
 );
+const EquipmentDetailPage = lazy(() =>
+  import('../pages/EquipmentDetailPage').then((module) => ({
+    default: module.EquipmentDetailPage,
+  })),
+);
 
 export function App() {
   return (
@@ -25,6 +30,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/equipment" element={<EquipmentSearchPage />} />
+          <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

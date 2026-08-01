@@ -58,6 +58,36 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   expect(horizontalOverflow).toBe(false);
 });
 
+test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자를 확인한다', async ({ page }) => {
+  await page.goto('/equipment');
+  await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
+  await page.getByRole('button', { name: '전체 상세' }).click();
+
+  await expect(page).toHaveURL(/\/equipment\/1$/);
+  await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
+  await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('김책임', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('이선임', { exact: true })).toBeVisible();
+
+  const bodyText = await page.locator('body').innerText();
+  expect(bodyText).not.toContain('기준정보 관리');
+  expect(bodyText).not.toContain('사원');
+  expect(bodyText).not.toContain('대리');
+  expect(bodyText).not.toContain('과장');
+
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({
+    path: `${screenshotDirectory}/equipment-detail.png`,
+    fullPage: false,
+  });
+
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(horizontalOverflow).toBe(false);
+});
+
 test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('지원장비 관리시스템 (GSEM)', { exact: true })).toHaveCount(2);

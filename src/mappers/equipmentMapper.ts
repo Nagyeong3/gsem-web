@@ -105,6 +105,30 @@ export function toEquipmentDetail(dto: ItemDetailDto): Equipment {
               : '완료',
       })),
     })),
+    itemType:
+      dto.itemType === 'SUPPORT_EQUIPMENT'
+        ? '지원장비'
+        : dto.itemType === 'BASIC_ISSUE_ITEM'
+          ? '기본불출품목'
+          : dto.itemType === 'FLIGHT_GEAR_INSPECTION_EQUIPMENT'
+            ? '조종장구류 점검장비'
+            : '표준기',
+    serd: dto.serd,
+    qualityAssuranceType: dto.qualityAssuranceType,
+    calibration: dto.calibration
+      ? {
+          required: dto.calibration.required,
+          cycleMonths: dto.calibration.cycleMonths,
+          method:
+            dto.calibration.method === 'IN_HOUSE'
+              ? '사내'
+              : dto.calibration.method === 'OUTSOURCED'
+                ? '사외'
+                : undefined,
+          provider: dto.calibration.calibrationProvider,
+        }
+      : undefined,
+    replacementSummary: dto.replacementSummary,
   };
 }
 
