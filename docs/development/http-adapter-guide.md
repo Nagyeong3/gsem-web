@@ -7,17 +7,13 @@
 ## 현재 구조
 
 ```text
-DashboardPage / EquipmentSearchPage
-              ↓
-       Service 인터페이스
-        ↙             ↘
- Mock Adapter       HTTP Adapter
-      ↓                 ↓
-   Fixture        ApiClient → API DTO
-                         ↓
-                       Mapper
-                         ↓
-                    화면 View Model
+전체 페이지
+    ↓
+Service 인터페이스
+ ↙             ↘
+Mock Adapter   HTTP Adapter
+    ↓              ↓
+ Fixture      ApiClient → API DTO → Mapper → 화면 View Model
 ```
 
 페이지는 `src/services/index.ts`가 내보내는 Service만 사용한다. Mock Fixture, `fetch`, API DTO를 페이지에서 직접 Import하지 않는다.
@@ -64,6 +60,9 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 | 장비 검색 | GET | `/items/filter-options` | 필터 표시값과 코드·ID 조회 |
 | 장비 검색 | GET | `/items` | 서버 검색·정렬·페이징 |
 | 상세 패널 | GET | `/items/{itemId}` | 선택 품목 상세 보완 |
+| 납품 일정 | GET | `/deliveries` | 통합 검색·사업·기종·납지·상태 필터 |
+| 변경 신청 | GET | `/change-events` | 신청 목록·상태·유형·신청자 필터 |
+| 대체 이력 | GET | `/items/{itemId}/replacement-graph` | 단종·대체 계보와 변경 상세 조회 |
 
 ## 오류 처리
 
@@ -74,7 +73,7 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 - 네트워크 연결 실패: `NETWORK_ERROR`
 - 10초 초과: `REQUEST_TIMEOUT`
 
-현재 화면은 오류 여부만 표시한다. 운영 단계에서는 오류 코드별 안내와 재시도 정책을 별도 설계한다.
+현재 화면은 오류 여부와 빈 결과를 구분해 표시한다. 운영 단계에서는 오류 코드별 안내와 재시도 정책을 별도 설계한다.
 
 ## 확정과 가정
 
@@ -102,7 +101,7 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 
 ## 백엔드 연결 전 체크리스트
 
-- OpenAPI의 네 Endpoint가 구현됐는가
+- OpenAPI의 일곱 Endpoint가 구현됐는가
 - 목록 응답이 품목당 한 행인가
 - 복수 관계가 중복 없이 배열로 집계되는가
 - 담당자 `role`과 정·부 구분이 NULL이어도 응답 가능한가
@@ -117,10 +116,16 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 npm run test:stub
 ```
 
-자동 검증 대상은 상태 확인, 대시보드 지표 정합성, 검색·정렬·페이징, 복수 사업 품목의 단일 행 반환, 상세 조회, 400·404 오류 계약이다.
+자동 검증 대상은 상태 확인, 대시보드 지표 정합성, 검색·정렬·페이징, 복수 사업 품목의 단일 행 반환, 상세 조회, 납품 일정, 변경 신청, 대체 이력 및 400·404 오류 계약이다.
 
 Stub API를 실행한 상태에서 브라우저 연결 흐름을 검증한다.
 
 ```bash
 VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
+```
+
+Stub API와 API 모드 프론트를 자동으로 함께 실행하는 전용 검사는 다음 명령을 사용한다.
+
+```bash
+npm run test:e2e:api
 ```
