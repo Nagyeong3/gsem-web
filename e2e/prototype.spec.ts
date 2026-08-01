@@ -111,6 +111,30 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
+test('변경 신청 목록에서 처리 현황과 변경 전후를 조회한다', async ({ page }) => {
+  await page.goto('/requests');
+  await expect(page.getByRole('heading', { name: '변경 신청 및 처리 현황' })).toBeVisible();
+  await expect(page.getByRole('table', { name: '변경 신청 목록' })).toBeVisible();
+  await expect(page.getByText('변경 전·후 비교')).toBeVisible();
+  await expect(page.getByText('실제 승인 처리는 제공하지 않습니다.', { exact: false })).toBeVisible();
+
+  await page.getByLabel('처리 상태').click();
+  await page.getByRole('option', { name: '검토 중' }).click();
+  await expect(page.getByText('B장비', { exact: true })).toBeVisible();
+
+  const bodyText = await page.locator('body').innerText();
+  expect(bodyText).not.toContain('승인하기');
+  expect(bodyText).not.toContain('반려하기');
+  expect(bodyText).not.toContain('기준정보 관리');
+  expect(bodyText).not.toContain('사원');
+  expect(bodyText).not.toContain('대리');
+  expect(bodyText).not.toContain('과장');
+
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-request.png`, fullPage: false });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
 test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('지원장비 관리시스템 (GSEM)', { exact: true })).toHaveCount(2);

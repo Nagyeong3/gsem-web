@@ -176,9 +176,7 @@ export function EquipmentDetailPage() {
             <Tooltip title="변경 이력 화면은 후속 구현 범위입니다.">
               <span><Button disabled variant="outlined" startIcon={<History />}>변경 이력</Button></span>
             </Tooltip>
-            <Tooltip title="실제 변경 처리는 1차 프로토타입 범위에서 제외됩니다.">
-              <span><Button disabled variant="outlined" startIcon={<AssignmentOutlined />}>변경 신청</Button></span>
-            </Tooltip>
+            <Button variant="outlined" startIcon={<AssignmentOutlined />} onClick={() => navigate(`/requests?itemId=${equipment.itemId}`)}>변경 신청 내역</Button>
           </Stack>
         </Box>
         <Divider />

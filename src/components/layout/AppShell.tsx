@@ -33,7 +33,7 @@ const navItems = [
   { label: '대시보드', icon: DashboardOutlined, path: '/', available: true },
   { label: '장비 검색', icon: Search, path: '/equipment', available: true },
   { label: '변경 이력', icon: History, path: '/history', available: false },
-  { label: '변경 신청', icon: AssignmentOutlined, path: '/requests', available: false },
+  { label: '변경 신청', icon: AssignmentOutlined, path: '/requests', available: true },
 ] as const;
 
 export function AppShell({ children }: AppShellProps) {

@@ -198,6 +198,8 @@ export function DashboardPage() {
               onClick={() =>
                 metric.id === 'delivery' || metric.id === 'delay'
                   ? navigate('/deliveries')
+                  : metric.id === 'approval'
+                    ? navigate('/requests?status=검토%20중')
                   : moveToSearch()
               }
               sx={{
