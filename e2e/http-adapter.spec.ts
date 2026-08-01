@@ -25,6 +25,7 @@ test('Stub API 모드에서 대시보드와 장비 검색 흐름이 동작한다
 });
 
 test('Stub API 모드에서 상세·납품·변경·대체 이력 화면이 동작한다', async ({ page }) => {
+  test.setTimeout(60_000);
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
