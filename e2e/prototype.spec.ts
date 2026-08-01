@@ -96,7 +96,14 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
+  await expect(page.getByText('10건', { exact: true })).toBeVisible();
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '납품 일정' }).click();
+  await expect(page).toHaveURL(/\/deliveries$/);
+  await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByText('10건', { exact: true })).toBeVisible();
 
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
@@ -171,6 +178,8 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
     await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+    await page.mouse.move(700, 700);
+    await page.waitForTimeout(200);
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: `${screenshotDirectory}/${screenshot}`, fullPage: false });
   }
@@ -246,6 +255,8 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
 
   await page.getByRole('button', { name: '다크 모드로 전환' }).click();
   await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+  await page.mouse.move(700, 700);
+  await page.waitForTimeout(200);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/change-history-dark.png`, fullPage: false });
 });
