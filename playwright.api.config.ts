@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   reporter: 'line',
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5174',
     viewport: { width: 1440, height: 900 },
     colorScheme: 'light',
     trace: 'retain-on-failure',
@@ -26,8 +26,8 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'npm run dev:api',
-      url: 'http://127.0.0.1:5173',
+      command: 'npm run dev:api -- --port 5174 --strictPort',
+      url: 'http://127.0.0.1:5174',
       reuseExistingServer: false,
       timeout: 30_000,
     },
