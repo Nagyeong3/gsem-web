@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const child = spawn(
   npmCommand,
-  ['run', 'dev', '--', '--host', '127.0.0.1', ...process.argv.slice(2)],
+  ['run', 'dev', '--', '--host', '127.0.0.1', '--mode', 'api', ...process.argv.slice(2)],
   {
     stdio: 'inherit',
     env: { ...process.env, VITE_DATA_SOURCE: 'api' },

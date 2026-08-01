@@ -1,8 +1,14 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  define:
+    mode === 'api'
+      ? {
+          'import.meta.env.VITE_DATA_SOURCE': JSON.stringify('api'),
+        }
+      : undefined,
   server: {
     port: 5173,
     proxy: {
@@ -17,4 +23,4 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     include: ['src/**/*.test.{ts,tsx}'],
   },
-});
+}));
