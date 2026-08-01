@@ -195,7 +195,11 @@ export function DashboardPage() {
               type="button"
               key={metric.id}
               variant="outlined"
-              onClick={() => moveToSearch()}
+              onClick={() =>
+                metric.id === 'delivery' || metric.id === 'delay'
+                  ? navigate('/deliveries')
+                  : moveToSearch()
+              }
               sx={{
                 position: 'relative',
                 minWidth: 0,

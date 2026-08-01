@@ -158,3 +158,30 @@ export interface DashboardData {
   changes: ChangeSummary[];
   upcomingDeliveries: UpcomingDelivery[];
 }
+
+export interface DeliverySchedule {
+  deliveryId: number;
+  itemId: number;
+  itemNum: string;
+  itemName: string;
+  business: string;
+  aircraftType: string;
+  destination: string;
+  plannedQuantity: number;
+  orderedQuantity?: number;
+  receivedQuantity?: number;
+  deliveredQuantity?: number;
+  deliveryDate: string;
+  receiptDate?: string;
+  status: DeliveryStatus;
+  delayed?: boolean;
+  managers: Manager[];
+}
+
+export interface DeliveryScheduleFilters {
+  query: string;
+  business: string;
+  aircraftType: string;
+  destination: string;
+  status: string;
+}

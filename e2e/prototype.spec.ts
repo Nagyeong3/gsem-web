@@ -88,6 +88,29 @@ test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자�
   expect(horizontalOverflow).toBe(false);
 });
 
+test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링한다', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
+  await expect(page).toHaveURL(/\/deliveries$/);
+  await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
+  await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
+
+  await page.getByLabel('진행 상태').click();
+  await page.getByRole('option', { name: '완료' }).click();
+  await expect(page.getByText('완료', { exact: true }).first()).toBeVisible();
+
+  const bodyText = await page.locator('body').innerText();
+  expect(bodyText).toContain('판정 규칙 미확정');
+  expect(bodyText).not.toContain('기준정보 관리');
+  expect(bodyText).not.toContain('사원');
+  expect(bodyText).not.toContain('대리');
+  expect(bodyText).not.toContain('과장');
+
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
 test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('지원장비 관리시스템 (GSEM)', { exact: true })).toHaveCount(2);

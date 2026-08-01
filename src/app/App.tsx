@@ -16,6 +16,11 @@ const EquipmentDetailPage = lazy(() =>
     default: module.EquipmentDetailPage,
   })),
 );
+const DeliverySchedulePage = lazy(() =>
+  import('../pages/DeliverySchedulePage').then((module) => ({
+    default: module.DeliverySchedulePage,
+  })),
+);
 
 export function App() {
   return (
@@ -31,6 +36,7 @@ export function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/equipment" element={<EquipmentSearchPage />} />
           <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
+          <Route path="/deliveries" element={<DeliverySchedulePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
