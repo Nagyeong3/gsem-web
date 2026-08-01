@@ -10,7 +10,7 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
   const overviewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/v1/dashboard/overview'),
   );
-  await page.goto('/');
+  await page.goto('/?__gsemDataSource=api');
   expect((await overviewResponse).status()).toBe(200);
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('2,346', { exact: true })).toBeVisible();
