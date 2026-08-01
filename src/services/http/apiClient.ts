@@ -21,7 +21,7 @@ export class ApiClient {
   private readonly fetcher: typeof fetch;
 
   constructor(private readonly options: ApiClientOptions) {
-    this.fetcher = options.fetcher ?? fetch;
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
 
   async get<T>(path: string, query?: URLSearchParams): Promise<T> {
