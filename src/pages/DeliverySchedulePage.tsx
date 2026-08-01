@@ -7,7 +7,6 @@ import {
 } from '@mui/icons-material';
 import {
   Box,
-  CircularProgress,
   FormControl,
   InputAdornment,
   InputLabel,
@@ -23,11 +22,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { StatusChip } from '../components/common/StatusChip';
 import { deliveryScheduleService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { DeliverySchedule, DeliveryScheduleFilters } from '../types/domain';
 
 const initialFilters: DeliveryScheduleFilters = {
@@ -74,38 +75,20 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 export function DeliverySchedulePage() {
-  const [allSchedules, setAllSchedules] = useState<DeliverySchedule[]>([]);
-  const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
   const [filters, setFilters] = useState(initialFilters);
-  const [selectedId, setSelectedId] = useState<number>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    deliveryScheduleService.list(initialFilters).then((items) => {
-      if (active) setAllSchedules(items);
-    }).catch(() => {
-      if (active) setError(true);
-    });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => {
-      if (active) { setLoading(true); setError(false); }
-    });
-    deliveryScheduleService.list(filters).then((items) => {
-      if (!active) return;
-      setSchedules(items);
-      setSelectedId((current) => items.some((item) => item.deliveryId === current) ? current : items[0]?.deliveryId);
-      setLoading(false);
-    }).catch(() => {
-      if (active) { setError(true); setLoading(false); }
-    });
-    return () => { active = false; };
-  }, [filters]);
+  const [requestedSelectedId, setRequestedSelectedId] = useState<number>();
+  const loadAllSchedules = useCallback(() => deliveryScheduleService.list(initialFilters), []);
+  const allSchedulesQuery = useAsyncQuery<DeliverySchedule[]>({ queryFn: loadAllSchedules });
+  const loadSchedules = useCallback(() => deliveryScheduleService.list(filters), [filters]);
+  const schedulesQuery = useAsyncQuery<DeliverySchedule[]>({
+    queryFn: loadSchedules,
+    keepPreviousData: true,
+  });
+  const allSchedules = useMemo(() => allSchedulesQuery.data ?? [], [allSchedulesQuery.data]);
+  const schedules = useMemo(() => schedulesQuery.data ?? [], [schedulesQuery.data]);
+  const selectedId = requestedSelectedId !== undefined && schedules.some((item) => item.deliveryId === requestedSelectedId)
+    ? requestedSelectedId
+    : schedules[0]?.deliveryId;
 
   const options = useMemo(() => ({
     businesses: [...new Set(allSchedules.map((item) => item.business))].sort(),
@@ -145,10 +128,10 @@ export function DeliverySchedulePage() {
                 <TableCell>품번</TableCell><TableCell>품명</TableCell><TableCell>사업</TableCell><TableCell>기종</TableCell><TableCell>납지</TableCell><TableCell align="right">계획</TableCell><TableCell align="right">발주</TableCell><TableCell align="right">입고</TableCell><TableCell align="right">납품</TableCell><TableCell>예정일</TableCell><TableCell>상태</TableCell>
               </TableRow></TableHead>
               <TableBody>
-                {loading ? <TableRow><TableCell colSpan={11} align="center" sx={{ height: 280 }}><CircularProgress size={26} /></TableCell></TableRow>
-                  : error ? <TableRow><TableCell colSpan={11} align="center" sx={{ height: 280 }}>납품 일정을 불러오지 못했습니다.</TableCell></TableRow>
-                  : schedules.length === 0 ? <TableRow><TableCell colSpan={11} align="center" sx={{ height: 280 }}>검색 결과가 없습니다.</TableCell></TableRow>
-                  : schedules.map((item) => <TableRow key={item.deliveryId} hover selected={item.deliveryId === selectedId} onClick={() => setSelectedId(item.deliveryId)} sx={{ cursor: 'pointer' }}>
+                {schedulesQuery.isLoading ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="loading" loadingMessage="납품 일정을 불러오고 있습니다." minHeight={280} compact /></TableCell></TableRow>
+                  : schedulesQuery.isError ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="error" errorMessage="납품 일정을 불러오지 못했습니다." onRetry={schedulesQuery.refetch} minHeight={280} /></TableCell></TableRow>
+                  : schedules.length === 0 ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="empty" emptyMessage="검색 결과가 없습니다." emptyDescription="검색 조건을 변경해보세요." onReset={() => setFilters(initialFilters)} minHeight={280} /></TableCell></TableRow>
+                  : schedules.map((item) => <TableRow key={item.deliveryId} hover selected={item.deliveryId === selectedId} onClick={() => setRequestedSelectedId(item.deliveryId)} sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ fontWeight: 600 }}>{item.itemNum}</TableCell><TableCell>{item.itemName}</TableCell><TableCell>{item.business}</TableCell><TableCell>{item.aircraftType}</TableCell><TableCell>{item.destination}</TableCell><TableCell align="right">{item.plannedQuantity}</TableCell><TableCell align="right">{item.orderedQuantity ?? '-'}</TableCell><TableCell align="right">{item.receivedQuantity ?? '-'}</TableCell><TableCell align="right">{item.deliveredQuantity ?? '-'}</TableCell><TableCell>{item.deliveryDate}</TableCell><TableCell><StatusChip status={item.status} /></TableCell>
                   </TableRow>)}
               </TableBody>

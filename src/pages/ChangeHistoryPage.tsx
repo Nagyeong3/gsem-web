@@ -1,17 +1,19 @@
-import { CalendarMonthOutlined, Check, ErrorOutlined, FitScreen, Search } from '@mui/icons-material';
+import { CalendarMonthOutlined, Check, FitScreen, Search } from '@mui/icons-material';
 import {
-  Box, Chip, CircularProgress, FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select,
+  Box, Chip, FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select,
   TextField, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Background, Controls, Handle, MarkerType, MiniMap, Position, ReactFlow,
   type Edge, type Node, type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { replacementHistoryService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { ReplacementGraph, ReplacementItem, ReplacementRelation, ReplacementStatus } from '../types/domain';
 
 type HistoryNodeData = ReplacementItem & { selectedPath: boolean } & Record<string, unknown>;
@@ -69,28 +71,16 @@ function findConnected(graph: ReplacementGraph, relation?: ReplacementRelation) 
 
 export function ChangeHistoryPage() {
   const theme = useTheme();
-  const [graph, setGraph] = useState<ReplacementGraph>({ items: [], relations: [] });
   const [query, setQuery] = useState('');
   const [business, setBusiness] = useState('');
   const [status, setStatus] = useState('');
   const [selectedRelationId, setSelectedRelationId] = useState('r9');
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    replacementHistoryService.getGraph()
-      .then((result) => {
-        if (active) setGraph(result);
-      })
-      .catch(() => {
-        if (active) setLoadError(true);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => { active = false; };
-  }, []);
+  const loadGraph = useCallback(() => replacementHistoryService.getGraph(), []);
+  const graphQuery = useAsyncQuery<ReplacementGraph>({ queryFn: loadGraph });
+  const graph = useMemo<ReplacementGraph>(
+    () => graphQuery.data ?? { items: [], relations: [] },
+    [graphQuery.data],
+  );
   const selectedRelation = graph.relations.find((item) => item.id === selectedRelationId);
   const connected = useMemo(() => findConnected(graph, selectedRelation), [graph, selectedRelation]);
   const visibleIds = useMemo(() => new Set(graph.items.filter((item) =>
@@ -125,10 +115,17 @@ export function ChangeHistoryPage() {
 
     <Box sx={{ minHeight: 0, flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 326px', gap: 1.5 }}>
       <Paper variant="outlined" sx={{ minWidth: 0, overflow: 'hidden', position: 'relative' }}>
-        {(loading || loadError) && <Box sx={{ position: 'absolute', inset: 0, zIndex: 4, display: 'grid', placeItems: 'center', bgcolor: 'background.paper' }}>
-          {loading
-            ? <CircularProgress size={28} />
-            : <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}><ErrorOutlined color="error" /><Typography sx={{ fontSize: 13 }}>변경 이력을 불러오지 못했습니다.</Typography></Box>}
+        {(graphQuery.isLoading || graphQuery.isError || graph.items.length === 0 || visibleIds.size === 0) && <Box sx={{ position: 'absolute', inset: 0, zIndex: 4, bgcolor: 'background.paper' }}>
+          <QueryStatePanel
+            state={graphQuery.isError ? 'error' : graphQuery.isLoading ? 'loading' : 'empty'}
+            loadingMessage="변경 이력을 불러오고 있습니다."
+            errorMessage="변경 이력을 불러오지 못했습니다."
+            emptyMessage={graph.items.length === 0 ? '등록된 변경 이력이 없습니다.' : '검색 조건에 맞는 변경 이력이 없습니다.'}
+            emptyDescription={graph.items.length === 0 ? undefined : '검색어 또는 필터 조건을 변경해보세요.'}
+            onRetry={graphQuery.refetch}
+            onReset={graph.items.length === 0 ? undefined : () => { setQuery(''); setBusiness(''); setStatus(''); }}
+            minHeight="100%"
+          />
         </Box>}
         <Box sx={{ position: 'absolute', zIndex: 2, top: 12, left: 16, right: 16, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', pointerEvents: 'none' }}>
           {['1단계 (원본)', '2단계', '3단계', '4단계', '5단계 (현재)'].map((label) => <Typography key={label} sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textAlign: 'center' }}>{label}</Typography>)}

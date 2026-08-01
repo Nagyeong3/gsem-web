@@ -3,7 +3,6 @@ import {
   AssignmentOutlined,
   BusinessOutlined,
   CalendarMonthOutlined,
-  ErrorOutlined,
   History,
   HubOutlined,
   Inventory2Outlined,
@@ -14,19 +13,20 @@ import {
   Box,
   Button,
   Chip,
-  CircularProgress,
   Divider,
   Paper,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
+import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { StatusChip } from '../components/common/StatusChip';
 import { equipmentService } from '../services';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { Equipment } from '../types/domain';
 
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {
@@ -81,64 +81,36 @@ function SummaryItem({ icon, label, value }: { icon: ReactNode; label: string; v
 export function EquipmentDetailPage() {
   const { itemId } = useParams();
   const navigate = useNavigate();
-  const [equipment, setEquipment] = useState<Equipment>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const parsedId = Number(itemId);
+  const hasValidId = Number.isInteger(parsedId) && parsedId > 0;
+  const loadEquipment = useCallback(() => equipmentService.getById(parsedId), [parsedId]);
+  const { data: equipment, isLoading, isError, refetch } = useAsyncQuery<Equipment | undefined>({
+    queryFn: loadEquipment,
+    enabled: hasValidId,
+  });
 
-  useEffect(() => {
-    let active = true;
-    const parsedId = Number(itemId);
-    if (!Number.isInteger(parsedId) || parsedId <= 0) {
-      queueMicrotask(() => {
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      });
-      return () => {
-        active = false;
-      };
-    }
-
-    equipmentService
-      .getById(parsedId)
-      .then((result) => {
-        if (!active) return;
-        setEquipment(result);
-        setError(!result);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (active) {
-          setError(true);
-          setLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [itemId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ minHeight: 'calc(100vh - 58px)', display: 'grid', placeItems: 'center' }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography sx={{ mt: 1.25, color: 'text.secondary' }}>상세 정보를 불러오고 있습니다.</Typography>
-        </Box>
+        <QueryStatePanel state="loading" loadingMessage="상세 정보를 불러오고 있습니다." minHeight={360} />
       </Box>
     );
   }
 
-  if (error || !equipment) {
+  if (isError) {
+    return (
+      <Box sx={{ minHeight: 'calc(100vh - 58px)', display: 'grid', placeItems: 'center' }}>
+        <QueryStatePanel state="error" errorMessage="장비 상세 정보를 불러오지 못했습니다." onRetry={refetch} minHeight={360} />
+      </Box>
+    );
+  }
+
+  if (!hasValidId || !equipment) {
     return (
       <Box sx={{ minHeight: 'calc(100vh - 58px)', display: 'grid', placeItems: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
-          <ErrorOutlined sx={{ fontSize: 36, color: 'text.disabled' }} />
-          <Typography sx={{ mt: 1, fontWeight: 700 }}>장비 정보를 찾을 수 없습니다.</Typography>
-          <Button sx={{ mt: 1.5 }} variant="outlined" onClick={() => navigate('/equipment')}>
-            장비 검색으로 돌아가기
-          </Button>
+          <QueryStatePanel state="empty" emptyMessage="장비 정보를 찾을 수 없습니다." minHeight={220} />
+          <Button variant="outlined" onClick={() => navigate('/equipment')}>장비 검색으로 돌아가기</Button>
         </Box>
       </Box>
     );
