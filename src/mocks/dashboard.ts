@@ -1,5 +1,14 @@
 import type { DashboardData } from '../types/domain';
 
+const dayInMilliseconds = 24 * 60 * 60 * 1_000;
+const koreaOffsetInMilliseconds = 9 * 60 * 60 * 1_000;
+
+function toKoreaDate(daysFromToday: number) {
+  return new Date(Date.now() + koreaOffsetInMilliseconds + daysFromToday * dayInMilliseconds)
+    .toISOString()
+    .slice(0, 10);
+}
+
 export const dashboardFixture: DashboardData = {
   metrics: [
     {
@@ -72,7 +81,7 @@ export const dashboardFixture: DashboardData = {
       content: '사양 변경',
       category: '설계 변경',
       requester: '김책임',
-      changedAt: '2026-07-29',
+      changedAt: toKoreaDate(-1),
       status: '완료',
     },
     {
@@ -81,7 +90,7 @@ export const dashboardFixture: DashboardData = {
       content: '안전사항 추가',
       category: '설계 변경',
       requester: '이선임',
-      changedAt: '2026-07-26',
+      changedAt: toKoreaDate(-4),
       status: '완료',
     },
     {
@@ -90,7 +99,7 @@ export const dashboardFixture: DashboardData = {
       content: '부품 교체',
       category: '구성 변경',
       requester: '박책임',
-      changedAt: '2026-07-23',
+      changedAt: toKoreaDate(-7),
       status: '검토 중',
     },
     {
@@ -99,7 +108,7 @@ export const dashboardFixture: DashboardData = {
       content: '매뉴얼 수정',
       category: '문서 변경',
       requester: '김책임',
-      changedAt: '2026-07-21',
+      changedAt: toKoreaDate(-9),
       status: '완료',
     },
   ],
@@ -107,28 +116,28 @@ export const dashboardFixture: DashboardData = {
     {
       equipmentName: 'A장비',
       itemNum: 'XXXXXX-01',
-      deliveryDate: '2026-08-01',
+      deliveryDate: toKoreaDate(2),
       daysLeft: 2,
       status: '임박',
     },
     {
       equipmentName: 'B장비',
       itemNum: 'XXXXXX-02',
-      deliveryDate: '2026-08-03',
+      deliveryDate: toKoreaDate(4),
       daysLeft: 4,
       status: '임박',
     },
     {
       equipmentName: 'C장비',
       itemNum: 'XXXXXX-03',
-      deliveryDate: '2026-08-05',
+      deliveryDate: toKoreaDate(6),
       daysLeft: 6,
       status: '임박',
     },
     {
       equipmentName: 'D장비',
       itemNum: 'XXXXXX-04',
-      deliveryDate: '2026-08-07',
+      deliveryDate: toKoreaDate(8),
       daysLeft: 8,
       status: '임박',
     },

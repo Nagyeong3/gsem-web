@@ -9,7 +9,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
-    "test:stub": "node --test tools/stub-api.test.mjs",
+    "test:stub": "node --test tools/*.test.mjs",
     "stub:api": "node tools/stub-api.mjs",
     "test:e2e": "playwright test"
   },
