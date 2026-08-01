@@ -40,7 +40,7 @@ import {
 import { PageHeader } from '../components/common/PageHeader';
 import { SectionCard } from '../components/common/SectionCard';
 import { StatusChip } from '../components/common/StatusChip';
-import { mockDashboardService } from '../services/dashboardService';
+import { dashboardService } from '../services';
 import type { DashboardData, DashboardMetric } from '../types/domain';
 
 const iconByMetric: Record<DashboardMetric['id'], typeof Inventory2Outlined> = {
@@ -76,7 +76,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     let active = true;
-    mockDashboardService
+    dashboardService
       .getOverview()
       .then((result) => {
         if (active) setData(result);

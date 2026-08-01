@@ -48,6 +48,11 @@ export interface CodeDto {
   name: string;
 }
 
+export interface DestinationDto {
+  destinationId: number;
+  name: string;
+}
+
 /**
  * 요구사항 008에 따른 관리 품목 유형.
  * 실제 공통코드와 코드값은 미확정이다.
@@ -115,7 +120,7 @@ export interface ItemSummaryDto {
   subsystems: CodeDto[];
   maintenanceLevels: CodeDto[];
   managers: ManagerAssignmentDto[];
-  destinations: CodeDto[];
+  destinations: DestinationDto[];
   status: ItemStatusDto;
   recentChangeDate?: IsoDateString;
 }
@@ -187,7 +192,7 @@ export interface ItemFilterOptionsDto {
   subsystems: CodeDto[];
   categories: CodeDto[];
   managers: Array<{ userId: number; name: string }>;
-  destinations: CodeDto[];
+  destinations: DestinationDto[];
   statuses: Array<{ value: ItemStatusDto; label: string }>;
 }
 

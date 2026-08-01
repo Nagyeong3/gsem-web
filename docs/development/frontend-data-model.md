@@ -36,7 +36,7 @@ src/types/domain.ts
 - 차트 및 표 구성에 적합한 데이터
 - Mock Service와 현재 프로토타입 동작 유지
 
-현재 `domain.ts`의 `Equipment`는 엄밀한 Domain Entity가 아니라 화면 조회 모델에 가깝다. 이번 단계에서는 기존 코드를 대규모 변경하지 않기 위해 파일명과 타입명을 유지한다. 실제 HTTP Adapter 도입 시 `viewModels` 디렉터리로 이동하는 방안을 검토한다.
+현재 `domain.ts`의 `Equipment`는 엄밀한 Domain Entity가 아니라 화면 조회 모델에 가깝다. HTTP Adapter를 도입한 현재 단계에서도 기존 코드를 대규모 변경하지 않기 위해 파일명과 타입명을 유지한다. 화면 범위가 확장되면 `viewModels` 디렉터리로 이동하는 방안을 검토한다.
 
 ## 3. 핵심 매핑
 
@@ -86,7 +86,7 @@ ItemDetailDto
 
 ## 4. Mapper 원칙
 
-HTTP Adapter 도입 시 다음 구조를 권장한다.
+HTTP Adapter는 다음 구조로 구현한다.
 
 ```text
 src/
@@ -115,18 +115,7 @@ Mapper는 다음을 수행한다.
 
 컴포넌트에서 직접 DTO를 변환하지 않는다.
 
-## 5. 서비스 인터페이스 개선안
-
-현재:
-
-```ts
-interface EquipmentService {
-  getAll(): Promise<Equipment[]>;
-  getById(itemId: number): Promise<Equipment | undefined>;
-}
-```
-
-향후:
+## 5. 서비스 인터페이스
 
 ```ts
 interface EquipmentService {
@@ -136,7 +125,7 @@ interface EquipmentService {
 }
 ```
 
-현재 `getAll()`을 즉시 제거하지 않는다. HTTP Adapter 도입 PR에서 검색 상태 관리와 함께 교체한다.
+Mock Adapter와 HTTP Adapter가 동일한 인터페이스를 구현한다. 화면은 `src/services/index.ts`에서 선택된 구현만 사용하며 Fixture나 HTTP Client를 직접 참조하지 않는다.
 
 ## 6. 검색 상태 모델
 
@@ -184,21 +173,17 @@ GET /api/v1/items
 | 복수 계통·정비 계단 | 현재 View Model에서 지원 |
 | 복수 담당자 | 현재 View Model에서 지원 |
 | 사업별 납품 | 현재 상세 View Model에서 지원 |
-| 서버 페이징 | 현재 미구현, HTTP 전환 단계에서 필요 |
-| 필터 코드/ID 사용 | 현재 표시명 기반, Mapper 필요 |
+| 서버 페이징 | Mock과 HTTP가 동일한 검색 계약으로 지원 |
+| 필터 코드/ID 사용 | 화면 표시명을 HTTP Adapter에서 코드·ID로 변환 |
 | 관리 품목 유형 | 요구사항에는 있으나 현재 ERD 저장 위치가 없어 `itemType`은 선택값 |
 | SERD·품보·교정 | 현재 상세 View Model에 없음 |
 | 단종·대체 Graph | 현재 타입과 화면 미구현 |
 | 공통 오류 | 현재 페이지별 처리, HTTP Client 도입 시 통합 필요 |
 
-## 10. 의도적으로 변경하지 않은 코드
+## 10. 현재 제약과 후속 확인
 
-이번 작업은 계약 설계 단계이므로 다음을 변경하지 않는다.
-
-- 기존 화면 컴포넌트
-- 기존 Mock Fixture
-- 기존 `EquipmentService` 동작
-- 검색·정렬 로직
-- 라우팅
-
-`src/types/api.ts`는 아직 화면에서 Import하지 않는다. 계약 검토 후 HTTP Adapter 구현 시 연결한다.
+- 목록 응답은 사업·기종·납지를 독립 배열로 제공하므로 목록 Mapper는 검색 표시에 필요한 요약만 구성하고 정확한 조합은 상세 API에서 다시 조회한다.
+- 목록에서 선택한 품목은 `GET /items/{itemId}`로 상세 데이터를 보완한다.
+- 담당자 `role`과 정·부 구분이 없으면 화면에서 미지정으로 표시한다.
+- 관리 품목 유형은 DB 저장 위치가 정해질 때까지 선택값이다.
+- 실제 백엔드 CORS, 인증 Header와 Trace ID 정책은 백엔드 기술 선정 후 추가한다.

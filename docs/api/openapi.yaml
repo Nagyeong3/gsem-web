@@ -390,6 +390,14 @@ components:
           type: string
         name:
           type: string
+    Destination:
+      type: object
+      required: [destinationId, name]
+      properties:
+        destinationId:
+          type: integer
+        name:
+          type: string
     ItemType:
       type: string
       description: 코드값은 프로토타입 가정입니다.
@@ -523,7 +531,7 @@ components:
         destinations:
           type: array
           items:
-            $ref: "#/components/schemas/Code"
+            $ref: "#/components/schemas/Destination"
         status:
           $ref: "#/components/schemas/ItemStatus"
         recentChangeDate:
@@ -633,7 +641,7 @@ components:
         destinations:
           type: array
           items:
-            $ref: "#/components/schemas/Code"
+            $ref: "#/components/schemas/Destination"
         statuses:
           type: array
           items:
