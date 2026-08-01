@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'http-adapter.spec.ts',
+  testMatch: 'http-api-mode.spec.ts',
   fullyParallel: false,
   retries: 0,
   reporter: 'line',
