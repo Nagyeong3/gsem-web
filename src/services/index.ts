@@ -3,6 +3,7 @@ import { mockDashboardService } from './dashboardService';
 import { mockEquipmentService } from './equipmentService';
 import { mockDeliveryScheduleService } from './deliveryScheduleService';
 import { mockChangeRequestService } from './changeRequestService';
+import { replacementHistoryService } from './replacementHistoryService';
 import { ApiClient } from './http/apiClient';
 import { createHttpDashboardService } from './http/httpDashboardService';
 import { createHttpEquipmentService } from './http/httpEquipmentService';
@@ -24,3 +25,4 @@ export const equipmentService =
 
 export const deliveryScheduleService = mockDeliveryScheduleService;
 export const changeRequestService = mockChangeRequestService;
+export { replacementHistoryService };
