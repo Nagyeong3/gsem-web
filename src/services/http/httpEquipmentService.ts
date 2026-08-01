@@ -74,6 +74,8 @@ export function createHttpEquipmentService(apiClient: ApiClient): EquipmentServi
       return {
         items: response.data.map(toEquipmentSummary),
         ...response.page,
+        page: Math.max(1, response.page.page),
+        totalPages: Math.max(1, response.page.totalPages),
       };
     },
     async getById(itemId) {
