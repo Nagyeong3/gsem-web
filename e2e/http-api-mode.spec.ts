@@ -7,6 +7,9 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
+  const healthResponse = await page.request.get('http://127.0.0.1:4010/health');
+  expect(healthResponse.ok()).toBe(true);
+
   await page.goto('/?__gsemDataSource=api');
 
   const dataSource = await page.evaluate(async () => {
