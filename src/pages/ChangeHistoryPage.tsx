@@ -85,6 +85,7 @@ export function ChangeHistoryPage() {
 
   const nodes: HistoryNode[] = graph.items.map((item) => ({
     id: item.id, type: 'history', position: item.position,
+    initialWidth: 172, initialHeight: 94,
     data: { ...item, selectedPath: connected.has(item.id) },
     hidden: visibleIds.size !== graph.items.length && !visibleIds.has(item.id),
   }));
@@ -115,7 +116,7 @@ export function ChangeHistoryPage() {
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} minZoom={0.55} maxZoom={1.4} nodesDraggable={false} nodesConnectable={false} elementsSelectable proOptions={{ hideAttribution: true }} onEdgeClick={(_, edge) => setSelectedRelationId(edge.id)} onNodeClick={(_, node) => { const relation = graph.relations.find((item) => item.target === node.id) ?? graph.relations.find((item) => item.source === node.id); if (relation) setSelectedRelationId(relation.id); }} colorMode={theme.palette.mode}>
           <Background gap={24} size={1} color={theme.palette.divider} />
           <Controls showInteractive={false} position="bottom-left" />
-          <MiniMap position="bottom-right" pannable zoomable nodeColor={(node) => node.id === selectedRelation?.target ? theme.palette.primary.main : theme.palette.grey[500]} maskColor={alpha(theme.palette.background.default, 0.4)} style={{ width: 150, height: 96, right: 14, bottom: 14, border: `1px solid ${theme.palette.divider}`, borderRadius: 4, background: theme.palette.action.hover }} />
+          <MiniMap position="bottom-right" pannable zoomable ariaLabel="장비 대체 계보 미니맵" nodeColor={(node) => node.id === selectedRelation?.target ? theme.palette.primary.main : theme.palette.grey[500]} nodeStrokeColor={theme.palette.background.paper} nodeStrokeWidth={2} maskColor={alpha(theme.palette.background.default, 0.32)} maskStrokeColor={theme.palette.primary.main} bgColor={theme.palette.action.hover} style={{ width: 150, height: 96, right: 14, bottom: 14, border: `1px solid ${theme.palette.divider}`, borderRadius: 4 }} />
         </ReactFlow>
         <Box sx={{ position: 'absolute', zIndex: 2, left: 96, bottom: 14, display: 'flex', gap: 2, px: 1.25, py: 0.7, bgcolor: alpha(theme.palette.background.paper, 0.94), border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
           {[['사용 중', 'success.main'], ['단종', 'text.disabled'], ['대체 예정', 'warning.main']].map(([label, color]) => <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 0.65 }}><Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: color }} /><Typography sx={{ fontSize: 10.5, color: 'text.secondary' }}>{label}</Typography></Box>)}
