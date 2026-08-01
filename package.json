@@ -19,6 +19,7 @@
     "@fontsource-variable/noto-sans-kr": "5.2.9",
     "@mui/icons-material": "9.2.0",
     "@mui/material": "9.2.0",
+    "@xyflow/react": "^12.11.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2",

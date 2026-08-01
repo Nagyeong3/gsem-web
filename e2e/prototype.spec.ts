@@ -219,3 +219,33 @@ test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한�
     fullPage: false,
   });
 });
+
+test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 확인한다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/history');
+  await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
+  await expect(page.getByText('5단계 (현재)')).toBeVisible();
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('complementary', { name: '변경 상세' })).toContainText('CHG-00009');
+  await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('다 사업', { exact: true }).first()).toBeVisible();
+
+  await page.getByLabel('변경 이력 검색').fill('A-4장비');
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+  await page.getByLabel('변경 이력 검색').fill('');
+  await page.waitForTimeout(600);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-history.png`, fullPage: false });
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  expect(errors).toEqual([]);
+
+  await page.getByRole('button', { name: '다크 모드로 전환' }).click();
+  await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-history-dark.png`, fullPage: false });
+});

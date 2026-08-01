@@ -217,3 +217,32 @@ export interface ChangeRequestFilters {
   status: string;
   requester: string;
 }
+
+export type ReplacementStatus = '사용 중' | '단종' | '대체 예정';
+
+export interface ReplacementItem {
+  id: string;
+  itemNum: string;
+  itemName: string;
+  businesses: string[];
+  status: ReplacementStatus;
+  depth: number;
+  position: { x: number; y: number };
+}
+
+export interface ReplacementRelation {
+  id: string;
+  source: string;
+  target: string;
+  changeId: string;
+  changedAt: string;
+  changeType: string;
+  reason: string;
+  requester: Manager;
+  processor: Manager;
+}
+
+export interface ReplacementGraph {
+  items: ReplacementItem[];
+  relations: ReplacementRelation[];
+}
