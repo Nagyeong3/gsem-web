@@ -96,12 +96,12 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
   await expect(page.getByText('10건', { exact: true })).toBeVisible();
 
   await page.goto('/');
-  await page.getByRole('button', { name: '납품 일정' }).click();
+  await page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' }).click();
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByText('10건', { exact: true })).toBeVisible();
@@ -259,4 +259,51 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
   await page.waitForTimeout(200);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/change-history-dark.png`, fullPage: false });
+});
+
+test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async ({ page }) => {
+  await page.goto('/equipment?business=%EB%82%98+%EC%82%AC%EC%97%85&sort=recentChangeDate&direction=desc&page=1');
+  await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
+  await expect(page.getByLabel('사업')).toHaveText(/나 사업/);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
+  await expect(page).toHaveURL(/business=/);
+  await expect(page).toHaveURL(/sort=recentChangeDate/);
+
+  const firstRow = page.getByRole('table', { name: '장비 검색 결과' }).getByRole('row').nth(1);
+  await firstRow.focus();
+  await firstRow.press('Enter');
+  await expect(page).toHaveURL(/selected=/);
+
+  await page.goto('/equipment/1');
+  await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
+  await expect(page).toHaveURL(/\/deliveries\?itemId=1/);
+  await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
+  await expect(page.getByText('XXXXXX-01', { exact: true }).first()).toBeVisible();
+
+  await page.goto('/equipment/1');
+  await page.locator('main').getByRole('button', { name: '변경 신청 내역' }).click();
+  await expect(page).toHaveURL(/\/requests\?itemId=1/);
+  await expect(page.getByText('Mock 권한: 지원장비 담당자', { exact: false })).toBeVisible();
+
+  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('option', { name: '일반 조회자' }).click();
+  await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeDisabled();
+
+  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('option', { name: '지원장비 담당자' }).click();
+  await page.getByRole('button', { name: '변경 신청 초안' }).click();
+  await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
+  await page.getByRole('button', { name: '메모리에 보관' }).click();
+  await expect(page.getByText('브라우저 메모리에 보관했습니다.', { exact: false }).first()).toBeVisible();
+
+  await page.goto('/equipment/1');
+  await page.locator('main').getByRole('button', { name: '변경 이력' }).click();
+  await expect(page).toHaveURL(/\/history\?itemId=1/);
+  await expect(page.getByText('5단계 (현재)')).toBeVisible();
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+
+  await page.goto('/equipment/not-a-number');
+  await expect(page.getByText('장비 정보를 찾을 수 없습니다.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
