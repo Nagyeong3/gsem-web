@@ -1,12 +1,22 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const build = spawnSync(npmCommand, ['run', 'build', '--', '--mode', 'api'], {
+  stdio: 'inherit',
+  env: { ...process.env, VITE_DATA_SOURCE: 'api' },
+});
+
+if (build.status !== 0) {
+  process.exit(build.status ?? 1);
+}
+
 const children = [
   spawn(process.execPath, ['tools/stub-api.mjs'], {
     stdio: 'inherit',
   }),
-  spawn(npmCommand, ['run', 'dev:api', '--', '--port', '5174', '--strictPort'], {
+  spawn(npmCommand, ['run', 'preview', '--', '--host', '127.0.0.1', '--mode', 'api', '--port', '5174', '--strictPort'], {
     stdio: 'inherit',
+    env: { ...process.env, VITE_DATA_SOURCE: 'api' },
   }),
 ];
 
