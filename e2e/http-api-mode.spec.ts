@@ -10,23 +10,16 @@ test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', a
   const healthResponse = await page.request.get('http://127.0.0.1:4010/health');
   expect(healthResponse.ok()).toBe(true);
 
-  await page.goto('/?__gsemDataSource=api');
-
-  const dataSource = await page.evaluate(async () => {
-    const { runtimeConfig } = await import('/src/config/runtime.ts');
-    return runtimeConfig.dataSource;
-  });
-  expect(dataSource).toBe('api');
-
   const overviewResponse = page.waitForResponse((response) =>
     response.url().includes('/api/v1/dashboard/overview'),
   );
-  const overview = await page.evaluate(async () => {
-    const { dashboardService } = await import('/src/services/index.ts');
-    return dashboardService.getOverview();
-  });
-  expect((await overviewResponse).status()).toBe(200);
-  expect(overview.metrics.find((metric) => metric.id === 'attention')?.value).toBe(12);
+  await page.goto('/?__gsemDataSource=api');
+  const response = await overviewResponse;
+  expect(response.status()).toBe(200);
+  const overview = (await response.json()) as {
+    data: { metrics: Array<{ id: string; value: number }> };
+  };
+  expect(overview.data.metrics.find((metric) => metric.id === 'ATTENTION')?.value).toBe(12);
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('2,346', { exact: true })).toBeVisible();
 
