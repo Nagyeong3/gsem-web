@@ -11,7 +11,7 @@ if (build.status !== 0) {
 }
 
 const children = [
-  spawn(process.execPath, ['tools/stub-api.mjs'], {
+  spawn(process.execPath, ['server/index.mjs'], {
     stdio: 'inherit',
   }),
   spawn(npmCommand, ['run', 'preview', '--', '--host', '127.0.0.1', '--mode', 'api', '--port', '5174', '--strictPort'], {

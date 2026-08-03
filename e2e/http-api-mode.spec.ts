@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('HTTP API 모드에서 전체 조회 화면이 Stub API와 연결된다', async ({ page }) => {
+test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결된다', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(message.text());
