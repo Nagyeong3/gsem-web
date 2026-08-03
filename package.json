@@ -11,7 +11,9 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:stub": "node --test tools/*.test.mjs",
+    "test:server": "node --test server/*.test.mjs",
     "stub:api": "node tools/stub-api.mjs",
+    "server:dev": "node server/index.mjs",
     "test:e2e": "playwright test",
     "test:e2e:api": "playwright test --config playwright.api.config.ts",
     "dev:api": "node tools/start-api-mode.mjs"

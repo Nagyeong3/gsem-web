@@ -26,10 +26,27 @@ async function getJson(path, init) {
   return { response, body: await response.json() };
 }
 
-test('상태 확인 Endpoint가 Stub 서버임을 반환한다', async () => {
+test('상태 확인 Endpoint가 인메모리 서버와 요청 ID를 반환한다', async () => {
   const { response, body } = await getJson('/health');
   assert.equal(response.status, 200);
-  assert.deepEqual(body, { status: 'ok', dataSource: 'stub' });
+  assert.equal(body.status, 'ok');
+  assert.equal(body.dataSource, 'memory');
+  assert.equal(body.requestId, response.headers.get('x-request-id'));
+});
+
+test('요청 ID를 응답·오류·기본 로그까지 일관되게 전달한다', async () => {
+  const requestId = 'prototype-request-001';
+  const success = await getJson('/api/v1/items?page=1&size=1', {
+    headers: { 'X-Request-ID': requestId },
+  });
+  assert.equal(success.response.headers.get('x-request-id'), requestId);
+  assert.equal(success.body.meta.requestId, requestId);
+
+  const failure = await getJson('/api/v1/items?page=0', {
+    headers: { 'X-Request-ID': requestId },
+  });
+  assert.equal(failure.response.headers.get('x-request-id'), requestId);
+  assert.equal(failure.body.error.traceId, requestId);
 });
 
 test('대시보드 핵심 수치 12건의 정합성을 유지한다', async () => {
@@ -227,6 +244,16 @@ test('지원하지 않는 Method와 잘못된 페이지 값을 공통 오류로 
     assert.equal(result.response.status, 400);
     assert.equal(result.body.error.code, 'INVALID_REQUEST');
   }
+});
+
+test('검색어 길이와 숫자형 필터 입력값을 검증한다', async () => {
+  const longQuery = await getJson(`/api/v1/items?query=${'X'.repeat(101)}`);
+  assert.equal(longQuery.response.status, 400);
+  assert.equal(longQuery.body.error.fieldErrors[0].field, 'query');
+
+  const invalidBusiness = await getJson('/api/v1/deliveries?businessId=abc');
+  assert.equal(invalidBusiness.response.status, 400);
+  assert.equal(invalidBusiness.body.error.fieldErrors[0].field, 'businessId');
 });
 
 test('목업 데이터에 금지된 직급·실제 연락처·깨진 문자·한자가 없다', async () => {

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GSEM 조회 API
-  version: 0.1.0-draft
+  version: 0.2.0-prototype
   description: |
     지원장비 관리시스템의 프론트엔드-백엔드 조회 계약 초안입니다.
     상태값, 페이징 및 일부 필드는 프로토타입 가정이며 운영 규칙이 아닙니다.
@@ -357,6 +357,9 @@ components:
           format: date-time
         traceId:
           type: string
+        requestId:
+          type: string
+          description: 요청과 성공 응답을 연결하는 개발 추적 식별자
     PageMeta:
       type: object
       required: [page, size, totalElements, totalPages]

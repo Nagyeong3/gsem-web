@@ -47,6 +47,9 @@ jobs:
       - name: Stub API 계약 테스트
         run: npm run test:stub
 
+      - name: 백엔드 계층 단위 테스트
+        run: npm run test:server
+
       - name: 프로덕션 빌드
         run: npm run build
 
