@@ -1,8 +1,8 @@
 import { ArrowForward, AssignmentOutlined, Search } from '@mui/icons-material';
 import {
-  Box, Chip, FormControl, InputAdornment, InputLabel, MenuItem, Paper,
-  Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField,
-  Typography,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
+  FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select, Snackbar,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
@@ -13,6 +13,7 @@ import { SectionCard } from '../components/common/SectionCard';
 import { changeRequestService } from '../services';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { ChangeRequest, ChangeRequestFilters, ChangeRequestStatus } from '../types/domain';
+import { useMockRole } from '../auth/mockRoleContext';
 
 const statusTone: Record<ChangeRequestStatus, 'default' | 'warning' | 'success'> = {
   접수: 'default', '검토 중': 'warning', '처리 완료': 'success',
@@ -33,8 +34,12 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 
 export function ChangeRequestPage() {
   const theme = useTheme();
+  const { role, permissions } = useMockRole();
   const [searchParams] = useSearchParams();
   const [requestedSelectedId, setRequestedSelectedId] = useState<string>();
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftReason, setDraftReason] = useState('');
+  const [draftSaved, setDraftSaved] = useState(false);
   const [filters, setFilters] = useState<ChangeRequestFilters>({ query: '', changeType: '', status: searchParams.get('status') ?? '', requester: '' });
 
   const itemIdParam = searchParams.get('itemId') ?? '';
@@ -67,7 +72,24 @@ export function ChangeRequestPage() {
   const selected = requests.find((item) => item.changeId === selectedId);
 
   return <Box sx={{ p: 3, minWidth: 1080, bgcolor: 'background.default' }}>
-    <PageHeader title="변경 신청 및 처리 현황" description="장비 정보 변경 신청의 내용과 처리 과정을 조회합니다." />
+    <PageHeader
+      title="변경 신청 및 처리 현황"
+      description="장비 정보 변경 신청의 내용과 처리 과정을 조회합니다."
+      action={
+        <Button
+          variant="contained"
+          disabled={!permissions.canCreateChangeDraft}
+          onClick={() => setDraftOpen(true)}
+        >
+          변경 신청 초안
+        </Button>
+      }
+    />
+    <Alert severity="info" variant="outlined" sx={{ mb: 1.5, py: 0 }}>
+      Mock 권한: {role} · {permissions.description}
+      {permissions.canReviewChange ? ' 실제 승인·반려 처리는 제공하지 않습니다.' : ''}
+    </Alert>
+    {draftSaved && <Alert severity="success" sx={{ mb: 1.5 }}>작성한 초안은 현재 브라우저 메모리에만 보관되며 새로고침하면 사라집니다.</Alert>}
     <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}><Box sx={{ display: 'grid', gridTemplateColumns: '1.6fr repeat(3, minmax(150px, 1fr))', gap: 1 }}>
       <TextField value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="신청번호, 품번, 품명, 변경 유형 검색" slotProps={{ htmlInput: { 'aria-label': '변경 신청 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
       <FilterSelect id="type" label="변경 유형" value={filters.changeType} options={options.types} onChange={(value) => setFilters((current) => ({ ...current, changeType: value }))} />
@@ -93,5 +115,41 @@ export function ChangeRequestPage() {
         </>}
       </Box></SectionCard>
     </Box>
+    <Dialog open={draftOpen} onClose={() => setDraftOpen(false)} fullWidth maxWidth="sm">
+      <DialogTitle>변경 신청 초안</DialogTitle>
+      <DialogContent>
+        <Alert severity="warning" variant="outlined" sx={{ mb: 2 }}>
+          프로토타입 가정: 실제 저장·승인 요청은 수행하지 않습니다.
+        </Alert>
+        <TextField
+          autoFocus
+          fullWidth
+          multiline
+          minRows={4}
+          label="변경 사유"
+          value={draftReason}
+          onChange={(event) => setDraftReason(event.target.value)}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDraftOpen(false)}>취소</Button>
+        <Button
+          variant="contained"
+          disabled={!draftReason.trim()}
+          onClick={() => {
+            setDraftSaved(true);
+            setDraftOpen(false);
+          }}
+        >
+          메모리에 보관
+        </Button>
+      </DialogActions>
+    </Dialog>
+    <Snackbar
+      open={draftSaved}
+      autoHideDuration={2200}
+      onClose={() => setDraftSaved(false)}
+      message="변경 신청 초안을 브라우저 메모리에 보관했습니다."
+    />
   </Box>;
 }

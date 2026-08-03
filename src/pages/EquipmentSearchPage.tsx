@@ -31,13 +31,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { StatusChip } from '../components/common/StatusChip';
 import {
-  emptyEquipmentFilters,
   getAircraftTypes,
   getBusinesses,
   getDestinations,
@@ -253,16 +252,39 @@ function EquipmentDetail({
 
 export function EquipmentSearchPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<EquipmentFilters>({
-    ...emptyEquipmentFilters,
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo<EquipmentFilters>(() => ({
     query: searchParams.get('q') ?? '',
+    aircraftType: searchParams.get('aircraftType') ?? '',
+    business: searchParams.get('business') ?? '',
+    system: searchParams.get('system') ?? '',
+    category: searchParams.get('category') ?? '',
+    manager: searchParams.get('manager') ?? '',
+    destination: searchParams.get('destination') ?? '',
     status: searchParams.get('status') ?? '',
-  });
-  const [sortKey, setSortKey] = useState<EquipmentSortKey>('itemNum');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [page, setPage] = useState(1);
-  const [requestedSelectedId, setRequestedSelectedId] = useState<number | null>(1);
+  }), [searchParams]);
+  const requestedSortKey = searchParams.get('sort') as EquipmentSortKey | null;
+  const sortKey = columns.some((column) => column.key === requestedSortKey)
+    ? requestedSortKey!
+    : 'itemNum';
+  const sortDirection: SortDirection = searchParams.get('direction') === 'desc' ? 'desc' : 'asc';
+  const requestedPage = Number(searchParams.get('page'));
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const selectedParam = searchParams.get('selected');
+  const requestedSelectedId = selectedParam === 'none'
+    ? null
+    : Number.isInteger(Number(selectedParam)) && Number(selectedParam) > 0
+      ? Number(selectedParam)
+      : 1;
+
+  const updateParams = (updates: Record<string, string | number | null>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') next.delete(key);
+      else next.set(key, String(value));
+    });
+    setSearchParams(next, { replace: true });
+  };
 
   const searchEquipment = useCallback(
     () => equipmentService.search({ filters, sortKey, sortDirection, page, size: pageSize }),
@@ -305,13 +327,14 @@ export function EquipmentSearchPage() {
     detailQuery.data?.itemId === selectedSummary?.itemId ? detailQuery.data : selectedSummary;
 
   const updateFilter = (key: keyof EquipmentFilters, value: string) => {
-    setFilters((current) => ({ ...current, [key]: value }));
-    setPage(1);
+    updateParams({ [key === 'query' ? 'q' : key]: value, page: null });
   };
 
   const resetFilters = () => {
-    setFilters(emptyEquipmentFilters);
-    setPage(1);
+    const next = new URLSearchParams();
+    const dataSource = searchParams.get('__gsemDataSource');
+    if (dataSource) next.set('__gsemDataSource', dataSource);
+    setSearchParams(next, { replace: true });
   };
 
   const activeFilters = (Object.entries(filters) as Array<[keyof EquipmentFilters, string]>).filter(
@@ -330,11 +353,15 @@ export function EquipmentSearchPage() {
   };
 
   const changeSort = (key: EquipmentSortKey) => {
-    if (sortKey === key) setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
-    else {
-      setSortKey(key);
-      setSortDirection('asc');
-    }
+    updateParams({
+      sort: key === 'itemNum' ? null : key,
+      direction: sortKey === key && sortDirection === 'asc' ? 'desc' : null,
+      page: null,
+    });
+  };
+
+  const setSelectedId = (itemId: number | null) => {
+    updateParams({ selected: itemId === null ? 'none' : itemId });
   };
 
   return (
@@ -548,12 +575,12 @@ export function EquipmentSearchPage() {
                         key={item.itemId}
                         hover
                         selected={selected}
-                        onClick={() => setRequestedSelectedId(item.itemId)}
+                        onClick={() => setSelectedId(item.itemId)}
                         tabIndex={0}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
-                            setRequestedSelectedId(item.itemId);
+                            setSelectedId(item.itemId);
                           }
                         }}
                         sx={{
@@ -611,7 +638,7 @@ export function EquipmentSearchPage() {
               count={totalPages}
               color="primary"
               shape="rounded"
-              onChange={(_, nextPage) => setPage(nextPage)}
+              onChange={(_, nextPage) => updateParams({ page: nextPage === 1 ? null : nextPage })}
             />
           </Box>
         )}
@@ -620,7 +647,7 @@ export function EquipmentSearchPage() {
       {selectedEquipment && (
         <EquipmentDetail
           equipment={selectedEquipment}
-          onClose={() => setRequestedSelectedId(null)}
+          onClose={() => setSelectedId(null)}
           onOpenFullDetail={() => navigate(`/equipment/${selectedEquipment.itemId}`)}
         />
       )}
