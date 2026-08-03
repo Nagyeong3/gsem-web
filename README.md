@@ -33,6 +33,8 @@
 
 V5에서는 네 가지 Mock 역할, 장비 검색 URL 상태 복원, 장비 상세에서 납품·변경·대체 이력으로 이어지는 전체 업무 시나리오와 브라우저 메모리 전용 변경 신청 초안을 제공합니다. Mock 역할은 실제 인증이나 운영 권한 정책이 아닙니다.
 
+V6에서는 프론트와 독립 실행되는 Node 백엔드, Repository–Service 경계, 요청 ID, 입력 검증과 향후 MS Access 어댑터 위치를 제공합니다. 실제 DB는 연결하지 않습니다.
+
 ## 기술 구성
 
 - React 19
@@ -61,6 +63,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run test:stub
+npm run test:server
 npm run build
 ```
 
@@ -113,10 +116,10 @@ VITE_API_BASE_URL=/api/v1
 
 운영 백엔드 기술과 DB 연결 방식은 아직 확정하지 않습니다. 저장소의 Stub API는 OpenAPI 계약과 프론트 HTTP Adapter를 미리 검증하기 위한 개발 도구이며 Node.js 기본 모듈만 사용합니다.
 
-첫 번째 터미널에서 Stub API를 실행합니다.
+첫 번째 터미널에서 인메모리 API를 실행합니다.
 
 ```bash
-npm run stub:api
+npm run server:dev
 ```
 
 두 번째 터미널에서 프론트를 실행합니다.
@@ -138,6 +141,12 @@ npm run dev
 ```
 
 실제 서버 주소, 계정정보와 Token은 저장소에 Commit하지 않습니다.
+
+DB 연결 직전 구조와 확인 항목은 다음 문서를 참고합니다.
+
+- `docs/development/prototype-v6-backend-ready.md`
+- `docs/api/erd-api-field-mapping.md`
+- `docs/development/database-connection-checklist.md`
 
 화면 구조와 데이터 경계에 대한 설명은 `docs/development/prototype-architecture.md`를 참고합니다.
 
