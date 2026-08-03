@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
@@ -75,6 +76,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 export function DeliverySchedulePage() {
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState(initialFilters);
   const [requestedSelectedId, setRequestedSelectedId] = useState<number>();
   const loadAllSchedules = useCallback(() => deliveryScheduleService.list(initialFilters), []);
@@ -85,7 +87,13 @@ export function DeliverySchedulePage() {
     keepPreviousData: true,
   });
   const allSchedules = useMemo(() => allSchedulesQuery.data ?? [], [allSchedulesQuery.data]);
-  const schedules = useMemo(() => schedulesQuery.data ?? [], [schedulesQuery.data]);
+  const itemIdParam = Number(searchParams.get('itemId'));
+  const schedules = useMemo(() => {
+    const items = schedulesQuery.data ?? [];
+    return Number.isInteger(itemIdParam) && itemIdParam > 0
+      ? items.filter((item) => item.itemId === itemIdParam)
+      : items;
+  }, [itemIdParam, schedulesQuery.data]);
   const selectedId = requestedSelectedId !== undefined && schedules.some((item) => item.deliveryId === requestedSelectedId)
     ? requestedSelectedId
     : schedules[0]?.deliveryId;

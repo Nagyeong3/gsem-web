@@ -14,7 +14,10 @@ import {
 import {
   Avatar,
   Box,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   List,
   ListItemButton,
   ListItemIcon,
@@ -25,6 +28,7 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from '../../theme/themeModeContext';
+import { mockRoles, useMockRole, type MockRole } from '../../auth/mockRoleContext';
 
 interface AppShellProps {
   children: ReactNode;
@@ -43,6 +47,7 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const [noticeOpen, setNoticeOpen] = useState(false);
   const { mode, toggleMode } = useThemeMode();
+  const { role, setRole } = useMockRole();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
@@ -181,6 +186,16 @@ export function AppShell({ children }: AppShellProps) {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <FormControl size="small" sx={{ minWidth: 154 }}>
+            <Select
+              value={role}
+              onChange={(event) => setRole(event.target.value as MockRole)}
+              slotProps={{ input: { 'aria-label': 'Mock 사용자 역할' } }}
+              sx={{ height: 34, fontSize: 12.5 }}
+            >
+              {mockRoles.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+            </Select>
+          </FormControl>
           <Tooltip title={mode === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'}>
             <IconButton
               aria-label={mode === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'}

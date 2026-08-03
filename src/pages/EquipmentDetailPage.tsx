@@ -16,7 +16,6 @@ import {
   Divider,
   Paper,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { useCallback, type ReactNode } from 'react';
@@ -145,9 +144,8 @@ export function EquipmentDetailPage() {
             <Typography sx={{ mt: 0.2, color: 'text.secondary', fontSize: 13 }}>{equipment.itemNum}</Typography>
           </Box>
           <Stack sx={{ flexDirection: 'row', gap: 1, alignItems: 'flex-start' }}>
-            <Tooltip title="변경 이력 화면은 후속 구현 범위입니다.">
-              <span><Button disabled variant="outlined" startIcon={<History />}>변경 이력</Button></span>
-            </Tooltip>
+            <Button variant="outlined" startIcon={<CalendarMonthOutlined />} onClick={() => navigate(`/deliveries?itemId=${equipment.itemId}`)}>납품 일정</Button>
+            <Button variant="outlined" startIcon={<History />} onClick={() => navigate(`/history?itemId=${equipment.itemId}`)}>변경 이력</Button>
             <Button variant="outlined" startIcon={<AssignmentOutlined />} onClick={() => navigate(`/requests?itemId=${equipment.itemId}`)}>변경 신청 내역</Button>
           </Stack>
         </Box>

@@ -37,20 +37,20 @@ test('Stub API 모드에서 상세·납품·변경·대체 이력 화면이 동�
   await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
 
-  await page.getByRole('button', { name: '납품 일정' }).click();
+  await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
   await page.getByLabel('진행 상태').click();
   await page.getByRole('option', { name: '진행' }).click();
   await expect(page.getByText('진행', { exact: true }).first()).toBeVisible();
 
-  await page.getByRole('button', { name: '변경 신청' }).click();
+  await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 신청' }).click();
   await expect(page.getByRole('heading', { name: '변경 신청 및 처리 현황' })).toBeVisible();
   await page.getByLabel('처리 상태').click();
   await page.getByRole('option', { name: '처리 완료' }).click();
   await expect(page.getByText('CHG-XXXXX-01', { exact: true }).first()).toBeVisible();
 
-  await page.getByRole('button', { name: '변경 이력' }).click();
+  await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 이력' }).click();
   await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
   await expect(page.getByText('5단계 (현재)')).toBeVisible();
   await expect(page.getByRole('complementary', { name: '변경 상세' })).toContainText(
