@@ -1,4 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+
+const screenshotDirectory = 'docs/prototype-screenshots/flows';
+
+test.beforeAll(async () => {
+  await mkdir(screenshotDirectory, { recursive: true });
+});
 
 test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결된다', async ({ page }) => {
   const errors: string[] = [];
@@ -56,4 +63,42 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
     false,
   );
   expect(errors).toEqual([]);
+});
+
+test('HTTP API 지연·오류·재시도 상태를 화면으로 기록한다', async ({ page }) => {
+  const itemsRoute = '**/api/v1/items?*';
+  await page.route(itemsRoute, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1_200));
+    await route.continue();
+  });
+
+  await page.goto('/equipment?__gsemDataSource=api');
+  await expect(page.getByText('장비 정보를 불러오고 있습니다.')).toBeVisible();
+  await page.screenshot({ path: `${screenshotDirectory}/17-equipment-api-loading.png`, fullPage: false });
+  await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
+  await page.unroute(itemsRoute);
+
+  await page.route(itemsRoute, async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: {
+          code: 'PROTOTYPE_TEST_ERROR',
+          message: '시각 검증용 오류',
+          traceId: 'visual-state-001',
+        },
+      }),
+    });
+  });
+  await page.reload();
+  await expect(page.getByText('장비 정보를 불러오지 못했습니다.')).toBeVisible();
+  await page.screenshot({ path: `${screenshotDirectory}/18-equipment-api-error.png`, fullPage: false });
+
+  await page.unroute(itemsRoute);
+  await page.getByRole('button', { name: '다시 불러오기' }).click();
+  await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
+  await page.screenshot({ path: `${screenshotDirectory}/19-equipment-api-recovered.png`, fullPage: false });
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
