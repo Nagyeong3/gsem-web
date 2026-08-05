@@ -42,7 +42,16 @@ function setCorsHeaders(request, response) {
     response.setHeader('Vary', 'Origin');
   }
   response.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');
+  response.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type, X-Request-ID');
+  response.setHeader('Access-Control-Expose-Headers', 'X-Request-ID');
+}
+
+function resolveRequestId(value) {
+  const requestId = Array.isArray(value) ? value[0] : value;
+  const normalized = requestId?.trim();
+  return normalized && /^[A-Za-z0-9._:-]{1,100}$/.test(normalized)
+    ? normalized
+    : randomUUID();
 }
 
 function sendJson(request, response, status, body, requestId) {
@@ -358,7 +367,7 @@ function handleRequest(request, response, service, requestId) {
 export function createStubApiServer({ service = createGsemService(), logger } = {}) {
   return createServer((request, response) => {
     const startedAt = performance.now();
-    const requestId = request.headers['x-request-id']?.trim() || randomUUID();
+    const requestId = resolveRequestId(request.headers['x-request-id']);
     response.once('finish', () => {
       const entry = {
         level: 'info',
