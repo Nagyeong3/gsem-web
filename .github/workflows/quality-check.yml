@@ -67,6 +67,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: prototype-screenshots-${{ github.run_number }}
-          path: docs/prototype-screenshots/*.png
+          path: docs/prototype-screenshots/**/*.png
           if-no-files-found: error
           retention-days: 7

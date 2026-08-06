@@ -245,7 +245,7 @@ export function AppShell({ children }: AppShellProps) {
         open={noticeOpen}
         autoHideDuration={2400}
         onClose={() => setNoticeOpen(false)}
-        message="현재 1차 프로토타입 범위에는 포함되지 않은 기능입니다."
+        message="현재 프로토타입에서는 제공하지 않는 기능입니다."
       />
     </Box>
   );

@@ -49,6 +49,27 @@ test('요청 ID를 응답·오류·기본 로그까지 일관되게 전달한다
   assert.equal(failure.body.error.traceId, requestId);
 });
 
+test('요청 ID 헤더를 CORS에 노출하고 비정상 값은 안전하게 교체한다', async () => {
+  const preflight = await fetch(`${baseUrl}/api/v1/items`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'http://127.0.0.1:5174',
+      'Access-Control-Request-Headers': 'X-Request-ID',
+    },
+  });
+  assert.equal(preflight.status, 204);
+  assert.match(preflight.headers.get('access-control-allow-headers'), /X-Request-ID/i);
+  assert.match(preflight.headers.get('access-control-expose-headers'), /X-Request-ID/i);
+
+  const invalidRequestId = 'invalid/request id';
+  const { response, body } = await getJson('/api/v1/items?page=1&size=1', {
+    headers: { 'X-Request-ID': invalidRequestId },
+  });
+  const normalizedRequestId = response.headers.get('x-request-id');
+  assert.notEqual(normalizedRequestId, invalidRequestId);
+  assert.equal(body.meta.requestId, normalizedRequestId);
+});
+
 test('대시보드 핵심 수치 12건의 정합성을 유지한다', async () => {
   const { response, body } = await getJson('/api/v1/dashboard/overview');
   assert.equal(response.status, 200);

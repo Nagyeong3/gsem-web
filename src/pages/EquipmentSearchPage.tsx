@@ -391,7 +391,11 @@ export function EquipmentSearchPage() {
               },
             }}
           />
-          <Button variant="contained" sx={{ minWidth: 74 }}>
+          <Button
+            variant="contained"
+            sx={{ minWidth: 74 }}
+            onClick={equipmentQuery.refetch}
+          >
             검색
           </Button>
         </Box>
@@ -495,7 +499,7 @@ export function EquipmentSearchPage() {
               <Button variant="outlined" startIcon={<Refresh />} onClick={resetFilters}>
                 초기화
               </Button>
-              <Tooltip title="실제 다운로드는 1차 프로토타입 범위에서 제외됩니다.">
+              <Tooltip title="실제 다운로드는 현재 프로토타입 범위에서 제외됩니다.">
                 <span>
                   <Button variant="outlined" startIcon={<DownloadOutlined />} disabled>
                     엑셀 다운로드
@@ -575,6 +579,7 @@ export function EquipmentSearchPage() {
                         key={item.itemId}
                         hover
                         selected={selected}
+                        aria-selected={selected}
                         onClick={() => setSelectedId(item.itemId)}
                         tabIndex={0}
                         onKeyDown={(event) => {
