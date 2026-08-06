@@ -5,11 +5,16 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from backend.app.repositories.search import ItemSearchCriteria, ItemSearchPage, ItemSort
+
 
 class InMemoryGsemRepository:
     """일반화한 목업 데이터만 사용하는 프로토타입 Repository."""
 
-    def __init__(self, data_path: Path | None = None) -> None:
+    def __init__(self, data_path: Path | None = None, data: dict[str, Any] | None = None) -> None:
+        if data is not None:
+            self._data = deepcopy(data)
+            return
         source = data_path or Path(__file__).parents[1] / "data" / "mock_data.json"
         self._data: dict[str, Any] = json.loads(source.read_text(encoding="utf-8"))
 
@@ -100,8 +105,69 @@ class InMemoryGsemRepository:
     def get_filter_options(self) -> dict[str, Any]:
         return deepcopy(self._data["filterOptions"])
 
-    def get_items(self) -> list[dict[str, Any]]:
-        return deepcopy(self._data["itemDetails"])
+    @staticmethod
+    def _has_code(values: list[dict[str, Any]], code: str) -> bool:
+        return any(value["code"] == code for value in values)
+
+    @staticmethod
+    def _sort_value(item: dict[str, Any], field: str) -> Any:
+        first_fields = {
+            "aircraftType": ("aircraftTypes", "name"),
+            "business": ("businesses", "name"),
+            "subsystem": ("subsystems", "name"),
+            "manager": ("managers", "name"),
+            "destination": ("destinations", "name"),
+        }
+        if field in first_fields:
+            collection, key = first_fields[field]
+            return item.get(collection, [{}])[0].get(key, "") if item.get(collection) else ""
+        if field == "category":
+            return item.get("category", {}).get("name", "")
+        return item.get(field, "")
+
+    @classmethod
+    def _matches_item(cls, item: dict[str, Any], criteria: ItemSearchCriteria) -> bool:
+        query = criteria.query.casefold()
+        searchable = " ".join(
+            str(item.get(key, ""))
+            for key in ("itemNumber", "itemNameKor", "itemNameEng", "itemUsageKor", "itemUsageEng")
+        ).casefold()
+        return (
+            (not query or query in searchable)
+            and (not criteria.item_type or item["itemType"] == criteria.item_type)
+            and (not criteria.aircraft_type_code or cls._has_code(item["aircraftTypes"], criteria.aircraft_type_code))
+            and (
+                criteria.business_id is None
+                or any(entry["businessId"] == criteria.business_id for entry in item["businesses"])
+            )
+            and (not criteria.subsystem_code or cls._has_code(item["subsystems"], criteria.subsystem_code))
+            and (not criteria.category_code or item["category"]["code"] == criteria.category_code)
+            and (
+                criteria.manager_user_id is None
+                or any(entry["userId"] == criteria.manager_user_id for entry in item["managers"])
+            )
+            and (
+                criteria.destination_id is None
+                or any(entry["destinationId"] == criteria.destination_id for entry in item["destinations"])
+            )
+            and (not criteria.status or item["status"] == criteria.status)
+        )
+
+    def search_items(
+        self,
+        criteria: ItemSearchCriteria,
+        sort: ItemSort,
+        page: int,
+        size: int,
+    ) -> ItemSearchPage:
+        matched = [item for item in self._data["itemDetails"] if self._matches_item(item, criteria)]
+        matched.sort(
+            key=lambda item: str(self._sort_value(item, sort.field)),
+            reverse=sort.direction == "desc",
+        )
+        start = (page - 1) * size
+        items = [self._to_item_summary(item) for item in matched[start : start + size]]
+        return ItemSearchPage(items=items, total_elements=len(matched))
 
     def get_item_by_id(self, item_id: int) -> dict[str, Any] | None:
         item = next((item for item in self._data["itemDetails"] if item["itemId"] == item_id), None)
@@ -149,6 +215,6 @@ class InMemoryGsemRepository:
         graph = self._data["replacementGraph"]
         return deepcopy(graph) if graph["rootItemId"] == root_item_id else None
 
-    def to_item_summary(self, item: dict[str, Any]) -> dict[str, Any]:
+    def _to_item_summary(self, item: dict[str, Any]) -> dict[str, Any]:
         excluded = {"itemUsageKor", "itemUsageEng", "calibration", "applications", "replacementSummary"}
         return deepcopy({key: value for key, value in item.items() if key not in excluded})

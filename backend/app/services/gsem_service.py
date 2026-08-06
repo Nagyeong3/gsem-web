@@ -1,6 +1,7 @@
 from typing import Any
 
 from backend.app.repositories.base import GsemRepository
+from backend.app.repositories.search import ItemSearchCriteria, ItemSort
 
 ALLOWED_SORT_FIELDS = {
     "itemNumber",
@@ -26,62 +27,35 @@ class GsemService:
     def get_filter_options(self) -> dict[str, Any]:
         return self.repository.get_filter_options()
 
-    @staticmethod
-    def _has_code(values: list[dict[str, Any]], code: str) -> bool:
-        return any(value["code"] == code for value in values)
-
-    @staticmethod
-    def _sort_value(item: dict[str, Any], field: str) -> Any:
-        first_fields = {
-            "aircraftType": ("aircraftTypes", "name"),
-            "business": ("businesses", "name"),
-            "subsystem": ("subsystems", "name"),
-            "manager": ("managers", "name"),
-            "destination": ("destinations", "name"),
-        }
-        if field in first_fields:
-            collection, key = first_fields[field]
-            return item.get(collection, [{}])[0].get(key, "") if item.get(collection) else ""
-        if field == "category":
-            return item.get("category", {}).get("name", "")
-        return item.get(field, "")
-
     def search_items(self, filters: dict[str, Any], sort: str, page: int, size: int) -> dict[str, Any]:
-        query = (filters.get("query") or "").strip().casefold()
-
-        def matches(item: dict[str, Any]) -> bool:
-            searchable = " ".join(
-                str(item.get(key, ""))
-                for key in ("itemNumber", "itemNameKor", "itemNameEng", "itemUsageKor", "itemUsageEng")
-            ).casefold()
-            return (
-                (not query or query in searchable)
-                and (not filters.get("itemType") or item["itemType"] == filters["itemType"])
-                and (
-                    not filters.get("aircraftTypeCode")
-                    or self._has_code(item["aircraftTypes"], filters["aircraftTypeCode"])
-                )
-                and (
-                    not filters.get("businessId")
-                    or any(entry["businessId"] == filters["businessId"] for entry in item["businesses"])
-                )
-                and (not filters.get("subsystemCode") or self._has_code(item["subsystems"], filters["subsystemCode"]))
-                and (not filters.get("categoryCode") or item["category"]["code"] == filters["categoryCode"])
-                and (
-                    not filters.get("managerUserId")
-                    or any(entry["userId"] == filters["managerUserId"] for entry in item["managers"])
-                )
-                and (
-                    not filters.get("destinationId")
-                    or any(entry["destinationId"] == filters["destinationId"] for entry in item["destinations"])
-                )
-                and (not filters.get("status") or item["status"] == filters["status"])
-            )
-
         field, direction = sort.split(",")
-        values = [item for item in self.repository.get_items() if matches(item)]
-        values.sort(key=lambda item: str(self._sort_value(item, field)), reverse=direction == "desc")
-        return self._page([self.repository.to_item_summary(item) for item in values], page, size)
+        criteria = ItemSearchCriteria(
+            query=(filters.get("query") or "").strip(),
+            item_type=filters.get("itemType"),
+            aircraft_type_code=filters.get("aircraftTypeCode"),
+            business_id=filters.get("businessId"),
+            subsystem_code=filters.get("subsystemCode"),
+            category_code=filters.get("categoryCode"),
+            manager_user_id=filters.get("managerUserId"),
+            destination_id=filters.get("destinationId"),
+            status=filters.get("status"),
+        )
+        result = self.repository.search_items(
+            criteria,
+            ItemSort(field=field, direction="desc" if direction == "desc" else "asc"),
+            page,
+            size,
+        )
+        total_pages = 0 if result.total_elements == 0 else (result.total_elements + size - 1) // size
+        return {
+            "data": result.items,
+            "page": {
+                "page": page,
+                "size": size,
+                "totalElements": result.total_elements,
+                "totalPages": total_pages,
+            },
+        }
 
     def get_item_by_id(self, item_id: int) -> dict[str, Any] | None:
         return self.repository.get_item_by_id(item_id)
