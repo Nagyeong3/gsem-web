@@ -19,9 +19,10 @@ frontend/src
 
 backend/app
 ├─ api/router.py                HTTP Endpoint와 Query 검증
-├─ services/gsem_service.py     검색·필터·정렬·페이징
+├─ services/gsem_service.py     유스케이스 조립과 응답 페이징 정보 구성
 ├─ repositories/base.py        Repository 계약
-├─ repositories/memory.py      JSON 기반 인메모리 구현
+├─ repositories/search.py      품목 검색 조건·정렬·결과 값 객체
+├─ repositories/memory.py      JSON 기반 검색·필터·정렬·페이징 구현
 ├─ repositories/access.py      향후 MS Access Adapter 위치
 ├─ core/                        설정·오류·요청 ID·로그
 └─ main.py                      FastAPI 앱 조립
@@ -88,4 +89,4 @@ npm run test:e2e:api
 
 ## 실제 DB 연결의 첫 작업
 
-`GsemRepository` 계약을 구현하는 MS Access Adapter를 별도 모듈로 만든다. Router나 프론트 DTO를 DB 행 구조에 직접 연결하지 않고, Adapter에서 `Integrated_Info`와 Match 테이블의 중복 행을 품목 중심 배열로 집계한다.
+`GsemRepository` 계약을 구현하는 MS Access Adapter를 별도 모듈로 만든다. 품목 목록은 `search_items`에서 조건·정렬·페이징을 DB 쿼리로 처리하고, 현재 페이지에 필요한 관계만 집계한다. Router나 프론트 DTO를 DB 행 구조에 직접 연결하지 않고, Adapter에서 `Integrated_Info`와 Match 테이블의 중복 행을 품목 중심 배열로 집계한다. 상세 기준은 [품목 검색 확장성 설계](./item-search-scalability.md)를 따른다.
