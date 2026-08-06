@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
+import { spawnFastApi } from './process-utils.mjs';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const build = spawnSync(npmCommand, ['run', 'build', '--', '--mode', 'api'], {
@@ -11,9 +12,7 @@ if (build.status !== 0) {
 }
 
 const children = [
-  spawn(process.execPath, ['server/index.mjs'], {
-    stdio: 'inherit',
-  }),
+  spawnFastApi(),
   spawn(npmCommand, ['run', 'preview', '--', '--host', '127.0.0.1', '--mode', 'api', '--port', '5174', '--strictPort'], {
     stdio: 'inherit',
     env: { ...process.env, VITE_DATA_SOURCE: 'api' },

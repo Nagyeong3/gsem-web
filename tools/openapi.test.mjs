@@ -2,7 +2,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { parse } from 'yaml';
-import { implementedApiPaths } from './stub-api.mjs';
+const implementedApiPaths = [
+  '/dashboard/overview',
+  '/items/filter-options',
+  '/items',
+  '/items/{itemId}',
+  '/items/{itemId}/replacement-graph',
+  '/deliveries',
+  '/change-events',
+];
 
 const source = await readFile(new URL('../docs/api/openapi.yaml', import.meta.url), 'utf8');
 const document = parse(source);

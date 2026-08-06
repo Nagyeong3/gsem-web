@@ -1,7 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { emptyEquipmentFilters } from '../../features/equipment-search/equipmentSearch';
-// @ts-expect-error 개발용 Stub API는 Node.js ESM JavaScript 모듈로 관리한다.
-import { createStubApiServer } from '../../../tools/stub-api.mjs';
 import { ApiClient } from './apiClient';
 import { createHttpDashboardService } from './httpDashboardService';
 import { createHttpEquipmentService } from './httpEquipmentService';
@@ -9,33 +7,16 @@ import { createHttpDeliveryScheduleService } from './httpDeliveryScheduleService
 import { createHttpChangeRequestService } from './httpChangeRequestService';
 import { createHttpReplacementHistoryService } from './httpReplacementHistoryService';
 
-describe('Stub API와 프론트 HTTP Service 통합', () => {
-  let server: {
-    once(event: 'error', listener: (error: Error) => void): void;
-    listen(port: number, host: string, listener: () => void): void;
-    address(): { port: number } | string | null;
-    close(callback: (error?: Error) => void): void;
-  };
+describe('FastAPI와 프론트 HTTP Service 통합', () => {
   let apiClient: ApiClient;
 
   beforeAll(async () => {
-    server = createStubApiServer();
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(0, '127.0.0.1', resolve);
-    });
-    const address = server.address();
-    if (!address || typeof address === 'string') throw new Error('Stub API 주소를 확인하지 못했습니다.');
     apiClient = new ApiClient({
-      baseUrl: `http://127.0.0.1:${address.port}/api/v1`,
+      baseUrl: 'http://127.0.0.1:4011/api/v1',
       timeoutMs: 2_000,
     });
-  });
-
-  afterAll(async () => {
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
+    const response = await fetch('http://127.0.0.1:4011/health');
+    if (!response.ok) throw new Error('FastAPI 테스트 서버를 확인하지 못했습니다.');
   });
 
   it('대시보드 응답을 화면 모델로 변환하고 핵심 수치를 유지한다', async () => {

@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
+import { spawnFastApi, stopChild } from './process-utils.mjs';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const child = spawn(
+const api = spawnFastApi();
+const frontend = spawn(
   npmCommand,
   ['run', 'dev', '--', '--host', '127.0.0.1', '--mode', 'api', ...process.argv.slice(2)],
   {
@@ -11,9 +13,20 @@ const child = spawn(
 );
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => child.kill(signal));
+  process.on(signal, () => {
+    stopChild(frontend);
+    stopChild(api);
+  });
 }
 
-child.on('exit', (code) => {
+frontend.on('exit', (code) => {
   process.exitCode = code ?? 0;
+  stopChild(api);
+});
+
+api.on('exit', (code) => {
+  if (code !== null && code !== 0) {
+    process.exitCode = code;
+    stopChild(frontend);
+  }
 });

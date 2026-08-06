@@ -10,7 +10,7 @@ V6은 실제 MS Access를 연결하지 않은 상태에서 프론트와 백엔�
 React 화면
 → Mock Service 또는 HTTP Service
 → OpenAPI DTO
-→ Node HTTP Endpoint
+→ FastAPI Router
 → GsemService
 → InMemoryGsemRepository
 
@@ -18,15 +18,16 @@ React 화면
 → MsAccessGsemRepository
 ```
 
-Node 기본 모듈 기반 구조를 유지한 이유는 현재 API가 조회 중심이고, 새 런타임 의존성 없이 기존 계약 테스트를 재사용할 수 있기 때문이다. 실제 인증·트랜잭션·대규모 쓰기 요구가 확정되면 백엔드 프레임워크 선정은 다시 검토한다.
+V6 최초 구현은 Node 기본 모듈을 사용했으나 후속 작업에서 사용자의 유지보수 환경에 맞춰 FastAPI로 전환했다. 프론트 계약과 Repository–Service 경계는 유지되어 화면 코드를 변경하지 않는다.
 
 ## 폴더 책임
 
 - `src/`: 프론트 화면, View Model, Mock·HTTP 데이터 접근
-- `server/services/`: HTTP나 DB를 모르는 업무 조회 서비스
-- `server/repositories/`: 인메모리 저장소와 향후 Access 어댑터 경계
-- `server/index.mjs`: 독립 백엔드 실행 진입점
-- `tools/stub-api.mjs`: HTTP 라우팅·DTO 검증과 기존 테스트 호환 진입점
+- `backend/app/services/`: HTTP나 DB를 모르는 업무 조회 서비스
+- `backend/app/repositories/`: 인메모리 저장소와 향후 Access 어댑터 경계
+- `backend/app/api/`: FastAPI Router와 조회 파라미터 검증
+- `backend/app/main.py`: 미들웨어·CORS·공통 오류·실행 진입점
+- `backend/tests/`: Repository와 HTTP 계약 자동검증
 - `docs/api/openapi.yaml`: 프론트와 백엔드의 계약 기준
 
 ## 제공 기능
@@ -78,7 +79,7 @@ npm run dev:api
 
 - TypeScript 검사와 ESLint 경고 0건: 통과
 - 프론트 단위·통합 테스트: 13개 파일, 33개 통과
-- OpenAPI·HTTP 계약 테스트: 22개 통과
+- OpenAPI·FastAPI 계약 테스트: 전환 브랜치의 자동검증 결과를 기준으로 한다.
 - Repository·Service 테스트: 3개 통과
 - 프로덕션 빌드: 통과
 - Mock 모드 E2E: 12개 통과

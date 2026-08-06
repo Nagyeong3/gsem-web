@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - develop/prototype
+      - 'agent/**'
 
 permissions:
   contents: read
@@ -32,6 +33,15 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Python 준비
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Python 의존성 설치
+        run: pip install -r requirements-dev.txt
+
       - name: 의존성 설치
         run: npm ci
 
@@ -41,14 +51,17 @@ jobs:
       - name: ESLint 검사
         run: npm run lint
 
+      - name: Python Ruff 검사
+        run: npm run lint:backend
+
       - name: 프론트 단위·통합 테스트
         run: npm run test
 
-      - name: Stub API 계약 테스트
-        run: npm run test:stub
+      - name: OpenAPI 계약 테스트
+        run: npm run test:contract
 
-      - name: 백엔드 계층 단위 테스트
-        run: npm run test:server
+      - name: FastAPI 단위·통합 테스트
+        run: npm run test:backend
 
       - name: 프로덕션 빌드
         run: npm run build
@@ -59,7 +72,7 @@ jobs:
       - name: 1440×900 브라우저 시나리오 검사
         run: npm run test:e2e
 
-      - name: Stub API 브라우저 연동 검사
+      - name: FastAPI 브라우저 연동 검사
         run: npm run test:e2e:api
 
       - name: 실행 화면 캡처 보관
