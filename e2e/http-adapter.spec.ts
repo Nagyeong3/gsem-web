@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('Stub API 모드에서 대시보드와 장비 검색 흐름이 동작한다', async ({ page }) => {
+test('HTTP Adapter 모드에서 대시보드와 장비 검색 흐름이 동작한다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '지원장비 관리 현황' })).toBeVisible();
   await expect(page.getByText('12', { exact: true }).first()).toBeVisible();
@@ -24,7 +24,7 @@ test('Stub API 모드에서 대시보드와 장비 검색 흐름이 동작한다
   await expect(page.getByRole('complementary', { name: '선택 장비 상세' })).toBeVisible();
 });
 
-test('Stub API 모드에서 상세·납품·변경·대체 이력 화면이 동작한다', async ({ page }) => {
+test('HTTP Adapter 모드에서 상세·납품·변경·대체 이력 화면이 동작한다', async ({ page }) => {
   test.setTimeout(60_000);
   const errors: string[] = [];
   page.on('console', (message) => {
