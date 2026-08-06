@@ -33,7 +33,7 @@
 
 V5에서는 네 가지 Mock 역할, 장비 검색 URL 상태 복원, 장비 상세에서 납품·변경·대체 이력으로 이어지는 전체 업무 시나리오와 브라우저 메모리 전용 변경 신청 초안을 제공합니다. Mock 역할은 실제 인증이나 운영 권한 정책이 아닙니다.
 
-V6에서는 프론트와 독립 실행되는 Node 백엔드, Repository–Service 경계, 요청 ID, 입력 검증과 향후 MS Access 어댑터 위치를 제공합니다. 실제 DB는 연결하지 않습니다.
+V6 품질 감사 이후 백엔드 스택을 FastAPI로 전환했습니다. 프론트 HTTP 계약과 화면 기능은 유지하며 Repository–Service–Router 경계, 요청 ID, 입력 검증과 향후 MS Access 어댑터 위치를 제공합니다. 실제 DB는 연결하지 않습니다.
 
 ## 기술 구성
 
@@ -44,13 +44,19 @@ V6에서는 프론트와 독립 실행되는 Node 백엔드, Repository–Servic
 - Recharts
 - Vitest
 - Playwright
+- Python 3.12
+- FastAPI와 Uvicorn
+- Pytest와 Ruff
 
 ## 실행 방법
 
-Node.js 설치 후 저장소 루트에서 실행합니다.
+Node.js와 Python 3.12 설치 후 저장소 루트에서 실행합니다.
 
 ```bash
 npm install
+python -m venv .venv
+# Windows: .venv\Scripts\python -m pip install -r requirements-dev.txt
+# macOS/Linux: .venv/bin/python -m pip install -r requirements-dev.txt
 npm run dev
 ```
 
@@ -61,9 +67,10 @@ npm run dev
 ```bash
 npm run typecheck
 npm run lint
+npm run lint:backend
 npm run test
-npm run test:stub
-npm run test:server
+npm run test:contract
+npm run test:backend
 npm run build
 ```
 
@@ -74,10 +81,10 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Stub API를 실행한 상태에서 HTTP Adapter 연결만 별도로 검증하려면 다음 명령을 사용합니다.
+FastAPI를 포함한 HTTP Adapter 브라우저 연결을 검증하려면 다음 명령을 사용합니다.
 
 ```bash
-VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
+npm run test:e2e:api
 ```
 
 실행 화면 캡처는 다음 위치에 생성됩니다.
@@ -112,9 +119,9 @@ VITE_DATA_SOURCE=api
 VITE_API_BASE_URL=/api/v1
 ```
 
-### 포함된 Stub API로 연결 시험
+### 포함된 FastAPI로 연결 시험
 
-운영 백엔드 기술과 DB 연결 방식은 아직 확정하지 않습니다. 저장소의 Stub API는 OpenAPI 계약과 프론트 HTTP Adapter를 미리 검증하기 위한 개발 도구이며 Node.js 기본 모듈만 사용합니다.
+FastAPI는 OpenAPI 계약과 프론트 HTTP Adapter를 실제 HTTP 경계에서 검증합니다. 현재 Repository는 일반화한 JSON 데이터를 메모리로 읽으며 실제 DB 연결 방식은 아직 확정하지 않습니다.
 
 첫 번째 터미널에서 인메모리 API를 실행합니다.
 
@@ -144,6 +151,7 @@ npm run dev
 
 DB 연결 직전 구조와 확인 항목은 다음 문서를 참고합니다.
 
+- `docs/development/fastapi-migration.md`
 - `docs/development/prototype-v6-backend-ready.md`
 - `docs/api/erd-api-field-mapping.md`
 - `docs/development/database-connection-checklist.md`

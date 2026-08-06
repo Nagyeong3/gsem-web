@@ -43,14 +43,14 @@ VITE_API_BASE_URL=/api/v1
 개발 환경에서는 Vite Proxy가 `/api` 요청을 `http://127.0.0.1:4010`으로 전달한다.
 
 ```bash
-# 터미널 1: OpenAPI 계약 검증용 Stub API
-npm run stub:api
+# 터미널 1: FastAPI 인메모리 백엔드
+npm run server:dev
 
 # 터미널 2: 프론트
 npm run dev
 ```
 
-Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도구다. 운영 백엔드 프레임워크, 실제 DB 구조 또는 MS Access 연결 방식을 확정하지 않는다.
+FastAPI는 프론트와 API 계약을 조기에 검증하는 백엔드다. Repository는 현재 JSON 기반 인메모리 구현이며 실제 DB 구조 또는 MS Access 연결 방식은 확정하지 않는다.
 
 ## 연결되는 Endpoint
 
@@ -97,7 +97,7 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 - 운영 API Host와 CORS 정책
 - 품목 상태의 최종 코드·전이
 - 관리 품목 유형 저장 위치
-- 백엔드 기술과 MS Access 연결 방식
+- MS Access 연결 방식과 운영 배포 구조
 
 ## 백엔드 연결 전 체크리스트
 
@@ -110,21 +110,22 @@ Stub API는 프론트와 API 계약을 조기에 검증하기 위한 개발 도�
 - 검색·정렬·페이징이 서버에서 처리되는가
 - 오류 응답이 `ApiErrorResponse` 형식인가
 
-## Stub API 검증
+## FastAPI 검증
 
 ```bash
-npm run test:stub
+npm run test:contract
+npm run test:backend
 ```
 
 자동 검증 대상은 상태 확인, 대시보드 지표 정합성, 검색·정렬·페이징, 복수 사업 품목의 단일 행 반환, 상세 조회, 납품 일정, 변경 신청, 대체 이력 및 400·404 오류 계약이다.
 
-Stub API를 실행한 상태에서 브라우저 연결 흐름을 검증한다.
+FastAPI를 실행한 상태에서 브라우저 연결 흐름을 검증한다.
 
 ```bash
 VITE_DATA_SOURCE=api npm run test:e2e -- e2e/http-adapter.spec.ts
 ```
 
-Stub API와 API 모드 프론트를 자동으로 함께 실행하는 전용 검사는 다음 명령을 사용한다.
+FastAPI와 API 모드 프론트를 자동으로 함께 실행하는 전용 검사는 다음 명령을 사용한다.
 
 ```bash
 npm run test:e2e:api
