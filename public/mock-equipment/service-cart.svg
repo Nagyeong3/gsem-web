@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">정비지원 카트 목업 이미지</title>
+  <desc id="description">계기판과 보관함이 있는 일반화된 이동식 정비지원 카트</desc>
+  <rect width="640" height="420" fill="#eef3f8"/>
+  <path d="M122 116h382l42 192H94l28-192z" fill="#173a5e"/>
+  <rect x="146" y="142" width="334" height="88" rx="12" fill="#f8fafc"/>
+  <rect x="168" y="163" width="154" height="46" rx="7" fill="#dceafa" stroke="#7097bd" stroke-width="4"/>
+  <circle cx="384" cy="186" r="18" fill="#1769e0"/>
+  <circle cx="438" cy="186" r="18" fill="#8ba5bd"/>
+  <rect x="142" y="254" width="342" height="30" rx="8" fill="#7893aa"/>
+  <path d="M510 132h56v142" fill="none" stroke="#173a5e" stroke-width="18" stroke-linecap="round"/>
+  <rect x="120" y="308" width="400" height="32" rx="10" fill="#0c2b49"/>
+  <circle cx="176" cy="354" r="34" fill="#263746"/>
+  <circle cx="176" cy="354" r="14" fill="#b9c8d5"/>
+  <circle cx="468" cy="354" r="34" fill="#263746"/>
+  <circle cx="468" cy="354" r="14" fill="#b9c8d5"/>
+  <path d="M188 116V76h250v40" fill="none" stroke="#173a5e" stroke-width="16" stroke-linecap="round"/>
+</svg>

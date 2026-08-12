@@ -24,6 +24,7 @@ import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { StatusChip } from '../components/common/StatusChip';
+import { EquipmentImageViewer } from '../components/equipment/EquipmentImageViewer';
 import { equipmentService } from '../services';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { Equipment } from '../types/domain';
@@ -134,7 +135,21 @@ export function EquipmentDetailPage() {
       />
 
       <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, py: 2, display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+        <Box
+          sx={{
+            px: 2.5,
+            py: 2,
+            display: 'grid',
+            gridTemplateColumns: '176px minmax(0, 1fr) auto',
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          <EquipmentImageViewer
+            images={equipment.images}
+            equipmentName={equipment.itemNameKor}
+            variant="hero"
+          />
           <Box sx={{ minWidth: 0 }}>
             <Stack sx={{ flexDirection: 'row', gap: 1, alignItems: 'center' }}>
               <StatusChip status={equipment.status} />

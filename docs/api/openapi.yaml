@@ -497,6 +497,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Delivery"
+    ItemImage:
+      type: object
+      required: [imageId, thumbnailUrl, fullUrl, alt]
+      description: 실제 파일 저장소와 ERD 필드는 미확정인 프로토타입 이미지 응답
+      properties:
+        imageId:
+          type: string
+        thumbnailUrl:
+          type: string
+        fullUrl:
+          type: string
+        alt:
+          type: string
+        isPrimary:
+          type: boolean
     ItemSummary:
       type: object
       required:
@@ -546,6 +561,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ManagerAssignment"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemImage"
         destinations:
           type: array
           items:

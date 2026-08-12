@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">시험장비 목업 이미지</title>
+  <desc id="description">견고한 케이스 안에 계측 화면과 조작부가 있는 일반화된 시험장비</desc>
+  <rect width="640" height="420" fill="#eef3f8"/>
+  <rect x="92" y="92" width="456" height="260" rx="18" fill="#173a5e"/>
+  <rect x="114" y="116" width="412" height="212" rx="10" fill="#f8fafc"/>
+  <rect x="142" y="142" width="238" height="112" rx="8" fill="#dceafa" stroke="#7097bd" stroke-width="4"/>
+  <path d="M166 214l42-31 38 18 42-42 62 35" fill="none" stroke="#1769e0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="430" cy="164" r="18" fill="#1769e0"/>
+  <circle cx="482" cy="164" r="18" fill="#8ba5bd"/>
+  <rect x="410" y="208" width="92" height="16" rx="8" fill="#aabccc"/>
+  <rect x="410" y="242" width="92" height="16" rx="8" fill="#aabccc"/>
+  <rect x="144" y="284" width="358" height="14" rx="7" fill="#c7d5e2"/>
+  <path d="M178 92v-24h284v24" fill="none" stroke="#173a5e" stroke-width="16" stroke-linecap="round"/>
+  <rect x="128" y="352" width="52" height="18" rx="7" fill="#0c2b49"/>
+  <rect x="460" y="352" width="52" height="18" rx="7" fill="#0c2b49"/>
+</svg>

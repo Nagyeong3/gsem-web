@@ -15,6 +15,13 @@ const summary: ItemSummaryDto = {
   subsystems: [{ code: 'SS0001', name: '구동계통' }],
   maintenanceLevels: [{ code: 'LO0001', name: '부대' }],
   managers: [{ userId: 1, name: '김책임' }],
+  images: [{
+    imageId: 'MOCK-IMG-001',
+    thumbnailUrl: '/mock-equipment/test-console.svg',
+    fullUrl: '/mock-equipment/test-console.svg',
+    alt: 'A장비 목업 이미지',
+    isPrimary: true,
+  }],
   destinations: [{ destinationId: 1, name: 'A납지' }],
   status: 'IN_USE',
 };
@@ -32,6 +39,7 @@ describe('장비 DTO 변환', () => {
     });
     expect(result.status).toBe('사용 중');
     expect(result.applications[0]?.deliveries[0]?.destination).toBe('A납지');
+    expect(result.images[0]).toMatchObject({ imageId: 'MOCK-IMG-001', isPrimary: true });
   });
 
   it('업체와 최근 변경일이 없으면 화면용 기본값을 사용한다', () => {

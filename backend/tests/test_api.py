@@ -32,10 +32,12 @@ def test_item_filter_sort_page_and_detail(client: TestClient) -> None:
     assert body["page"]["totalElements"] == 4
     assert len(body["data"]) == 2
     assert body["data"][0]["itemNumber"] < body["data"][1]["itemNumber"]
+    assert body["data"][0]["images"][0]["thumbnailUrl"].startswith("/mock-equipment/")
 
     detail = client.get("/api/v1/items/1").json()["data"]
     assert [entry["name"] for entry in detail["businesses"]] == ["가 사업", "나 사업"]
     assert [entry["name"] for entry in detail["managers"]] == ["김책임", "이선임"]
+    assert detail["images"][0]["imageId"] == "MOCK-IMG-001"
 
 
 def test_empty_result_and_not_found(client: TestClient) -> None:

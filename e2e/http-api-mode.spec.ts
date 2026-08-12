@@ -33,12 +33,15 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
   await page.getByRole('button', { name: '장비 검색' }).click();
   await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
+  await expect(page.getByRole('table', { name: '장비 검색 결과' })
+    .getByRole('button', { name: 'A장비 이미지 확대' })).toBeVisible();
   await page.getByLabel('사업').click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
 
   await page.goto('/equipment/1');
   await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
+  await expect(page.locator('main').getByRole('button', { name: 'A장비 이미지 확대' })).toBeVisible();
   await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
 

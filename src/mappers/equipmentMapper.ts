@@ -57,6 +57,7 @@ export function toEquipmentSummary(dto: ItemSummaryDto): Equipment {
     maintenanceLevels: dto.maintenanceLevels,
     applications: toSummaryApplications(dto),
     managers: dto.managers.map(toManager),
+    images: (dto.images ?? []).map((image) => ({ ...image })),
     status: statusMap[dto.status],
     recentChangeDate: dto.recentChangeDate ?? '-',
   };

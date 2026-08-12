@@ -36,6 +36,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { StatusChip } from '../components/common/StatusChip';
+import { EquipmentImageViewer } from '../components/equipment/EquipmentImageViewer';
 import {
   getAircraftTypes,
   getBusinesses,
@@ -168,6 +169,13 @@ function EquipmentDetail({
       </Box>
 
       <Box sx={{ px: 2.25, py: 1.75 }}>
+        <Box sx={{ mb: 1.5 }}>
+          <EquipmentImageViewer
+            images={equipment.images}
+            equipmentName={equipment.itemNameKor}
+            variant="panel"
+          />
+        </Box>
         <StatusChip status={equipment.status} />
         <Typography sx={{ mt: 1, fontSize: 20, fontWeight: 700 }}>
           {equipment.itemNameKor}
@@ -614,7 +622,18 @@ export function EquipmentSearchPage() {
                           />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{item.itemNum}</TableCell>
-                        <TableCell>{item.itemNameKor}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EquipmentImageViewer
+                              images={item.images}
+                              equipmentName={item.itemNameKor}
+                              variant="thumbnail"
+                            />
+                            <Typography noWrap sx={{ fontSize: 12, fontWeight: 500 }}>
+                              {item.itemNameKor}
+                            </Typography>
+                          </Box>
+                        </TableCell>
                         <TableCell>{summarize(getAircraftTypes(item))}</TableCell>
                         <TableCell>{summarize(getBusinesses(item))}</TableCell>
                         <TableCell>
