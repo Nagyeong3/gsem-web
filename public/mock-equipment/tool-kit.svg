@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">공구세트 목업 이미지</title>
+  <desc id="description">정리된 공구가 들어 있는 일반화된 정비 공구 케이스</desc>
+  <rect width="640" height="420" fill="#eef3f8"/>
+  <path d="M104 178h432v162c0 15-12 27-27 27H131c-15 0-27-12-27-27V178z" fill="#173a5e"/>
+  <path d="M126 168l48-92h292l48 92H126z" fill="#dce6ef" stroke="#173a5e" stroke-width="12" stroke-linejoin="round"/>
+  <rect x="195" y="105" width="250" height="30" rx="15" fill="#a8bacb"/>
+  <rect x="134" y="205" width="372" height="122" rx="12" fill="#f8fafc"/>
+  <path d="M184 232v68M216 220v80M248 238v62" stroke="#1769e0" stroke-width="14" stroke-linecap="round"/>
+  <path d="M307 226l44 44M351 226l-44 44" stroke="#7893aa" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="418" cy="258" r="32" fill="none" stroke="#1769e0" stroke-width="14"/>
+  <path d="M466 224v72" stroke="#7893aa" stroke-width="18" stroke-linecap="round"/>
+  <rect x="276" y="164" width="88" height="40" rx="8" fill="#0c2b49"/>
+</svg>

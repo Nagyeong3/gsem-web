@@ -100,6 +100,18 @@ export interface BusinessApplicationDto {
   deliveries: DeliveryDto[];
 }
 
+/**
+ * 프로토타입용 장비 이미지 응답.
+ * 실제 파일 저장소와 ERD 필드는 미확정이다.
+ */
+export interface ItemImageDto {
+  imageId: string;
+  thumbnailUrl: string;
+  fullUrl: string;
+  alt: string;
+  isPrimary?: boolean;
+}
+
 export interface ItemSummaryDto {
   itemId: number;
   itemNumber: string;
@@ -120,6 +132,7 @@ export interface ItemSummaryDto {
   subsystems: CodeDto[];
   maintenanceLevels: CodeDto[];
   managers: ManagerAssignmentDto[];
+  images?: ItemImageDto[];
   destinations: DestinationDto[];
   status: ItemStatusDto;
   recentChangeDate?: IsoDateString;

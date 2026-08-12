@@ -12,6 +12,7 @@
 | `Item.item_usage_eng` | `itemUsageEng` | 영문 용도 | 부분 확정 |
 | `Item.code_CATEG` | `category.code` | `CATEG` 공통코드, 장비 구분 | 확정 |
 | `Item.bender_id` | `vendor.vendorId` | 현재 ERD 표기를 유지하되 명칭 오타 여부 확인 | 부분 확정 |
+| ERD 미확정 | `images[].imageId`, `thumbnailUrl`, `fullUrl`, `alt`, `isPrimary` | 품목 대표·다중 이미지 조회용 프로토타입 계약 | 미확정 |
 | `Bender.bender_name` | `vendor.name` | 일반화된 제조사·구매처명 | 부분 확정 |
 | `Integrated_Info.integrated_id` | 내부 조합키 | 프론트에 직접 노출하지 않음 | 부분 확정 |
 | `Integrated_Info.item_id` | `itemId` | 품목 연결 | 부분 확정 |
@@ -44,4 +45,3 @@
 - 품보 형태, 교정, SERD의 최종 테이블·키
 - 단종·대체 관계와 사업별 유효기간의 실제 테이블
 - `quantity`와 발주·입고·납품 수량의 최종 분리 방식
-

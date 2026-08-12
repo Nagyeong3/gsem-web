@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title description">
+  <title id="title">표준기 목업 이미지</title>
+  <desc id="description">디지털 표시창과 정밀 조절부가 있는 일반화된 표준기</desc>
+  <rect width="640" height="420" fill="#eef3f8"/>
+  <rect x="90" y="92" width="460" height="256" rx="18" fill="#f8fafc" stroke="#173a5e" stroke-width="14"/>
+  <rect x="124" y="128" width="260" height="96" rx="10" fill="#dceafa" stroke="#7097bd" stroke-width="4"/>
+  <path d="M150 191h44l18-31 28 49 26-36 24 18h66" fill="none" stroke="#1769e0" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="446" cy="172" r="42" fill="#173a5e"/>
+  <circle cx="446" cy="172" r="20" fill="#a8bacb"/>
+  <circle cx="154" cy="278" r="18" fill="#1769e0"/>
+  <circle cx="210" cy="278" r="18" fill="#7893aa"/>
+  <circle cx="266" cy="278" r="18" fill="#7893aa"/>
+  <rect x="326" y="260" width="166" height="34" rx="10" fill="#d3dee8"/>
+  <rect x="126" y="348" width="74" height="20" rx="8" fill="#0c2b49"/>
+  <rect x="440" y="348" width="74" height="20" rx="8" fill="#0c2b49"/>
+</svg>

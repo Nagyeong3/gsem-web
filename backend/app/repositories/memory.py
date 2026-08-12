@@ -11,12 +11,36 @@ from backend.app.repositories.search import ItemSearchCriteria, ItemSearchPage, 
 class InMemoryGsemRepository:
     """일반화한 목업 데이터만 사용하는 프로토타입 Repository."""
 
+    _MOCK_IMAGE_SOURCES = (
+        "/mock-equipment/test-console.svg",
+        "/mock-equipment/tool-kit.svg",
+        "/mock-equipment/service-cart.svg",
+        "/mock-equipment/calibration-unit.svg",
+    )
+
     def __init__(self, data_path: Path | None = None, data: dict[str, Any] | None = None) -> None:
         if data is not None:
             self._data = deepcopy(data)
-            return
-        source = data_path or Path(__file__).parents[1] / "data" / "mock_data.json"
-        self._data: dict[str, Any] = json.loads(source.read_text(encoding="utf-8"))
+        else:
+            source = data_path or Path(__file__).parents[1] / "data" / "mock_data.json"
+            self._data = json.loads(source.read_text(encoding="utf-8"))
+        self._ensure_mock_images()
+
+    def _ensure_mock_images(self) -> None:
+        """이미지 저장 구조가 확정되기 전까지 API 응답에 일반화한 목업 이미지를 보강한다."""
+        for index, item in enumerate(self._data.get("itemDetails", [])):
+            if item.get("images"):
+                continue
+            source = self._MOCK_IMAGE_SOURCES[index % len(self._MOCK_IMAGE_SOURCES)]
+            item["images"] = [
+                {
+                    "imageId": f"MOCK-IMG-{item['itemId']:03d}",
+                    "thumbnailUrl": source,
+                    "fullUrl": source,
+                    "alt": f"{item['itemNameKor']} 목업 이미지",
+                    "isPrimary": True,
+                }
+            ]
 
     def get_dashboard_overview(self) -> dict[str, Any]:
         today = datetime.now(ZoneInfo("Asia/Seoul")).date()

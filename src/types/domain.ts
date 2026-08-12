@@ -31,6 +31,14 @@ export interface BusinessApplication {
   deliveries: Delivery[];
 }
 
+export interface EquipmentImage {
+  imageId: string;
+  thumbnailUrl: string;
+  fullUrl: string;
+  alt: string;
+  isPrimary?: boolean;
+}
+
 export interface Equipment {
   itemId: number;
   itemNum: string;
@@ -44,6 +52,7 @@ export interface Equipment {
   maintenanceLevels: CodeLabel[];
   applications: BusinessApplication[];
   managers: Manager[];
+  images: EquipmentImage[];
   status: EquipmentStatus;
   recentChangeDate: string;
   itemType?: string;

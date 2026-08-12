@@ -20,7 +20,7 @@ const levels = {
   depot: { code: 'LO0003', name: '창' },
 };
 
-export const equipmentFixtures: Equipment[] = [
+const equipmentWithoutImages: Array<Omit<Equipment, 'images'>> = [
   {
     itemId: 1,
     itemNum: 'XXXXXX-01',
@@ -413,3 +413,26 @@ export const equipmentFixtures: Equipment[] = [
     recentChangeDate: '2026-07-01',
   },
 ];
+
+const mockImageSources = [
+  '/mock-equipment/test-console.svg',
+  '/mock-equipment/tool-kit.svg',
+  '/mock-equipment/service-cart.svg',
+  '/mock-equipment/calibration-unit.svg',
+];
+
+export const equipmentFixtures: Equipment[] = equipmentWithoutImages.map((equipment, index) => {
+  const source = mockImageSources[index % mockImageSources.length];
+  return {
+    ...equipment,
+    images: [
+      {
+        imageId: `MOCK-IMG-${String(equipment.itemId).padStart(3, '0')}`,
+        thumbnailUrl: source,
+        fullUrl: source,
+        alt: `${equipment.itemNameKor} 목업 이미지`,
+        isPrimary: true,
+      },
+    ],
+  };
+});
