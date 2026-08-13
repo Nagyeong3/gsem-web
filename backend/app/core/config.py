@@ -1,6 +1,34 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import quote_plus
+
+
+def _load_dotenv() -> None:
+    """프로젝트 루트의 .env 파일을 외부 의존성 없이 읽어 환경변수에 반영한다.
+
+    폐쇄망 환경에서는 python-dotenv wheel 누락 가능성이 있으므로 직접 파싱한다.
+    이미 OS 환경변수로 지정된 값은 덮어쓰지 않는다.
+    """
+
+    env_path = Path(__file__).resolve().parents[3] / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+
+        if key:
+            os.environ.setdefault(key, value)
+
+
+_load_dotenv()
 
 
 def _env(name: str, default: str = "") -> str:
