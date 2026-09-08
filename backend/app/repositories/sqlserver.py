@@ -117,7 +117,7 @@ class SqlServerGsemRepository:
             "maintenanceLevels": [],
             "managers": [],
             "destinations": [],
-            "status": "DB_LINKED",
+            "status": "IN_USE",
             "recentChangeDate": created_at[:10] if isinstance(created_at, str) else None,
             "createdAt": created_at,
             "businessId": business_id,
