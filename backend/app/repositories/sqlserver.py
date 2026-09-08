@@ -156,46 +156,15 @@ class SqlServerGsemRepository:
         return item
 
     @classmethod
-    def _row_to_delivery(cls, row: dict[str, Any]) -> dict[str, Any] | None:
-        delivery_id = row.get("delivery_id")
-        if delivery_id is None:
-            return None
-        destination_id = row.get("delivery_dest_id")
-        destination_name = cls._display_text(row.get("delivery_dest_name"), "납지 미등록")
-        return {
-            "deliveryId": delivery_id,
-            "destination": {
-                "code": str(destination_id) if destination_id is not None else "UNASSIGNED",
-                "name": destination_name,
-            },
-            "quantity": int(row.get("quantity") or 0),
-            "deliveryDate": "-",
-            "status": "COMPLETED" if cls._display_text(row.get("delivery_status"), "") == "COMPLETED" else "IN_PROGRESS",
-            "sourceStatus": cls._display_text(row.get("delivery_status"), ""),
-        }
+    def _row_to_item_detail(cls, row: dict[str, Any]) -> dict[str, Any]:
+        item = cls._row_to_item_summary(row)
+        business_id = row.get("business_id")
+        business_name = cls._display_text(row.get("biz_name"), "사업 미연결")
+        aircraft_type_code = cls._display_text(row.get("code_ATYPE"), "")
 
-    @classmethod
-    def _rows_to_item_detail(cls, rows: list[dict[str, Any]]) -> dict[str, Any] | None:
-        if not rows:
-            return None
-
-        first = rows[0]
-        item = cls._row_to_item_summary(first)
-        business_id = first.get("business_id")
-        business_name = cls._display_text(first.get("biz_name"), "사업 미연결")
-        aircraft_type_code = cls._display_text(first.get("code_ATYPE"), "")
-
-        deliveries = [delivery for row in rows if (delivery := cls._row_to_delivery(row)) is not None]
-        item["destinations"] = [
-            {
-                "destinationId": delivery["destination"]["code"],
-                "name": delivery["destination"]["name"],
-            }
-            for delivery in deliveries
-        ]
         item["applications"] = [
             {
-                "integratedInfoId": first.get("integrated_id"),
+                "integratedInfoId": row.get("integrated_id"),
                 "business": {
                     "businessId": business_id,
                     "name": business_name,
@@ -204,13 +173,13 @@ class SqlServerGsemRepository:
                     "code": aircraft_type_code or "UNASSIGNED",
                     "name": aircraft_type_code or "기체구분 미지정",
                 },
-                "deliveries": deliveries,
+                "deliveries": [],
             }
         ]
         item["replacementSummary"] = {"predecessors": 0, "successors": 0, "hasBranch": False}
         item["dataNotice"] = {
             "source": "SQL_SERVER_PARTIAL",
-            "message": "상세 기본정보와 납품 수량은 SQL Server에서 조회하고, 대체품 계보 등 미확정 영역은 후속 연동 대상입니다.",
+            "message": "상세 기본정보는 SQL Server에서 조회하고, 납품·담당자·대체품 계보는 실제 테이블명 확정 후 연동합니다.",
         }
         return item
 
@@ -291,11 +260,7 @@ class SqlServerGsemRepository:
         page: int,
         size: int,
     ) -> ItemSearchPage:
-        """Integrated_Info 기준 장비 목록을 SQL Server에서 조회한다.
-
-        V8 1차 연동 범위는 Integrated_Info, Item, Business, Vendor 조인까지로 제한한다.
-        공통코드 명칭, 담당자, 납품, 이력, 대체품 계보는 후속 범위에서 연결한다.
-        """
+        """Integrated_Info 기준 장비 목록을 SQL Server에서 조회한다."""
 
         safe_page = max(page, 1)
         safe_size = min(max(size, 1), 200)
@@ -381,13 +346,7 @@ class SqlServerGsemRepository:
                 b.biz_name,
                 b.code_ATYPE,
 
-                v.vendor_name,
-
-                d.delivery_id,
-                d.delivery_dest_id,
-                d.quantity,
-                d.delivery_status,
-                dd.delivery_dest_name
+                v.vendor_name
             FROM Integrated_Info ii
             LEFT JOIN Item i
                 ON ii.item_id = i.item_id
@@ -395,26 +354,26 @@ class SqlServerGsemRepository:
                 ON ii.business_id = b.business_id
             LEFT JOIN Vendor v
                 ON i.vendor_id = v.vendor_id
-            LEFT JOIN Delivery d
-                ON ii.integrated_id = d.integrated_id
-            LEFT JOIN Delivery_Destination dd
-                ON d.delivery_dest_id = dd.delivery_dest_id
             WHERE ii.integrated_id = ?
-            ORDER BY d.delivery_id ASC
         """
 
         with self._connect() as connection:
             cursor = connection.cursor()
             cursor.execute(detail_sql, item_id)
-            rows = self._rows_to_dicts(cursor)
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            rows = self._rows_to_dicts(cursor) if False else None
+            columns = [column[0] for column in cursor.description]
+            item_row = dict(zip(columns, row))
 
-        return self._rows_to_item_detail(rows)
+        return self._row_to_item_detail(item_row)
 
     def get_delivery_schedules(self) -> list[dict[str, Any]]:
         schedules = self._fallback.get_delivery_schedules()
         for schedule in schedules:
             schedule["dataSourceLabel"] = "Mock 데이터"
-            schedule["dataSourceReason"] = "Delivery 테이블에 납품일 필드가 없어 일정 화면은 DB 구조 확정 전까지 Mock 데이터를 표시합니다."
+            schedule["dataSourceReason"] = "Delivery 계열 실제 테이블명이 미확정되어 일정 화면은 DB 구조 확정 전까지 Mock 데이터를 표시합니다."
         return schedules
 
     def get_change_events(self) -> list[dict[str, Any]]:
