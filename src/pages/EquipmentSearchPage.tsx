@@ -53,7 +53,8 @@ import type {
   SortDirection,
 } from '../types/domain';
 
-const pageSize = 5;
+const pageSizeOptions = [20, 50, 100];
+const defaultPageSize = 20;
 
 interface FilterSelectProps {
   id: keyof EquipmentFilters;
@@ -270,6 +271,10 @@ export function EquipmentSearchPage() {
   const sortDirection: SortDirection = searchParams.get('direction') === 'desc' ? 'desc' : 'asc';
   const requestedPage = Number(searchParams.get('page'));
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const requestedPageSize = Number(searchParams.get('size'));
+  const pageSize = pageSizeOptions.includes(requestedPageSize)
+    ? requestedPageSize
+    : defaultPageSize;
   const selectedParam = searchParams.get('selected');
   const requestedSelectedId = selectedParam === 'none'
     ? null
@@ -288,7 +293,7 @@ export function EquipmentSearchPage() {
 
   const searchEquipment = useCallback(
     () => equipmentService.search({ filters, sortKey, sortDirection, page, size: pageSize }),
-    [filters, page, sortDirection, sortKey],
+    [filters, page, pageSize, sortDirection, sortKey],
   );
   const equipmentQuery = useAsyncQuery({ queryFn: searchEquipment, keepPreviousData: true });
   const loadFilterOptions = useCallback(() => equipmentService.getFilterOptions(), []);
@@ -356,6 +361,13 @@ export function EquipmentSearchPage() {
     updateParams({
       sort: key === 'itemNum' ? null : key,
       direction: sortKey === key && sortDirection === 'asc' ? 'desc' : null,
+      page: null,
+    });
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    updateParams({
+      size: nextPageSize === defaultPageSize ? null : nextPageSize,
       page: null,
     });
   };
@@ -524,13 +536,30 @@ export function EquipmentSearchPage() {
               {totalElements}건
             </Box>
           </Typography>
-          <Tooltip title="개인별 컬럼 저장은 후속 프로토타입에서 제공할 예정입니다.">
-            <span>
-              <Button variant="outlined" startIcon={<SettingsOutlined />} disabled>
-                컬럼 설정
-              </Button>
-            </span>
-          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 116 }}>
+              <InputLabel id="equipment-page-size-label">표시 개수</InputLabel>
+              <Select
+                labelId="equipment-page-size-label"
+                value={String(pageSize)}
+                label="표시 개수"
+                onChange={(event) => changePageSize(Number(event.target.value))}
+              >
+                {pageSizeOptions.map((option) => (
+                  <MenuItem key={option} value={String(option)}>
+                    {option}개
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="개인별 컬럼 저장은 후속 프로토타입에서 제공할 예정입니다.">
+              <span>
+                <Button variant="outlined" startIcon={<SettingsOutlined />} disabled>
+                  컬럼 설정
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
 
         <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
