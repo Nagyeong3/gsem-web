@@ -63,44 +63,56 @@ class SqlServerGsemRepository:
             return value.isoformat()
         return value
 
+    @staticmethod
+    def _display_text(value: Any, fallback: str = "-") -> str:
+        if value is None:
+            return fallback
+        text = str(value).strip()
+        if not text or text.lower() == "nan":
+            return fallback
+        return text
+
     @classmethod
     def _row_to_item_summary(cls, row: dict[str, Any]) -> dict[str, Any]:
-        item_name = row.get("item_name_kor") or row.get("item_name_eng") or row.get("item_num") or "품명 미등록"
+        raw_item_num = cls._display_text(row.get("item_num"), "품번 미등록")
+        raw_item_name_kor = cls._display_text(row.get("item_name_kor"), "")
+        raw_item_name_eng = cls._display_text(row.get("item_name_eng"), "")
+        item_name = raw_item_name_kor or raw_item_name_eng or raw_item_num or "품명 미등록"
         business_id = row.get("business_id")
-        business_name = row.get("biz_name") or "사업 미연결"
-        aircraft_type_code = row.get("code_ATYPE")
-        category_code = row.get("code_CATEG")
-        ics_code = row.get("code_ICS")
+        business_name = cls._display_text(row.get("biz_name"), "사업 미연결")
+        aircraft_type_code = cls._display_text(row.get("code_ATYPE"), "")
+        category_code = cls._display_text(row.get("code_CATEG"), "")
+        ics_code = cls._display_text(row.get("code_ICS"), "")
         vendor_id = row.get("vendor_id")
-        vendor_name = row.get("vendor_name")
+        vendor_name = cls._display_text(row.get("vendor_name"), "제조사 미등록")
         created_at = cls._json_value(row.get("integrated_created_at"))
 
         item = {
             "itemId": row.get("integrated_id"),
             "integratedId": row.get("integrated_id"),
             "sourceItemId": row.get("item_id"),
-            "itemNumber": row.get("item_num"),
-            "itemNsn": row.get("item_nsn"),
+            "itemNumber": raw_item_num,
+            "itemNsn": cls._display_text(row.get("item_nsn"), ""),
             "itemName": item_name,
-            "itemNameKor": row.get("item_name_kor"),
-            "itemNameEng": row.get("item_name_eng"),
-            "itemNameNormal": row.get("item_name_normal"),
-            "itemUsageKor": row.get("item_usage_kor"),
-            "itemUsageEng": row.get("item_usage_eng"),
+            "itemNameKor": item_name,
+            "itemNameEng": raw_item_name_eng,
+            "itemNameNormal": cls._display_text(row.get("item_name_normal"), ""),
+            "itemUsageKor": cls._display_text(row.get("item_usage_kor"), ""),
+            "itemUsageEng": cls._display_text(row.get("item_usage_eng"), ""),
             "itemType": ics_code or "UNASSIGNED",
-            "itemTypeLabel": "품목구분 미지정" if ics_code is None else ics_code,
+            "itemTypeLabel": "품목구분 미지정" if not ics_code else ics_code,
             "category": {
                 "code": category_code,
                 "name": category_code or "장비구분 미지정",
             },
             "vendor": {
                 "vendorId": vendor_id,
-                "name": vendor_name or "제조사 미등록",
+                "name": vendor_name,
             },
             "aircraftTypes": [
                 {
                     "code": aircraft_type_code,
-                    "name": aircraft_type_code or "기체구분 미지정",
+                    "name": aircraft_type_code,
                 }
             ]
             if aircraft_type_code
@@ -122,9 +134,9 @@ class SqlServerGsemRepository:
             "createdAt": created_at,
             "businessId": business_id,
             "businessName": business_name,
-            "aircraftTypeCode": aircraft_type_code,
-            "categoryCode": category_code,
-            "icsCode": ics_code,
+            "aircraftTypeCode": aircraft_type_code or None,
+            "categoryCode": category_code or None,
+            "icsCode": ics_code or None,
             "contractId": row.get("contract_id"),
             "serdInfoId": row.get("serd_info_id"),
             "dataSourceLabel": "SQL Server",
@@ -135,12 +147,71 @@ class SqlServerGsemRepository:
             missing.append("계약 미연결")
         if row.get("serd_info_id") is None:
             missing.append("SERD 미연결")
-        if ics_code is None:
+        if not ics_code:
             missing.append("품목구분 미지정")
-        if category_code is None:
+        if not category_code:
             missing.append("장비구분 미지정")
         if missing:
             item["dataSourceReason"] = ", ".join(missing)
+        return item
+
+    @classmethod
+    def _row_to_delivery(cls, row: dict[str, Any]) -> dict[str, Any] | None:
+        delivery_id = row.get("delivery_id")
+        if delivery_id is None:
+            return None
+        destination_id = row.get("delivery_dest_id")
+        destination_name = cls._display_text(row.get("delivery_dest_name"), "납지 미등록")
+        return {
+            "deliveryId": delivery_id,
+            "destination": {
+                "code": str(destination_id) if destination_id is not None else "UNASSIGNED",
+                "name": destination_name,
+            },
+            "quantity": int(row.get("quantity") or 0),
+            "deliveryDate": "-",
+            "status": "COMPLETED" if cls._display_text(row.get("delivery_status"), "") == "COMPLETED" else "IN_PROGRESS",
+            "sourceStatus": cls._display_text(row.get("delivery_status"), ""),
+        }
+
+    @classmethod
+    def _rows_to_item_detail(cls, rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not rows:
+            return None
+
+        first = rows[0]
+        item = cls._row_to_item_summary(first)
+        business_id = first.get("business_id")
+        business_name = cls._display_text(first.get("biz_name"), "사업 미연결")
+        aircraft_type_code = cls._display_text(first.get("code_ATYPE"), "")
+
+        deliveries = [delivery for row in rows if (delivery := cls._row_to_delivery(row)) is not None]
+        item["destinations"] = [
+            {
+                "destinationId": delivery["destination"]["code"],
+                "name": delivery["destination"]["name"],
+            }
+            for delivery in deliveries
+        ]
+        item["applications"] = [
+            {
+                "integratedInfoId": first.get("integrated_id"),
+                "business": {
+                    "businessId": business_id,
+                    "name": business_name,
+                },
+                "aircraftType": {
+                    "code": aircraft_type_code or "UNASSIGNED",
+                    "name": aircraft_type_code or "기체구분 미지정",
+                },
+                "deliveries": deliveries,
+            }
+        ]
+        item["replacementSummary"] = {"predecessors": 0, "successors": 0, "hasBranch": False}
+        item["dataNotice"] = {
+            "source": "SQL_SERVER_PARTIAL",
+            "message": "상세 기본정보와 납품 수량은 SQL Server에서 조회하고, 대체품 계보 등 미확정 영역은 후속 연동 대상입니다.",
+        }
         return item
 
     @classmethod
@@ -151,7 +222,7 @@ class SqlServerGsemRepository:
         if criteria.query:
             query = f"%{criteria.query}%"
             clauses.append(
-                "(" 
+                "("
                 "i.item_num LIKE ? OR "
                 "i.item_nsn LIKE ? OR "
                 "i.item_name_normal LIKE ? OR "
@@ -287,14 +358,57 @@ class SqlServerGsemRepository:
         return ItemSearchPage(items=items, total_elements=total_elements)
 
     def get_item_by_id(self, item_id: int) -> dict[str, Any] | None:
-        item = self._fallback.get_item_by_id(item_id)
-        if item is None:
-            return None
-        item["dataNotice"] = {
-            "source": "MOCK",
-            "message": "상세 화면은 실제 DB DTO 확정 전까지 V7 Mock 데이터를 표시합니다.",
-        }
-        return item
+        detail_sql = """
+            SELECT
+                ii.integrated_id,
+                ii.created_at AS integrated_created_at,
+                ii.contract_id,
+
+                i.item_id,
+                i.item_num,
+                i.item_nsn,
+                i.item_name_normal,
+                i.item_name_kor,
+                i.item_name_eng,
+                i.item_usage_kor,
+                i.item_usage_eng,
+                i.code_CATEG,
+                i.code_ICS,
+                i.vendor_id,
+                i.serd_info_id,
+
+                b.business_id,
+                b.biz_name,
+                b.code_ATYPE,
+
+                v.vendor_name,
+
+                d.delivery_id,
+                d.delivery_dest_id,
+                d.quantity,
+                d.delivery_status,
+                dd.delivery_dest_name
+            FROM Integrated_Info ii
+            LEFT JOIN Item i
+                ON ii.item_id = i.item_id
+            LEFT JOIN Business b
+                ON ii.business_id = b.business_id
+            LEFT JOIN Vendor v
+                ON i.vendor_id = v.vendor_id
+            LEFT JOIN Delivery d
+                ON ii.integrated_id = d.integrated_id
+            LEFT JOIN Delivery_Destination dd
+                ON d.delivery_dest_id = dd.delivery_dest_id
+            WHERE ii.integrated_id = ?
+            ORDER BY d.delivery_id ASC
+        """
+
+        with self._connect() as connection:
+            cursor = connection.cursor()
+            cursor.execute(detail_sql, item_id)
+            rows = self._rows_to_dicts(cursor)
+
+        return self._rows_to_item_detail(rows)
 
     def get_delivery_schedules(self) -> list[dict[str, Any]]:
         schedules = self._fallback.get_delivery_schedules()
