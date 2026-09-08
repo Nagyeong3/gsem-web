@@ -12,6 +12,7 @@ from backend.app.core.config import settings
 from backend.app.core.errors import ApiError, error_body
 from backend.app.core.middleware import RequestContextMiddleware
 from backend.app.repositories.memory import InMemoryGsemRepository
+from backend.app.repositories.sqlserver import SqlServerGsemRepository
 from backend.app.services.gsem_service import GsemService
 
 
@@ -37,6 +38,12 @@ def _validation_fields(error: RequestValidationError) -> list[dict[str, str]]:
     return fields
 
 
+def _create_default_service() -> GsemService:
+    if settings.is_sqlserver_enabled:
+        return GsemService(SqlServerGsemRepository())
+    return GsemService(InMemoryGsemRepository())
+
+
 def create_app(service: GsemService | None = None) -> FastAPI:
     app = FastAPI(
         title="GSEM API",
@@ -52,7 +59,7 @@ def create_app(service: GsemService | None = None) -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
 
-    active_service = service or GsemService(InMemoryGsemRepository())
+    active_service = service or _create_default_service()
     app.include_router(create_api_router(active_service), prefix=settings.api_prefix)
 
     @app.get("/health")
