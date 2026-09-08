@@ -6,6 +6,11 @@ import { AppShell } from '../components/layout/AppShell';
 const DashboardPage = lazy(() =>
   import('../pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
 );
+const EquipmentMasterPage = lazy(() =>
+  import('../pages/EquipmentMasterPage').then((module) => ({
+    default: module.EquipmentMasterPage,
+  })),
+);
 const EquipmentSearchPage = lazy(() =>
   import('../pages/EquipmentSearchPage').then((module) => ({
     default: module.EquipmentSearchPage,
@@ -42,6 +47,7 @@ export function App() {
       >
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/equipment-master" element={<EquipmentMasterPage />} />
           <Route path="/equipment" element={<EquipmentSearchPage />} />
           <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
           <Route path="/deliveries" element={<DeliverySchedulePage />} />
