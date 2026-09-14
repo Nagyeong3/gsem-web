@@ -31,6 +31,8 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+const sidebarWidth = 216;
+
 const navItems = [
   { label: '대시보드', icon: DashboardOutlined, path: '/', available: true },
   { label: '지원장비 통합현황', icon: TableChartOutlined, path: '/equipment-master', available: true },
@@ -58,7 +60,7 @@ export function AppShell({ children }: AppShellProps) {
           position: 'fixed',
           inset: '0 auto 0 0',
           zIndex: 1200,
-          width: (theme) => theme.layout.sidebarWidth,
+          width: sidebarWidth,
           color: '#FFFFFF',
           background: 'linear-gradient(180deg, #002B55 0%, #003664 55%, #002B55 100%)',
           borderRight: '1px solid rgba(255,255,255,0.08)',
@@ -70,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
             height: (theme) => theme.layout.headerHeight,
             display: 'flex',
             alignItems: 'center',
-            px: 2.5,
+            px: 2.25,
             borderBottom: '1px solid rgba(255,255,255,0.14)',
           }}
         >
@@ -108,7 +110,7 @@ export function AppShell({ children }: AppShellProps) {
                   sx={{
                     minHeight: 48,
                     mb: 0.75,
-                    px: 1.5,
+                    px: 1.25,
                     borderRadius: 1,
                     color: '#FFFFFF',
                     '&.Mui-selected': {
@@ -119,10 +121,18 @@ export function AppShell({ children }: AppShellProps) {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.09)' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                  <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
                     <Icon sx={{ fontSize: 22 }} />
                   </ListItemIcon>
-                  <Typography sx={{ fontSize: 14, fontWeight: selected ? 700 : 500 }}>
+                  <Typography
+                    noWrap
+                    sx={{
+                      minWidth: 0,
+                      fontSize: item.label.length > 8 ? 13 : 14,
+                      fontWeight: selected ? 700 : 500,
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
                     {item.label}
                   </Typography>
                 </ListItemButton>
@@ -147,10 +157,10 @@ export function AppShell({ children }: AppShellProps) {
             onClick={() => setNoticeOpen(true)}
             sx={{ borderRadius: 1, color: '#FFFFFF' }}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+            <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
               <ChevronLeft fontSize="small" />
             </ListItemIcon>
-            <Typography sx={{ fontSize: 13, fontWeight: 600 }}>메뉴 접기</Typography>
+            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>메뉴 접기</Typography>
           </ListItemButton>
         </Box>
       </Box>
@@ -161,7 +171,7 @@ export function AppShell({ children }: AppShellProps) {
           position: 'fixed',
           top: 0,
           right: 0,
-          left: (theme) => theme.layout.sidebarWidth,
+          left: sidebarWidth,
           zIndex: 1100,
           height: (theme) => theme.layout.headerHeight,
           display: 'flex',
@@ -220,7 +230,7 @@ export function AppShell({ children }: AppShellProps) {
         component="main"
         sx={{
           minHeight: '100vh',
-          ml: (theme) => `${theme.layout.sidebarWidth}px`,
+          ml: `${sidebarWidth}px`,
           pt: (theme) => `${theme.layout.headerHeight}px`,
           '@media (max-width: 900px)': { ml: 0 },
         }}
