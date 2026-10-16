@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHttpException
 
 from backend.app.api.router import create_api_router
+from backend.app.api.equipment_master import router as equipment_master_router
 from backend.app.core.config import settings
 from backend.app.core.errors import ApiError, error_body
 from backend.app.core.middleware import RequestContextMiddleware
@@ -54,6 +55,7 @@ def create_app(service: GsemService | None = None) -> FastAPI:
 
     active_service = service or GsemService(InMemoryGsemRepository())
     app.include_router(create_api_router(active_service), prefix=settings.api_prefix)
+    app.include_router(equipment_master_router, prefix=settings.api_prefix)
 
     @app.get("/health")
     def health(request: Request) -> dict[str, Any]:
