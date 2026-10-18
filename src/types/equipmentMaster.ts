@@ -1,4 +1,4 @@
-export type RiskLevel = 'G' | 'Y' | 'R';
+export type RiskLevel = 'G' | 'Y' | 'R' | '?';
 export type ProgressTone = 'success' | 'warning' | 'error' | 'info';
 export type MasterViewMode = 'excel' | 'optimized';
 
