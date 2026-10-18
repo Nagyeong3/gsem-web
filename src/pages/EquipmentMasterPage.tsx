@@ -27,7 +27,6 @@ import {
   Paper,
   Radio,
   Select,
-  Stack,
   Tab,
   Table,
   TableBody,
@@ -40,13 +39,46 @@ import {
   Tooltip,
   Typography,
   type SelectChangeEvent,
-  type SxProps,
-  type Theme,
 } from '@mui/material';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useAsyncQuery } from '../hooks/useAsyncQuery';
+import { runtimeConfig } from '../config/runtime';
 import { PageHeader } from '../components/common/PageHeader';
 import { initialEquipmentMasterItems, masterUnits, progressOptions } from '../data/equipmentMasterMock';
 import type { EquipmentMasterItem, MasterViewMode, ProgressTone, RiskLevel, UnitDelivery } from '../types/equipmentMaster';
+
+type DbDelivery = { destination: string | null; quantity: number; receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null; contractDate: string | null; buyerName: string | null; vendorName: string | null; subContractId: number };
+type DbMasterRow = { integratedId: number; itemNumber: string; itemNameKor: string | null; description: string | null; managerName: string | null; manufacturer: string | null; imagePath: string | null; deliveries: DbDelivery[] };
+type DbMasterResponse = { items: DbMasterRow[]; page: number; size: number; totalElements: number; totalPages: number; readOnly: boolean };
+const realDataMode = runtimeConfig.dataSource === 'api';
+
+function dateText(value: string | null): string { return value ? value.slice(0, 10) : ''; }
+function mapDatabaseItem(row: DbMasterRow): EquipmentMasterItem {
+  const grouped = new Map<string, UnitDelivery>();
+  for (const delivery of row.deliveries) {
+    const name = delivery.destination?.trim() || '납지 미지정';
+    const existing = grouped.get(name);
+    if (existing) {
+      existing.quantity += Number(delivery.quantity || 0);
+      existing.inboundExpected ||= dateText(delivery.receivingExpected);
+      existing.inboundActual ||= dateText(delivery.receivedAt);
+      existing.deliveredAt ||= dateText(delivery.deliveredAt);
+      existing.deliveryPlan ||= dateText(delivery.contractDate);
+    } else {
+      grouped.set(name, { unitName: name, contracted: true, quantity: Number(delivery.quantity || 0), inboundExpected: dateText(delivery.receivingExpected), inboundActual: dateText(delivery.receivedAt), deliveredAt: dateText(delivery.deliveredAt), deliveryPlan: dateText(delivery.contractDate) });
+    }
+  }
+  const buyer = [...new Set(row.deliveries.map((entry) => entry.buyerName).filter(Boolean))].join(', ');
+  const supplier = [...new Set(row.deliveries.map((entry) => entry.vendorName).filter(Boolean))].join(', ');
+  return { id: String(row.integratedId), risk: '?', itemNameKor: row.itemNameKor || '-', itemNumber: row.itemNumber || '-', material: '-', buyer: buyer || '-', supplier: supplier || '-', progress: '미등록', progressTone: 'info', tdtCode: '-', description: row.description || '-', maintenance: { priority: 0, serviceable: '-', hour100: '-', hour600: '-', periodicInspection: '-', planned: '-', unplanned: '-' }, deliveries: [...grouped.values()] };
+}
+
+async function fetchDatabaseMaster(page: number, size: number, query: string): Promise<DbMasterResponse> {
+  const params = new URLSearchParams({ page: String(page), size: String(size), query });
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master?${params.toString()}`);
+  if (!response.ok) throw new Error(`통합현황 데이터 요청에 실패했습니다. (HTTP ${response.status})`);
+  return (await response.json()) as DbMasterResponse;
+}
 
 function cloneItem(item: EquipmentMasterItem): EquipmentMasterItem {
   return JSON.parse(JSON.stringify(item)) as EquipmentMasterItem;
@@ -65,6 +97,7 @@ function getTotalQuantity(item: EquipmentMasterItem) {
 }
 
 function getRiskStyle(risk: RiskLevel) {
+  if (risk === '?') return { color: '#98A2B3', label: '-' };
   if (risk === 'R') return { color: '#F04438', label: 'R' };
   if (risk === 'Y') return { color: '#F59E0B', label: 'Y' };
   return { color: '#12B76A', label: 'G' };
@@ -102,83 +135,23 @@ function equipmentImageDataUrl(item: EquipmentMasterItem, large = false) {
 
 function RiskBadge({ risk }: { risk: RiskLevel }) {
   const style = getRiskStyle(risk);
-  return (
-    <Chip
-      label={style.label}
-      size="small"
-      sx={{
-        minWidth: 28,
-        height: 28,
-        borderRadius: 999,
-        bgcolor: style.color,
-        color: '#FFFFFF',
-        fontWeight: 800,
-        '& .MuiChip-label': { px: 0 },
-      }}
-    />
-  );
+  return <Chip label={style.label} size="small" sx={{ minWidth: 28, height: 28, borderRadius: 999, bgcolor: style.color, color: '#FFFFFF', fontWeight: 800, '& .MuiChip-label': { px: 0 } }} />;
 }
 
 function ProgressChip({ item }: { item: EquipmentMasterItem }) {
   const style = getProgressStyle(item.progressTone);
-  return (
-    <Chip
-      label={item.progress}
-      size="small"
-      sx={{
-        bgcolor: style.bg,
-        color: style.color,
-        border: `1px solid ${style.color}33`,
-        fontWeight: 700,
-        maxWidth: 138,
-        '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
-      }}
-    />
-  );
+  return <Chip label={item.progress} size="small" sx={{ bgcolor: style.bg, color: style.color, border: `1px solid ${style.color}33`, fontWeight: 700, maxWidth: 138, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }} />;
 }
 
 function EquipmentThumbnail({ item }: { item: EquipmentMasterItem }) {
+  if (realDataMode) return <Box sx={{ width: 58, height: 42, border: '1px solid', borderColor: 'divider', display: 'grid', placeItems: 'center', color: 'text.secondary', fontSize: 10 }}>미연결</Box>;
   const src = equipmentImageDataUrl(item);
   const largeSrc = equipmentImageDataUrl(item, true);
   const alt = `${item.itemNameKor} 장비형상`;
   return (
     <Box className="equipment-master-thumbnail" sx={{ position: 'relative', width: 58, height: 42 }}>
-      <Box
-        component="img"
-        src={src}
-        alt={alt}
-        sx={{
-          width: 58,
-          height: 42,
-          objectFit: 'cover',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.default',
-          display: 'block',
-        }}
-      />
-      <Box
-        sx={{
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 360,
-          height: 220,
-          p: 1,
-          borderRadius: 2,
-          bgcolor: 'background.paper',
-          boxShadow: 10,
-          border: '1px solid',
-          borderColor: 'divider',
-          zIndex: 1600,
-          opacity: 0,
-          pointerEvents: 'none',
-          transition: 'opacity 120ms ease',
-          '.equipment-master-thumbnail:hover &': { opacity: 1 },
-        }}
-      >
+      <Box component="img" src={src} alt={alt} sx={{ width: 58, height: 42, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default', display: 'block' }} />
+      <Box sx={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 360, height: 220, p: 1, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 10, border: '1px solid', borderColor: 'divider', zIndex: 1600, opacity: 0, pointerEvents: 'none', transition: 'opacity 120ms ease', '.equipment-master-thumbnail:hover &': { opacity: 1 } }}>
         <Box component="img" src={largeSrc} alt={alt} sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 1.5 }} />
       </Box>
     </Box>
@@ -186,46 +159,19 @@ function EquipmentThumbnail({ item }: { item: EquipmentMasterItem }) {
 }
 
 function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return (
-    <FormControl size="small" sx={{ minWidth: 154 }}>
-      <InputLabel>{label}</InputLabel>
-      <Select value={value} label={label} onChange={(event: SelectChangeEvent) => onChange(event.target.value)}>
-        <MenuItem value="">전체</MenuItem>
-        {options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
-      </Select>
-    </FormControl>
-  );
+  return <FormControl size="small" sx={{ minWidth: 154 }}><InputLabel>{label}</InputLabel><Select value={value} label={label} onChange={(event: SelectChangeEvent) => onChange(event.target.value)}><MenuItem value="">전체</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</Select></FormControl>;
 }
 
 function SummaryCard({ label, value, helper, tone = '#0F6BFF' }: { label: string; value: string; helper: string; tone?: string }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, minHeight: 92 }}>
-      <Typography sx={{ color: 'text.secondary', fontSize: 12, fontWeight: 700 }}>{label}</Typography>
-      <Typography sx={{ mt: 0.5, color: tone, fontSize: 27, fontWeight: 800, letterSpacing: '-0.04em' }}>{value}</Typography>
-      <Typography sx={{ mt: 0.25, color: 'text.secondary', fontSize: 11 }}>{helper}</Typography>
-    </Paper>
-  );
+  return <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, minHeight: 92 }}><Typography sx={{ color: 'text.secondary', fontSize: 12, fontWeight: 700 }}>{label}</Typography><Typography sx={{ mt: 0.5, color: tone, fontSize: 27, fontWeight: 800, letterSpacing: '-0.04em' }}>{value}</Typography><Typography sx={{ mt: 0.25, color: 'text.secondary', fontSize: 11 }}>{helper}</Typography></Paper>;
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 1.5, py: 0.55 }}>
-      <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography>
-      <Typography component="div" sx={{ color: 'text.primary', fontSize: 12, fontWeight: 600 }}>{value || '-'}</Typography>
-    </Box>
-  );
+  return <Box sx={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 1.5, py: 0.55 }}><Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography><Typography component="div" sx={{ color: 'text.primary', fontSize: 12, fontWeight: 600 }}>{value || '-'}</Typography></Box>;
 }
 
 function DetailSection({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
-  return (
-    <Box sx={{ py: 1.6, borderTop: '1px solid', borderColor: 'divider' }}>
-      <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography sx={{ fontSize: 14, fontWeight: 800 }}>{title}</Typography>
-        {action}
-      </Box>
-      {children}
-    </Box>
-  );
+  return <Box sx={{ py: 1.6, borderTop: '1px solid', borderColor: 'divider' }}><Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 14, fontWeight: 800 }}>{title}</Typography>{action}</Box>{children}</Box>;
 }
 
 function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onClose: () => void; onEdit: (item: EquipmentMasterItem) => void }) {
@@ -237,16 +183,15 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
       </Box>
       <Box sx={{ px: 2.25, py: 1.75 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 54px', gap: 1.25, alignItems: 'stretch' }}>
-          <Box component="img" src={equipmentImageDataUrl(item, true)} alt={`${item.itemNameKor} 장비형상`} sx={{ width: '100%', height: 168, objectFit: 'cover', borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }} />
-          <Stack spacing={1}>{[0, 1, 2].map((index) => <Box key={index} component="img" src={equipmentImageDataUrl(item)} alt={`${item.itemNameKor} 썸네일 ${index + 1}`} sx={{ width: 54, height: 50, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: index === 0 ? 'primary.main' : 'divider' }} />)}</Stack>
+          <Box component="img" src={realDataMode ? undefined : equipmentImageDataUrl(item, true)} alt={`${item.itemNameKor} 장비형상`} sx={{ width: '100%', height: 168, objectFit: 'cover', borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }} />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>{(realDataMode ? [] : [0, 1, 2]).map((index) => <Box key={index} component="img" src={equipmentImageDataUrl(item)} alt={`${item.itemNameKor} 썸네일 ${index + 1}`} sx={{ width: 54, height: 50, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: index === 0 ? 'primary.main' : 'divider' }} />)}</Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.75 }}>
           <Typography sx={{ fontSize: 22, fontWeight: 800 }}>{item.itemNameKor}</Typography>
           <Chip label={item.risk === 'R' ? 'Risk' : item.risk === 'Y' ? '주의' : '정상'} size="small" color={item.risk === 'R' ? 'error' : item.risk === 'Y' ? 'warning' : 'success'} variant="outlined" />
         </Box>
         <Typography sx={{ mt: 0.2, color: 'text.secondary', fontSize: 13 }}>{item.itemNumber}</Typography>
-        <Button fullWidth variant="contained" startIcon={<EditOutlined />} sx={{ mt: 1.5 }} onClick={() => onEdit(item)}>이 품목 수정</Button>
-
+        <Button fullWidth variant="contained" disabled={realDataMode} startIcon={<EditOutlined />} sx={{ mt: 1.5 }} onClick={() => onEdit(item)}>이 품목 수정</Button>
         <DetailSection title="기본정보">
           <DetailRow label="품명" value={item.itemNameKor} />
           <DetailRow label="품번" value={item.itemNumber} />
@@ -256,8 +201,7 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
           <DetailRow label="진행 상태" value={<ProgressChip item={item} />} />
           <DetailRow label="TDT CODE" value={item.tdtCode} />
         </DetailSection>
-
-        <DetailSection title="부대별 납품현황" action={<Button size="small" onClick={() => onEdit(item)}>수정</Button>}>
+        <DetailSection title="부대별 납품현황" action={<Button size="small" disabled={realDataMode} onClick={() => onEdit(item)}>수정</Button>}>
           <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5, maxHeight: 212 }}>
             <Table size="small" stickyHeader aria-label="부대별 납품현황">
               <TableHead><TableRow>{['부대명', '계약', '입고예정', '납품계획', '수량'].map((header) => <TableCell key={header} sx={{ fontSize: 11, fontWeight: 800 }}>{header}</TableCell>)}</TableRow></TableHead>
@@ -265,10 +209,9 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
             </Table>
           </TableContainer>
         </DetailSection>
-
         <DetailSection title="정비 / 운영 정보">
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
-            <InfoTile label="납품 우선순위" value={`${item.maintenance.priority}순위`} />
+            <InfoTile label="납품 우선순위" value={item.maintenance.priority ? `${item.maintenance.priority}순위` : '-'} />
             <InfoTile label="운영/서비스성" value={item.maintenance.serviceable} />
             <InfoTile label="100시간" value={item.maintenance.hour100} />
             <InfoTile label="600시간" value={item.maintenance.hour600} />
@@ -285,13 +228,13 @@ function InfoTile({ label, value }: { label: string; value: string }) {
   return <Box sx={{ p: 1.1, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'background.default' }}><Typography sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 700 }}>{label}</Typography><Typography sx={{ mt: 0.4, fontSize: 13, fontWeight: 800 }}>{value}</Typography></Box>;
 }
 
-const baseHeaderSx: SxProps<Theme> = { py: 1, px: 1, fontSize: 11, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', borderColor: '#D6DEE8' };
+const baseHeaderSx = { py: 1, px: 1, fontSize: 11, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', borderColor: '#D6DEE8' } as const;
 
-function stickySx(left: number, width: number, header = false, selected = false): SxProps<Theme> {
-  return { position: 'sticky', left, width, minWidth: width, maxWidth: width, zIndex: header ? 4 : 2, bgcolor: header ? '#DDF5DA' : selected ? '#EEF5FF' : 'background.paper', boxShadow: '1px 0 0 #D6DEE8' };
+function stickySx(left: number, width: number, header = false, selected = false) {
+  return { position: 'sticky', left, width, minWidth: width, maxWidth: width, zIndex: header ? 4 : 2, bgcolor: header ? '#DDF5DA' : selected ? '#EEF5FF' : 'background.paper', boxShadow: '1px 0 0 #D6DEE8' } as const;
 }
 
-function ExcelFriendlyTable({ items, selectedId, onSelect, onEdit }: { items: EquipmentMasterItem[]; selectedId: string | null; onSelect: (id: string) => void; onEdit: (item: EquipmentMasterItem) => void }) {
+function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: { items: EquipmentMasterItem[]; unitNames: string[]; selectedId: string | null; onSelect: (id: string) => void; onEdit: (item: EquipmentMasterItem) => void }) {
   return (
     <TableContainer sx={{ maxHeight: 'calc(100vh - 355px)', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'background.paper' }}>
       <Table size="small" stickyHeader aria-label="엑셀 친화형 지원장비 통합현황" sx={{ minWidth: 2380, '& th, & td': { borderColor: '#D6DEE8' } }}>
@@ -305,7 +248,7 @@ function ExcelFriendlyTable({ items, selectedId, onSelect, onEdit }: { items: Eq
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 96, bgcolor: '#DDF5DA' }}>담당<br />바이어</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 112, bgcolor: '#DDF5DA' }}>조달원</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 146, bgcolor: '#DDF5DA' }}>진행 상세현황</TableCell>
-            {masterUnits.map((unit, index) => <TableCell key={unit} colSpan={6} sx={{ ...baseHeaderSx, bgcolor: index === 2 ? '#D9ECFF' : index === 3 ? '#FFF6D8' : '#FFE7A3', fontSize: 12 }}>{unit}</TableCell>)}
+            {unitNames.map((unit, index) => <TableCell key={unit} colSpan={6} sx={{ ...baseHeaderSx, bgcolor: index === 2 ? '#D9ECFF' : index === 3 ? '#FFF6D8' : '#FFE7A3', fontSize: 12 }}>{unit}</TableCell>)}
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 74, bgcolor: '#FFF1B8' }}>납품<br />우선<br />순위<br />(주)</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 98, bgcolor: '#DDF5DA' }}>운영/<br />지상취급/<br />서비스성</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#D9ECFF' }}>100<br />시간</TableCell>
@@ -315,7 +258,11 @@ function ExcelFriendlyTable({ items, selectedId, onSelect, onEdit }: { items: Eq
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 92, bgcolor: '#DDF5DA' }}>장비형상</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 360, bgcolor: '#DDF5DA' }}>장비설명</TableCell>
           </TableRow>
-          <TableRow>{masterUnits.flatMap((unit) => ['계약', '입고예정', '납품계획', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} sx={{ ...baseHeaderSx, minWidth: label === '수량' ? 52 : 72, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}<TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>계획</TableCell><TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>비계획</TableCell></TableRow>
+          <TableRow>
+            {unitNames.flatMap((unit) => ['계약', '입고예정', '납품계획', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} sx={{ ...baseHeaderSx, minWidth: label === '수량' ? 52 : 72, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}
+            <TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>계획</TableCell>
+            <TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>비계획</TableCell>
+          </TableRow>
         </TableHead>
         <TableBody>
           {items.map((item, index) => {
@@ -331,9 +278,16 @@ function ExcelFriendlyTable({ items, selectedId, onSelect, onEdit }: { items: Eq
                 <TableCell sx={{ minWidth: 96 }}>{item.buyer}</TableCell>
                 <TableCell sx={{ minWidth: 112 }}>{item.supplier}</TableCell>
                 <TableCell sx={{ minWidth: 146 }}><ProgressChip item={item} /></TableCell>
-                {masterUnits.flatMap((unit) => {
+                {unitNames.flatMap((unit) => {
                   const delivery = getDelivery(item, unit);
-                  return [<TableCell key={`${item.id}-${unit}-contract`} align="center">{delivery?.contracted ? '●' : '-'}</TableCell>, <TableCell key={`${item.id}-${unit}-inboundExpected`} align="center">{delivery?.inboundExpected || '-'}</TableCell>, <TableCell key={`${item.id}-${unit}-deliveryPlan`} align="center">{delivery?.deliveryPlan || '-'}</TableCell>, <TableCell key={`${item.id}-${unit}-inboundActual`} align="center">{delivery?.inboundActual || '-'}</TableCell>, <TableCell key={`${item.id}-${unit}-deliveredAt`} align="center">{delivery?.deliveredAt || '-'}</TableCell>, <TableCell key={`${item.id}-${unit}-quantity`} align="right" sx={{ fontWeight: 700 }}>{delivery?.quantity || '-'}</TableCell>];
+                  return [
+                    <TableCell key={`${item.id}-${unit}-contract`} align="center">{delivery?.contracted ? '●' : '-'}</TableCell>,
+                    <TableCell key={`${item.id}-${unit}-inboundExpected`} align="center">{delivery?.inboundExpected || '-'}</TableCell>,
+                    <TableCell key={`${item.id}-${unit}-deliveryPlan`} align="center">{delivery?.deliveryPlan || '-'}</TableCell>,
+                    <TableCell key={`${item.id}-${unit}-inboundActual`} align="center">{delivery?.inboundActual || '-'}</TableCell>,
+                    <TableCell key={`${item.id}-${unit}-deliveredAt`} align="center">{delivery?.deliveredAt || '-'}</TableCell>,
+                    <TableCell key={`${item.id}-${unit}-quantity`} align="right" sx={{ fontWeight: 700 }}>{delivery?.quantity || '-'}</TableCell>,
+                  ];
                 })}
                 <TableCell align="center" sx={{ bgcolor: '#FFF9E8', fontWeight: 800 }}>{item.maintenance.priority}</TableCell>
                 <TableCell align="center">{item.maintenance.serviceable}</TableCell>
@@ -358,16 +312,16 @@ function OptimizedTable({ items, selectedId, onSelect, onEdit }: { items: Equipm
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5, overflow: 'auto', maxHeight: 'calc(100vh - 395px)' }}>
       <Table size="small" stickyHeader aria-label="업무 최적화형 지원장비 통합현황" sx={{ minWidth: 1120 }}>
         <TableHead><TableRow>{['', 'RISK', '장비형상', '품명', '품번', 'Material', '담당 바이어', '조달원', '진행상태', '계약부대', '총수량', '정비 기준', '수정'].map((header) => <TableCell key={header} sx={{ fontWeight: 800, bgcolor: '#F6F9FC', whiteSpace: 'nowrap' }}>{header}</TableCell>)}</TableRow></TableHead>
-        <TableBody>{items.map((item) => { const selected = item.id === selectedId; const contractedUnits = item.deliveries.filter((delivery) => delivery.contracted).length; return <TableRow key={item.id} hover selected={selected} onClick={() => onSelect(item.id)} onDoubleClick={() => onEdit(item)} sx={{ cursor: 'pointer' }}><TableCell padding="checkbox"><Radio checked={selected} size="small" /></TableCell><TableCell><RiskBadge risk={item.risk} /></TableCell><TableCell><EquipmentThumbnail item={item} /></TableCell><TableCell sx={{ fontWeight: 800 }}>{item.itemNameKor}</TableCell><TableCell>{item.itemNumber}</TableCell><TableCell>{item.material}</TableCell><TableCell>{item.buyer}</TableCell><TableCell>{item.supplier}</TableCell><TableCell><ProgressChip item={item} /></TableCell><TableCell>{contractedUnits}개 부대</TableCell><TableCell sx={{ fontWeight: 800 }}>{getTotalQuantity(item)}</TableCell><TableCell>{item.maintenance.periodicInspection === '-' ? '일반' : `주기검사 ${item.maintenance.periodicInspection}`}</TableCell><TableCell><Button size="small" startIcon={<EditOutlined />} onClick={(event) => { event.stopPropagation(); onEdit(item); }}>수정</Button></TableCell></TableRow>; })}</TableBody>
+        <TableBody>{items.map((item) => { const selected = item.id === selectedId; const contractedUnits = item.deliveries.filter((delivery) => delivery.contracted).length; return <TableRow key={item.id} hover selected={selected} onClick={() => onSelect(item.id)} onDoubleClick={() => onEdit(item)} sx={{ cursor: 'pointer' }}><TableCell padding="checkbox"><Radio checked={selected} size="small" /></TableCell><TableCell><RiskBadge risk={item.risk} /></TableCell><TableCell><EquipmentThumbnail item={item} /></TableCell><TableCell sx={{ fontWeight: 800 }}>{item.itemNameKor}</TableCell><TableCell>{item.itemNumber}</TableCell><TableCell>{item.material}</TableCell><TableCell>{item.buyer}</TableCell><TableCell>{item.supplier}</TableCell><TableCell><ProgressChip item={item} /></TableCell><TableCell>{contractedUnits}개 부대</TableCell><TableCell sx={{ fontWeight: 800 }}>{getTotalQuantity(item)}</TableCell><TableCell>{item.maintenance.periodicInspection === '-' ? '일반' : `주기검사 ${item.maintenance.periodicInspection}`}</TableCell><TableCell><Button size="small" disabled={realDataMode} startIcon={<EditOutlined />} onClick={(event) => { event.stopPropagation(); onEdit(item); }}>수정</Button></TableCell></TableRow>; })}</TableBody>
       </Table>
     </TableContainer>
   );
 }
 
-function FilterBar({ search, setSearch, risk, setRisk, supplier, setSupplier, progress, setProgress, reset, items }: { search: string; setSearch: (value: string) => void; risk: string; setRisk: (value: string) => void; supplier: string; setSupplier: (value: string) => void; progress: string; setProgress: (value: string) => void; reset: () => void; items: EquipmentMasterItem[] }) {
+function FilterBar({ search, setSearch, risk, setRisk, supplier, setSupplier, progress, setProgress, reset, items, apiMode }: { search: string; setSearch: (value: string) => void; risk: string; setRisk: (value: string) => void; supplier: string; setSupplier: (value: string) => void; progress: string; setProgress: (value: string) => void; reset: () => void; items: EquipmentMasterItem[]; apiMode: boolean }) {
   const suppliers = Array.from(new Set(items.map((item) => item.supplier)));
   const progresses = Array.from(new Set(items.map((item) => item.progress)));
-  return <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 2 }}><Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}><TextField size="small" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="품명, 품번, Material, 조달원 검색" sx={{ minWidth: 360, flex: '1 1 360px' }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> } }} /><FilterSelect label="RISK" value={risk} options={['G', 'Y', 'R']} onChange={setRisk} /><FilterSelect label="조달원" value={supplier} options={suppliers} onChange={setSupplier} /><FilterSelect label="진행상태" value={progress} options={progresses} onChange={setProgress} /><Button variant="outlined" startIcon={<Refresh />} onClick={reset}>초기화</Button></Box></Paper>;
+  return <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 2 }}><Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}><TextField size="small" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="품명, 품번, Material, 조달원 검색" sx={{ minWidth: 360, flex: '1 1 360px' }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> } }} />{!apiMode && <FilterSelect label="RISK" value={risk} options={['G', 'Y', 'R']} onChange={setRisk} />}{!apiMode && <FilterSelect label="조달원" value={supplier} options={suppliers} onChange={setSupplier} />}{!apiMode && <FilterSelect label="진행상태" value={progress} options={progresses} onChange={setProgress} />}<Button variant="outlined" startIcon={<Refresh />} onClick={reset}>초기화</Button></Box></Paper>;
 }
 
 function EditTextField({ label, value, onChange, multiline = false, type = 'text' }: { label: string; value: string | number; onChange: (value: string) => void; multiline?: boolean; type?: string }) {
@@ -380,7 +334,6 @@ function EditSelect({ label, value, options, onChange }: { label: string; value:
 
 function EditDialog({ draft, onChange, onClose, onSave }: { draft: EquipmentMasterItem | null; onChange: (draft: EquipmentMasterItem) => void; onClose: () => void; onSave: () => void }) {
   if (!draft) return null;
-
   const updateDelivery = (index: number, patch: Partial<UnitDelivery>) => {
     onChange({ ...draft, deliveries: draft.deliveries.map((delivery, deliveryIndex) => deliveryIndex === index ? { ...delivery, ...patch } : delivery) });
   };
@@ -409,7 +362,7 @@ function EditDialog({ draft, onChange, onClose, onSave }: { draft: EquipmentMast
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
           <Typography sx={{ mb: 1.5, fontWeight: 800 }}>부대별 계약 / 입고 / 납품</Typography>
-          <Stack spacing={1.25} divider={<Divider flexItem />}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             {draft.deliveries.map((delivery, index) => (
               <Box key={delivery.unitName} sx={{ display: 'grid', gridTemplateColumns: '1.45fr 0.8fr repeat(4, 1fr) 0.65fr', gap: 1, alignItems: 'center' }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 800 }}>{delivery.unitName}</Typography>
@@ -421,7 +374,7 @@ function EditDialog({ draft, onChange, onClose, onSave }: { draft: EquipmentMast
                 <EditTextField label="수량" value={delivery.quantity} type="number" onChange={(value) => updateDelivery(index, { quantity: Number(value) || 0 })} />
               </Box>
             ))}
-          </Stack>
+          </Box>
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -455,10 +408,25 @@ export function EquipmentMasterPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pageSize, setPageSize] = useState('10');
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    if (!realDataMode) return;
+    const timer = window.setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 450);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch), [page, pageSize, debouncedSearch]);
+  const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
+  const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
+  const allItems = realDataMode ? databaseItems : items;
+  const totalRows = realDataMode ? (dbQuery.data?.totalElements ?? 0) : items.length;
+  const unitNames = useMemo(() => realDataMode ? [...new Set(databaseItems.flatMap((item) => item.deliveries.map((d) => d.unitName)))].sort() : masterUnits, [databaseItems]);
+  useEffect(() => { setSelectedId(null); }, [page, debouncedSearch, pageSize]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return items.filter((item) => {
+    return allItems.filter((item) => {
+      if (realDataMode) return true;
       const searchTargets = [item.itemNameKor, item.itemNumber, item.material, item.supplier, item.buyer, item.progress, item.description];
       const matchesQuery = !query || searchTargets.some((value) => value.toLowerCase().includes(query));
       const matchesRisk = !risk || item.risk === risk;
@@ -466,31 +434,36 @@ export function EquipmentMasterPage() {
       const matchesProgress = !progress || item.progress === progress;
       return matchesQuery && matchesRisk && matchesSupplier && matchesProgress;
     });
-  }, [items, progress, risk, search, supplier]);
+  }, [allItems, progress, risk, search, supplier]);
 
-  const visibleItems = filteredItems.slice(0, Number(pageSize));
-  const selectedItem = selectedId ? items.find((item) => item.id === selectedId) ?? null : null;
-  const riskCount = items.filter((item) => item.risk !== 'G').length;
-  const manageCount = items.filter((item) => item.progressTone === 'warning' || item.progressTone === 'error').length;
-  const totalQuantity = items.reduce((sum, item) => sum + getTotalQuantity(item), 0);
+  const visibleItems = realDataMode ? filteredItems : filteredItems.slice((page - 1) * Number(pageSize), page * Number(pageSize));
+  const selectedItem = selectedId ? allItems.find((item) => item.id === selectedId) ?? null : null;
+  const riskCount = allItems.filter((item) => item.risk === 'Y' || item.risk === 'R').length;
+  const manageCount = allItems.filter((item) => item.progressTone === 'warning' || item.progressTone === 'error').length;
+  const totalQuantity = allItems.reduce((sum, item) => sum + getTotalQuantity(item), 0);
 
-  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); };
-  const openEditDialog = (item: EquipmentMasterItem) => { setSelectedId(item.id); setDraft(cloneItem(item)); };
-  const saveEditDialog = () => { if (!draft) return; setItems((current) => current.map((item) => item.id === draft.id ? cloneItem(draft) : item)); setSelectedId(draft.id); setDraft(null); };
+  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setPage(1); };
+  const openEditDialog = (item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); };
+  const saveEditDialog = () => {
+    if (!draft) return;
+    setItems((current) => current.map((item) => item.id === draft.id ? cloneItem(draft) : item));
+    setSelectedId(draft.id);
+    setDraft(null);
+  };
 
   return (
     <Box sx={{ display: 'flex', minWidth: 1080, bgcolor: 'background.paper' }}>
       <Box sx={{ flex: 1, minWidth: 0, p: 3, bgcolor: 'background.default' }}>
-        <PageHeader title="지원장비 통합현황" description="엑셀 마스터 파일의 업무 구조를 기준으로 지원장비 조달·계약·납품 현황을 Mock 데이터로 확인합니다." />
+        <PageHeader title="지원장비 통합현황" description={realDataMode ? "SQL Server 실데이터 · 읽기 전용 (미등록 항목은 대시로 표시)" : "엑셀 마스터 파일의 업무 구조를 기준으로 지원장비 조달·계약·납품 현황을 Mock 데이터로 확인합니다."} />
 
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: 1.5, mb: 2 }}>
-          <SummaryCard label="전체 품목" value={`${items.length}건`} helper="Mock 마스터 기준" />
-          <SummaryCard label="확인 필요" value={`${riskCount}건`} helper="RISK Y/R 품목" tone="#F04438" />
-          <SummaryCard label="진행 관리" value={`${manageCount}건`} helper="조립·수급·납품 준비" tone="#F97316" />
-          <SummaryCard label="총 납품 수량" value={`${totalQuantity}개`} helper="부대별 수량 합산" tone="#079455" />
+          <SummaryCard label="전체 품목" value={`${totalRows}건`} helper={realDataMode ? "SQL Server 전체 조회 건수" : "Mock 마스터 기준"} />
+          <SummaryCard label="확인 필요" value={`${riskCount}건`} helper={realDataMode ? "RISK 데이터 미연동" : "RISK Y/R 품목"} tone="#F04438" />
+          <SummaryCard label="진행 관리" value={`${manageCount}건`} helper={realDataMode ? "진행 상태 미연동" : "조립·수급·납품 준비"} tone="#F97316" />
+          <SummaryCard label="총 납품 수량" value={`${totalQuantity}개`} helper={realDataMode ? "현재 페이지 납품 수량" : "부대별 수량 합산"} tone="#079455" />
         </Box>
 
-        <FilterBar search={search} setSearch={setSearch} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={items} />
+        <FilterBar search={search} setSearch={setSearch} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
         <Paper variant="outlined" sx={{ mb: 1.5, borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', gap: 2 }}>
@@ -498,31 +471,37 @@ export function EquipmentMasterPage() {
               <Tab icon={<TableRowsOutlined sx={{ fontSize: 18 }} />} iconPosition="start" label="엑셀 친화형" value="excel" />
               <Tab icon={<ViewModuleOutlined sx={{ fontSize: 18 }} />} iconPosition="start" label="업무 최적화형" value="optimized" />
             </Tabs>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{filteredItems.length}건</Box></Typography>
-              <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => setPageSize(event.target.value)}>{['10', '20', '50'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{realDataMode ? totalRows : filteredItems.length}건</Box></Typography>
+              <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['10', '20', '50'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
               <Tooltip title="Mock 프로토타입에서는 컬럼 저장은 동작하지 않습니다."><span><Button variant="outlined" startIcon={<SettingsOutlined />}>컬럼 설정</Button></span></Tooltip>
               <Tooltip title="Mock 프로토타입에서는 실제 파일 다운로드는 후속 범위입니다."><span><Button variant="outlined" startIcon={<DownloadOutlined />}>엑셀 다운로드</Button></span></Tooltip>
-            </Stack>
+            </Box>
           </Box>
           <Box sx={{ px: 1.5, py: 1, bgcolor: '#FBFCFE', borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{mode === 'excel' ? '엑셀 사용자 적응을 위해 부대별 반복 컬럼과 장비형상/정비 컬럼을 최대한 유지한 화면입니다. 행 더블클릭 또는 상세 패널의 수정 버튼으로 편집합니다.' : '같은 데이터를 업무 판단 중심으로 압축하고, 행 선택 시 상세 패널에서 부대별 현황을 확인하는 화면입니다.'}</Typography>
+            <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
+              {realDataMode ? 'SQL Server 조회 전용입니다. 표시된 납품처는 현재 페이지의 실제 DB 데이터 기준이며, 수정 기능은 잠겨 있습니다.' : mode === 'excel' ? '엑셀 사용자 적응을 위해 부대별 반복 컬럼과 장비형상/정비 컬럼을 최대한 유지한 화면입니다. 행 더블클릭 또는 상세 패널의 수정 버튼으로 편집합니다.' : '같은 데이터를 업무 판단 중심으로 압축하고, 행 선택 시 상세 패널에서 부대별 현황을 확인하는 화면입니다.'}
+            </Typography>
           </Box>
         </Paper>
 
         <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {mode === 'excel' ? <ExcelFriendlyTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} /> : <OptimizedTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />}
+            {realDataMode && dbQuery.isLoading && !dbQuery.data && <Typography sx={{ p: 2 }}>DB에서 통합현황 조회 중...</Typography>}
+            {realDataMode && dbQuery.isError && <Box sx={{ p: 2 }}><Typography color="error">데이터 조회 실패. API 연결과 서버 로그를 확인하세요.</Typography><Button onClick={dbQuery.refetch}>재시도</Button></Box>}
+            {(!realDataMode || (!dbQuery.isError && !dbQuery.isLoading)) && (mode === 'excel'
+              ? <ExcelFriendlyTable items={visibleItems} unitNames={unitNames} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />
+              : <OptimizedTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />)}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>1 - {visibleItems.length} / {filteredItems.length}건</Typography>
-              <Pagination page={1} count={Math.max(1, Math.ceil(filteredItems.length / Number(pageSize)))} color="primary" shape="rounded" />
-              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>Mock 데이터 · 새로고침 시 편집값 초기화</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{totalRows === 0 ? 0 : (page - 1) * Number(pageSize) + 1} - {(page - 1) * Number(pageSize) + visibleItems.length} / {realDataMode ? totalRows : filteredItems.length}건</Typography>
+              <Pagination page={page} onChange={(_, next) => setPage(next)} count={Math.max(1, realDataMode ? (dbQuery.data?.totalPages ?? 1) : Math.ceil(filteredItems.length / Number(pageSize)))} color="primary" shape="rounded" />
+              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{realDataMode ? 'SQL Server 조회 · 읽기 전용' : 'Mock 데이터 · 새로고침 시 편집값 초기화'}</Typography>
             </Box>
           </Box>
           {selectedItem && <Box sx={{ ml: 2 }}><DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} onEdit={openEditDialog} /></Box>}
         </Box>
       </Box>
-      <EditDialog draft={draft} onChange={setDraft} onClose={() => setDraft(null)} onSave={saveEditDialog} />
+      <EditDialog draft={realDataMode ? null : draft} onChange={setDraft} onClose={() => setDraft(null)} onSave={saveEditDialog} />
     </Box>
   );
 }
