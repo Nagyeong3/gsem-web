@@ -47,30 +47,62 @@ import { PageHeader } from '../components/common/PageHeader';
 import { initialEquipmentMasterItems, masterUnits, progressOptions } from '../data/equipmentMasterMock';
 import type { EquipmentMasterItem, MasterViewMode, ProgressTone, RiskLevel, UnitDelivery } from '../types/equipmentMaster';
 
-type DbDelivery = { destination: string | null; quantity: number; receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null; contractDate: string | null; buyerName: string | null; vendorName: string | null; subContractId: number };
-type DbMasterRow = { integratedId: number; itemNumber: string; itemNameKor: string | null; description: string | null; managerName: string | null; manufacturer: string | null; imagePath: string | null; deliveries: DbDelivery[] };
+type DbDelivery = { matchId: number; subContractName: string | null; destination: string | null; quantity: number | null; receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null; contractDate: string | null; buyerName: string | null; vendorName: string | null; subContractId: number };
+type DbMasterRow = { integratedId: number; businessId: number; businessName: string | null; itemNumber: string; itemNameKor: string | null; description: string | null; managerName: string | null; manufacturer: string | null; imagePath: string | null; deliveries: DbDelivery[] };
 type DbMasterResponse = { items: DbMasterRow[]; page: number; size: number; totalElements: number; totalPages: number; readOnly: boolean };
 const realDataMode = runtimeConfig.dataSource === 'api';
 
 function dateText(value: string | null): string { return value ? value.slice(0, 10) : ''; }
+function normalizeDestination(value: string | null): string {
+  return (value || '납지 미지정').replace(/\s+/g, '').trim() || '납지 미지정';
+}
+function summarizeDate(values: Array<string | null>): string {
+  const dates = [...new Set(values.map(dateText).filter(Boolean))];
+  return dates.length > 1 ? '다건(상세)' : dates[0] || '';
+}
 function mapDatabaseItem(row: DbMasterRow): EquipmentMasterItem {
-  const grouped = new Map<string, UnitDelivery>();
-  for (const delivery of row.deliveries) {
-    const name = delivery.destination?.trim() || '납지 미지정';
-    const existing = grouped.get(name);
-    if (existing) {
-      existing.quantity += Number(delivery.quantity || 0);
-      existing.inboundExpected ||= dateText(delivery.receivingExpected);
-      existing.inboundActual ||= dateText(delivery.receivedAt);
-      existing.deliveredAt ||= dateText(delivery.deliveredAt);
-      existing.deliveryPlan ||= dateText(delivery.contractDate);
-    } else {
-      grouped.set(name, { unitName: name, contracted: true, quantity: Number(delivery.quantity || 0), inboundExpected: dateText(delivery.receivingExpected), inboundActual: dateText(delivery.receivedAt), deliveredAt: dateText(delivery.deliveredAt), deliveryPlan: dateText(delivery.contractDate) });
-    }
+  const originalLines = row.deliveries ?? [];
+  const seen = new Set<number>();
+  const unique = originalLines.filter((line) => {
+    if (seen.has(line.matchId)) return false;
+    seen.add(line.matchId);
+    return true;
+  });
+  const issues: string[] = [];
+  if (!originalLines.length) issues.push('계약·납품 데이터 미등록');
+  if (unique.length !== originalLines.length) issues.push(`중복 matchId ${originalLines.length - unique.length}건: 합계 제외`);
+  const grouped = new Map<string, DbDelivery[]>();
+  for (const line of unique) {
+    const key = normalizeDestination(line.destination);
+    grouped.set(key, [...(grouped.get(key) ?? []), line]);
+    if (line.quantity == null || !Number.isFinite(Number(line.quantity)) || Number(line.quantity) < 0) issues.push(`계약 #${line.matchId}: 수량 확인 필요`);
+    if (!line.destination?.trim()) issues.push(`계약 #${line.matchId}: 납품처 미등록`);
+    if (line.deliveredAt && line.receivedAt && dateText(line.deliveredAt) < dateText(line.receivedAt)) issues.push(`계약 #${line.matchId}: 납품일이 입고일보다 빠름`);
   }
-  const buyer = [...new Set(row.deliveries.map((entry) => entry.buyerName).filter(Boolean))].join(', ');
-  const supplier = [...new Set(row.deliveries.map((entry) => entry.vendorName).filter(Boolean))].join(', ');
-  return { id: String(row.integratedId), risk: '?', itemNameKor: row.itemNameKor || '-', itemNumber: row.itemNumber || '-', material: '-', buyer: buyer || '-', supplier: supplier || '-', progress: '미등록', progressTone: 'info', tdtCode: '-', description: row.description || '-', maintenance: { priority: 0, serviceable: '-', hour100: '-', hour600: '-', periodicInspection: '-', planned: '-', unplanned: '-' }, deliveries: [...grouped.values()] };
+  const deliveries: UnitDelivery[] = [...grouped.entries()].map(([unitName, lines]) => {
+    const inboundExpected = summarizeDate(lines.map((line) => line.receivingExpected));
+    const inboundActual = summarizeDate(lines.map((line) => line.receivedAt));
+    const deliveredAt = summarizeDate(lines.map((line) => line.deliveredAt));
+    const deliveryPlan = summarizeDate(lines.map((line) => line.contractDate));
+    if ([inboundExpected, inboundActual, deliveredAt, deliveryPlan].some((value) => value === '다건(상세)')) {
+      issues.push(`${unitName}: 계약별 날짜가 다름 (상세 확인)`);
+    }
+    return {
+      unitName, contracted: true,
+      quantity: lines.reduce((sum, line) => sum + (line.quantity != null && Number.isFinite(Number(line.quantity)) && Number(line.quantity) >= 0 ? Number(line.quantity) : 0), 0),
+      inboundExpected, inboundActual, deliveredAt, deliveryPlan,
+    };
+  });
+  const buyer = [...new Set(unique.map((entry) => entry.buyerName).filter(Boolean))].join(', ');
+  const supplier = [...new Set(unique.map((entry) => entry.vendorName).filter(Boolean))].join(', ');
+  return {
+    id: String(row.integratedId), businessName: row.businessName || `사업 ID ${row.businessId}`, managerName: row.managerName || '-',
+    contractLines: unique.map((line) => ({ matchId: line.matchId, subContractId: line.subContractId, subContractName: line.subContractName || '-', destination: line.destination || '미등록', quantity: line.quantity, receivingExpected: dateText(line.receivingExpected), receivedAt: dateText(line.receivedAt), deliveredAt: dateText(line.deliveredAt), deliveryPlan: dateText(line.contractDate), buyerName: line.buyerName || '-', vendorName: line.vendorName || '-' })),
+    validationIssues: issues,
+    risk: '?', itemNameKor: row.itemNameKor || '-', itemNumber: row.itemNumber || '-', material: '-', buyer: buyer || '-', supplier: supplier || '-',
+    progress: '미등록', progressTone: 'info', tdtCode: '-', description: row.description || '-',
+    maintenance: { priority: 0, serviceable: '-', hour100: '-', hour600: '-', periodicInspection: '-', planned: '-', unplanned: '-' }, deliveries,
+  };
 }
 
 async function fetchDatabaseMaster(page: number, size: number, query: string): Promise<DbMasterResponse> {
@@ -188,12 +220,14 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.75 }}>
           <Typography sx={{ fontSize: 22, fontWeight: 800 }}>{item.itemNameKor}</Typography>
-          <Chip label={item.risk === 'R' ? 'Risk' : item.risk === 'Y' ? '주의' : '정상'} size="small" color={item.risk === 'R' ? 'error' : item.risk === 'Y' ? 'warning' : 'success'} variant="outlined" />
+          <Chip label={item.risk === 'R' ? 'Risk' : item.risk === 'Y' ? '주의' : item.risk === '?' ? 'RISK 미등록' : '정상'} size="small" color={item.risk === 'R' ? 'error' : item.risk === 'Y' ? 'warning' : 'success'} variant="outlined" />
         </Box>
         <Typography sx={{ mt: 0.2, color: 'text.secondary', fontSize: 13 }}>{item.itemNumber}</Typography>
         <Button fullWidth variant="contained" disabled={realDataMode} startIcon={<EditOutlined />} sx={{ mt: 1.5 }} onClick={() => onEdit(item)}>이 품목 수정</Button>
         <DetailSection title="기본정보">
           <DetailRow label="품명" value={item.itemNameKor} />
+          <DetailRow label="사업명" value={item.businessName || '-'} />
+          <DetailRow label="담당자" value={item.managerName || '-'} />
           <DetailRow label="품번" value={item.itemNumber} />
           <DetailRow label="Material" value={item.material} />
           <DetailRow label="담당 바이어" value={item.buyer} />
@@ -209,6 +243,12 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
             </Table>
           </TableContainer>
         </DetailSection>
+        {realDataMode && <DetailSection title="정합성 확인">
+          {item.validationIssues?.length ? item.validationIssues.map((issue, index) => <Typography key={`${issue}-${index}`} color="warning.main" sx={{ fontSize: 12, mb: 0.5 }}>• {issue}</Typography>) : <Typography sx={{ fontSize: 12 }}>현재 조회된 계약 데이터에서 이상 항목 없음 (전수검증 결과 아님)</Typography>}
+        </DetailSection>}
+        {realDataMode && <DetailSection title="개별 계약·납품 내역 (합산 근거)">
+          {item.contractLines?.length ? <TableContainer sx={{ maxHeight: 270 }}><Table size="small" stickyHeader><TableHead><TableRow>{['계약', '납지', '수량', '입고예정', '입고', '납품'].map((key) => <TableCell key={key} sx={{ fontSize: 11, fontWeight: 800 }}>{key}</TableCell>)}</TableRow></TableHead><TableBody>{item.contractLines.map((line) => <TableRow key={line.matchId}><TableCell sx={{ fontSize: 11 }}>{line.subContractName} (#{line.matchId})</TableCell><TableCell sx={{ fontSize: 11 }}>{line.destination}</TableCell><TableCell>{line.quantity ?? '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.receivingExpected || '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.receivedAt || '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.deliveredAt || '-'}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : <Typography sx={{ fontSize: 12 }}>연결된 계약·납품정보 없음</Typography>}
+        </DetailSection>}
         <DetailSection title="정비 / 운영 정보">
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
             <InfoTile label="납품 우선순위" value={item.maintenance.priority ? `${item.maintenance.priority}순위` : '-'} />
@@ -243,8 +283,9 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(0, 46, true) }}>번호</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(46, 50, true) }}>RISK</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(96, 140, true), textAlign: 'left' }}>품명(국문)</TableCell>
-            <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(236, 108, true), textAlign: 'left' }}>품번</TableCell>
-            <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(344, 122, true), textAlign: 'left' }}>Material</TableCell>
+            <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(236, 156, true), textAlign: 'left' }}>사업명</TableCell>
+            <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(392, 108, true), textAlign: 'left' }}>품번</TableCell>
+            <TableCell rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(500, 122, true), textAlign: 'left' }}>Material</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 96, bgcolor: '#DDF5DA' }}>담당<br />바이어</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 112, bgcolor: '#DDF5DA' }}>조달원</TableCell>
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 146, bgcolor: '#DDF5DA' }}>진행 상세현황</TableCell>
@@ -259,7 +300,7 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
             <TableCell rowSpan={2} sx={{ ...baseHeaderSx, minWidth: 360, bgcolor: '#DDF5DA' }}>장비설명</TableCell>
           </TableRow>
           <TableRow>
-            {unitNames.flatMap((unit) => ['계약', '입고예정', '납품계획', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} sx={{ ...baseHeaderSx, minWidth: label === '수량' ? 52 : 72, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}
+            {unitNames.flatMap((unit) => ['계약', '입고예정', '계약상 납기', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} sx={{ ...baseHeaderSx, minWidth: label === '수량' ? 52 : 72, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}
             <TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>계획</TableCell>
             <TableCell sx={{ ...baseHeaderSx, minWidth: 72, bgcolor: '#EAF3FF' }}>비계획</TableCell>
           </TableRow>
@@ -273,8 +314,9 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
                 <TableCell align="center" sx={{ ...stickySx(0, 46, false, selected), bgcolor: rowBg }}>{index + 1}</TableCell>
                 <TableCell align="center" sx={{ ...stickySx(46, 50, false, selected), bgcolor: rowBg }}><RiskBadge risk={item.risk} /></TableCell>
                 <TableCell sx={{ ...stickySx(96, 140, false, selected), bgcolor: rowBg, fontWeight: 700 }}>{item.itemNameKor}</TableCell>
-                <TableCell sx={{ ...stickySx(236, 108, false, selected), bgcolor: rowBg }}>{item.itemNumber}</TableCell>
-                <TableCell sx={{ ...stickySx(344, 122, false, selected), bgcolor: rowBg }}>{item.material}</TableCell>
+                <TableCell sx={{ ...stickySx(236, 156, false, selected), bgcolor: rowBg, fontWeight: 700 }}>{item.businessName || '-'}</TableCell>
+                <TableCell sx={{ ...stickySx(392, 108, false, selected), bgcolor: rowBg }}>{item.itemNumber}</TableCell>
+                <TableCell sx={{ ...stickySx(500, 122, false, selected), bgcolor: rowBg }}>{item.material}</TableCell>
                 <TableCell sx={{ minWidth: 96 }}>{item.buyer}</TableCell>
                 <TableCell sx={{ minWidth: 112 }}>{item.supplier}</TableCell>
                 <TableCell sx={{ minWidth: 146 }}><ProgressChip item={item} /></TableCell>
@@ -311,8 +353,8 @@ function OptimizedTable({ items, selectedId, onSelect, onEdit }: { items: Equipm
   return (
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5, overflow: 'auto', maxHeight: 'calc(100vh - 395px)' }}>
       <Table size="small" stickyHeader aria-label="업무 최적화형 지원장비 통합현황" sx={{ minWidth: 1120 }}>
-        <TableHead><TableRow>{['', 'RISK', '장비형상', '품명', '품번', 'Material', '담당 바이어', '조달원', '진행상태', '계약부대', '총수량', '정비 기준', '수정'].map((header) => <TableCell key={header} sx={{ fontWeight: 800, bgcolor: '#F6F9FC', whiteSpace: 'nowrap' }}>{header}</TableCell>)}</TableRow></TableHead>
-        <TableBody>{items.map((item) => { const selected = item.id === selectedId; const contractedUnits = item.deliveries.filter((delivery) => delivery.contracted).length; return <TableRow key={item.id} hover selected={selected} onClick={() => onSelect(item.id)} onDoubleClick={() => onEdit(item)} sx={{ cursor: 'pointer' }}><TableCell padding="checkbox"><Radio checked={selected} size="small" /></TableCell><TableCell><RiskBadge risk={item.risk} /></TableCell><TableCell><EquipmentThumbnail item={item} /></TableCell><TableCell sx={{ fontWeight: 800 }}>{item.itemNameKor}</TableCell><TableCell>{item.itemNumber}</TableCell><TableCell>{item.material}</TableCell><TableCell>{item.buyer}</TableCell><TableCell>{item.supplier}</TableCell><TableCell><ProgressChip item={item} /></TableCell><TableCell>{contractedUnits}개 부대</TableCell><TableCell sx={{ fontWeight: 800 }}>{getTotalQuantity(item)}</TableCell><TableCell>{item.maintenance.periodicInspection === '-' ? '일반' : `주기검사 ${item.maintenance.periodicInspection}`}</TableCell><TableCell><Button size="small" disabled={realDataMode} startIcon={<EditOutlined />} onClick={(event) => { event.stopPropagation(); onEdit(item); }}>수정</Button></TableCell></TableRow>; })}</TableBody>
+        <TableHead><TableRow>{['', 'RISK', '장비형상', '품명', '사업명', '품번', 'Material', '담당 바이어', '조달원', '진행상태', '계약부대', '총수량', '정비 기준', '수정'].map((header) => <TableCell key={header} sx={{ fontWeight: 800, bgcolor: '#F6F9FC', whiteSpace: 'nowrap' }}>{header}</TableCell>)}</TableRow></TableHead>
+        <TableBody>{items.map((item) => { const selected = item.id === selectedId; const contractedUnits = item.deliveries.filter((delivery) => delivery.contracted).length; return <TableRow key={item.id} hover selected={selected} onClick={() => onSelect(item.id)} onDoubleClick={() => onEdit(item)} sx={{ cursor: 'pointer' }}><TableCell padding="checkbox"><Radio checked={selected} size="small" /></TableCell><TableCell><RiskBadge risk={item.risk} /></TableCell><TableCell><EquipmentThumbnail item={item} /></TableCell><TableCell sx={{ fontWeight: 800 }}>{item.itemNameKor}</TableCell><TableCell sx={{ fontWeight: 700 }}>{item.businessName || '-'}</TableCell><TableCell>{item.itemNumber}</TableCell><TableCell>{item.material}</TableCell><TableCell>{item.buyer}</TableCell><TableCell>{item.supplier}</TableCell><TableCell><ProgressChip item={item} /></TableCell><TableCell>{contractedUnits}개 부대</TableCell><TableCell sx={{ fontWeight: 800 }}>{getTotalQuantity(item)}</TableCell><TableCell>{item.maintenance.periodicInspection === '-' ? '일반' : `주기검사 ${item.maintenance.periodicInspection}`}</TableCell><TableCell><Button size="small" disabled={realDataMode} startIcon={<EditOutlined />} onClick={(event) => { event.stopPropagation(); onEdit(item); }}>수정</Button></TableCell></TableRow>; })}</TableBody>
       </Table>
     </TableContainer>
   );
@@ -406,7 +448,7 @@ export function EquipmentMasterPage() {
   const [supplier, setSupplier] = useState('');
   const [progress, setProgress] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState('10');
+  const [pageSize, setPageSize] = useState('50');
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
   const [page, setPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -457,12 +499,13 @@ export function EquipmentMasterPage() {
         <PageHeader title="지원장비 통합현황" description={realDataMode ? "SQL Server 실데이터 · 읽기 전용 (미등록 항목은 대시로 표시)" : "엑셀 마스터 파일의 업무 구조를 기준으로 지원장비 조달·계약·납품 현황을 Mock 데이터로 확인합니다."} />
 
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: 1.5, mb: 2 }}>
-          <SummaryCard label="전체 품목" value={`${totalRows}건`} helper={realDataMode ? "SQL Server 전체 조회 건수" : "Mock 마스터 기준"} />
+          <SummaryCard label="전체 품목" value={`${totalRows}건`} helper={realDataMode ? "SQL Server 전체 등록 건수 (사업별)" : "Mock 마스터 기준"} />
           <SummaryCard label="확인 필요" value={`${riskCount}건`} helper={realDataMode ? "RISK 데이터 미연동" : "RISK Y/R 품목"} tone="#F04438" />
           <SummaryCard label="진행 관리" value={`${manageCount}건`} helper={realDataMode ? "진행 상태 미연동" : "조립·수급·납품 준비"} tone="#F97316" />
-          <SummaryCard label="총 납품 수량" value={`${totalQuantity}개`} helper={realDataMode ? "현재 페이지 납품 수량" : "부대별 수량 합산"} tone="#079455" />
+          <SummaryCard label="총 납품 수량" value={`${totalQuantity}개`} helper={realDataMode ? "현재 페이지의 중복 matchId 제외 합계" : "부대별 수량 합산"} tone="#079455" />
         </Box>
 
+        {realDataMode && <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>현재 페이지 데이터 점검: {databaseItems.filter((item) => item.validationIssues?.length).length}개 품목에 확인 사항 · 계약정보 미등록 {databaseItems.filter((item) => !item.contractLines?.length).length}개 · 이 결과는 전체 등록건 전수검증이 아닙니다.</Typography></Paper>}
         <FilterBar search={search} setSearch={setSearch} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
         <Paper variant="outlined" sx={{ mb: 1.5, borderRadius: 2, overflow: 'hidden' }}>
@@ -473,14 +516,14 @@ export function EquipmentMasterPage() {
             </Tabs>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{realDataMode ? totalRows : filteredItems.length}건</Box></Typography>
-              <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['10', '20', '50'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
+              <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['20', '50', '100'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
               <Tooltip title="Mock 프로토타입에서는 컬럼 저장은 동작하지 않습니다."><span><Button variant="outlined" startIcon={<SettingsOutlined />}>컬럼 설정</Button></span></Tooltip>
               <Tooltip title="Mock 프로토타입에서는 실제 파일 다운로드는 후속 범위입니다."><span><Button variant="outlined" startIcon={<DownloadOutlined />}>엑셀 다운로드</Button></span></Tooltip>
             </Box>
           </Box>
           <Box sx={{ px: 1.5, py: 1, bgcolor: '#FBFCFE', borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
-              {realDataMode ? 'SQL Server 조회 전용입니다. 표시된 납품처는 현재 페이지의 실제 DB 데이터 기준이며, 수정 기능은 잠겨 있습니다.' : mode === 'excel' ? '엑셀 사용자 적응을 위해 부대별 반복 컬럼과 장비형상/정비 컬럼을 최대한 유지한 화면입니다. 행 더블클릭 또는 상세 패널의 수정 버튼으로 편집합니다.' : '같은 데이터를 업무 판단 중심으로 압축하고, 행 선택 시 상세 패널에서 부대별 현황을 확인하는 화면입니다.'}
+              {realDataMode ? 'SQL Server 읽기 전용 · 같은 품번도 사업이 다르면 별도 행입니다. 부대별 수량은 개별 계약 합계이며 날짜가 여러 개면 다건(상세)로 표시합니다. 전체 데이터 정합성은 별도 SQL 검증이 필요합니다.' : mode === 'excel' ? '엑셀 사용자 적응을 위해 부대별 반복 컬럼과 장비형상/정비 컬럼을 최대한 유지한 화면입니다. 행 더블클릭 또는 상세 패널의 수정 버튼으로 편집합니다.' : '같은 데이터를 업무 판단 중심으로 압축하고, 행 선택 시 상세 패널에서 부대별 현황을 확인하는 화면입니다.'}
             </Typography>
           </Box>
         </Paper>
