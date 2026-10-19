@@ -22,7 +22,24 @@ export interface MaintenanceInfo {
   unplanned: 'O' | '-';
 }
 
+export interface ContractLine {
+  matchId: number;
+  subContractId: number;
+  subContractName: string;
+  destination: string;
+  quantity: number | null;
+  receivingExpected: string;
+  receivedAt: string;
+  deliveredAt: string;
+  deliveryPlan: string;
+  buyerName: string;
+  vendorName: string;
+}
 export interface EquipmentMasterItem {
+  businessName?: string;
+  managerName?: string;
+  contractLines?: ContractLine[];
+  validationIssues?: string[];
   id: string;
   risk: RiskLevel;
   itemNameKor: string;
