@@ -3,7 +3,10 @@
 GSEM_DATA_SOURCE=sqlserver일 때만 DB에 연결한다. 기존 API는 변경하지 않는다.
 """
 import os
+import csv
+import io
 from pathlib import Path
+from fastapi.responses import StreamingResponse, FileResponse
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -70,6 +73,20 @@ OUTER APPLY (
 ) AS mgr
 WHERE (? IS NULL OR ii.business_id = ?)
   AND (? = '' OR i.item_num LIKE ? OR i.item_name_kor LIKE ?)
+  AND (? = '' OR EXISTS (
+    SELECT 1 FROM Contract cf
+    JOIN Sub_Contract sf ON sf.contract_id = cf.contract_id
+    JOIN Match_Sub_Contract_Item mf ON mf.sub_contract_id = sf.sub_contract_id AND mf.item_id = ii.item_id
+    JOIN Vendor vf ON vf.vendor_id = mf.vendor_id
+    WHERE cf.business_id = ii.business_id AND vf.vendor_name = ?
+  ))
+  AND (? = '' OR EXISTS (
+    SELECT 1 FROM Contract cf
+    JOIN Sub_Contract sf ON sf.contract_id = cf.contract_id
+    JOIN Match_Sub_Contract_Item mf ON mf.sub_contract_id = sf.sub_contract_id AND mf.item_id = ii.item_id
+    JOIN Users uf ON uf.user_id = mf.buyer
+    WHERE cf.business_id = ii.business_id AND uf.user_name = ?
+  ))
 ORDER BY ii.integrated_id
 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
 """
@@ -80,6 +97,18 @@ FROM Integrated_Info AS ii
 JOIN Item AS i ON i.item_id = ii.item_id
 WHERE (? IS NULL OR ii.business_id = ?)
   AND (? = '' OR i.item_num LIKE ? OR i.item_name_kor LIKE ?)
+  AND (? = '' OR EXISTS (
+    SELECT 1 FROM Contract cf JOIN Sub_Contract sf ON sf.contract_id = cf.contract_id
+    JOIN Match_Sub_Contract_Item mf ON mf.sub_contract_id = sf.sub_contract_id AND mf.item_id = ii.item_id
+    JOIN Vendor vf ON vf.vendor_id = mf.vendor_id
+    WHERE cf.business_id = ii.business_id AND vf.vendor_name = ?
+  ))
+  AND (? = '' OR EXISTS (
+    SELECT 1 FROM Contract cf JOIN Sub_Contract sf ON sf.contract_id = cf.contract_id
+    JOIN Match_Sub_Contract_Item mf ON mf.sub_contract_id = sf.sub_contract_id AND mf.item_id = ii.item_id
+    JOIN Users uf ON uf.user_id = mf.buyer
+    WHERE cf.business_id = ii.business_id AND uf.user_name = ?
+  ))
 """
 
 DELIVERY_SQL = """
@@ -130,19 +159,111 @@ def list_equipment_master_businesses():
         conn.close()
 
 
+@router.get("/equipment-master/filter-options")
+def equipment_master_filter_options():
+    if _setting("GSEM_DATA_SOURCE", "memory").lower() != "sqlserver":
+        raise HTTPException(503, "통합현황 실DB 조회는 SQL Server 모드에서만 사용 가능합니다.")
+    conn = _connect()
+    try:
+        cursor = conn.cursor()
+        vendors = _rows(cursor.execute("""
+            SELECT DISTINCT v.vendor_name AS name FROM Match_Sub_Contract_Item m
+            JOIN Vendor v ON v.vendor_id = m.vendor_id
+            WHERE v.vendor_name IS NOT NULL AND LTRIM(RTRIM(v.vendor_name)) <> ''
+            ORDER BY v.vendor_name
+        """))
+        buyers = _rows(cursor.execute("""
+            SELECT DISTINCT u.user_name AS name FROM Match_Sub_Contract_Item m
+            JOIN Users u ON u.user_id = m.buyer
+            WHERE u.user_name IS NOT NULL AND LTRIM(RTRIM(u.user_name)) <> ''
+            ORDER BY u.user_name
+        """))
+        return {"vendors": [r["name"] for r in vendors], "buyers": [r["name"] for r in buyers]}
+    finally:
+        conn.close()
+
+
+@router.get("/equipment-master/image/{item_id}")
+def equipment_master_image(item_id: int):
+    """Serve only files under explicitly configured GSEM_IMAGE_DIR; never arbitrary DB paths."""
+    if item_id < 1:
+        raise HTTPException(404, "이미지가 없습니다.")
+    root_value = _setting("GSEM_IMAGE_DIR")
+    if not root_value:
+        raise HTTPException(404, "이미지 저장소가 설정되지 않았습니다.")
+    root = Path(root_value).resolve()
+    conn = _connect()
+    try:
+        row = conn.cursor().execute("SELECT item_image_path FROM Item WHERE item_id = ?", item_id).fetchone()
+    finally:
+        conn.close()
+    if not row or not row[0]:
+        raise HTTPException(404, "이미지가 없습니다.")
+    requested = str(row[0]).replace(chr(92), "/")
+    file_name = Path(requested).name
+    if not file_name or file_name in (".", ".."):
+        raise HTTPException(404, "이미지가 없습니다.")
+    candidate = (root / file_name).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file() or candidate.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+        raise HTTPException(404, "이미지를 찾을 수 없습니다.")
+    return FileResponse(candidate)
+
+
+@router.get("/equipment-master/export")
+def equipment_master_export(
+    query: str = Query("", max_length=100),
+    business_id: int | None = Query(None, alias="businessId", ge=1),
+    vendor: str = Query("", max_length=200),
+    buyer: str = Query("", max_length=200),
+):
+    """UTF-8 BOM CSV that opens directly in Excel; export all matching rows, not only the current page."""
+    if _setting("GSEM_DATA_SOURCE", "memory").lower() != "sqlserver":
+        raise HTTPException(503, "SQL Server 모드에서만 내보낼 수 있습니다.")
+    term = query.strip()
+    params = (business_id, business_id, term, f"%{term}%", f"%{term}%", vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip())
+    conn = _connect()
+    try:
+        cursor = conn.cursor()
+        total = cursor.execute(COUNT_SQL, *params).fetchone()[0]
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["통합ID","사업ID","사업명","품번","품명","담당자","장비설명","계약상세ID","계약명","납품처","바이어","조달원","수량","입고예정","입고일","납품일","계약상 납기"])
+        for offset in range(0, total, 100):
+            records = _rows(cursor.execute(BASE_SQL, *(params + (offset, 100))))
+            ids = [row["integrated_id"] for row in records]
+            by_id = {id_value: [] for id_value in ids}
+            if ids:
+                placeholders = ", ".join("?" for _ in ids)
+                for entry in _rows(cursor.execute(DELIVERY_SQL.format(placeholders=placeholders), *ids)):
+                    by_id[entry["integrated_id"]].append(entry)
+            for item in records:
+                prefix = [item["integrated_id"],item["business_id"],item["biz_name"],item["item_num"],item["item_name_kor"],item["manager_name"],item["item_usage_kor"]]
+                for detail in by_id[item["integrated_id"]] or [None]:
+                    line = prefix + ([detail["match_id"],detail["sub_contract_name"],detail["delivery_dest_name"],detail["buyer_name"],detail["vendor_name"],detail["quantity"],_date(detail["date_receiving_expect"]),_date(detail["date_receiving"]),_date(detail["date_deliver"]),_date(detail["delivery_date_contract"])] if detail else [None]*10)
+                    # Avoid Excel formula execution from untrusted DB text.
+                    writer.writerow([("'" + v) if isinstance(v, str) and v.lstrip().startswith(("=", "+", "-", "@")) else v for v in line])
+        data = output.getvalue().encode("utf-8-sig")
+        return StreamingResponse(iter([data]), media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="GSEM_equipment_master.csv"'})
+    finally:
+        conn.close()
+
+
 @router.get("/equipment-master")
 def list_equipment_master(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     query: str = Query("", max_length=100),
     business_id: int | None = Query(None, alias="businessId", ge=1),
+    vendor: str = Query("", max_length=200),
+    buyer: str = Query("", max_length=200),
 ):
     if _setting("GSEM_DATA_SOURCE", "memory").lower() != "sqlserver":
         raise HTTPException(503, "통합현황 실DB 조회는 GSEM_DATA_SOURCE=sqlserver에서만 사용 가능합니다.")
 
     term = query.strip()
     pattern = f"%{term}%"
-    params = (business_id, business_id, term, pattern, pattern)
+    params = (business_id, business_id, term, pattern, pattern, vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip())
     conn = _connect()
     try:
         cursor = conn.cursor()
