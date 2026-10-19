@@ -36,6 +36,8 @@ export interface ContractLine {
   vendorName: string;
 }
 export interface EquipmentMasterItem {
+  itemId?: number;
+  imagePath?: string;
   businessName?: string;
   managerName?: string;
   contractLines?: ContractLine[];
