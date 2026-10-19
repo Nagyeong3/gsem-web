@@ -105,8 +105,15 @@ function mapDatabaseItem(row: DbMasterRow): EquipmentMasterItem {
   };
 }
 
-async function fetchDatabaseMaster(page: number, size: number, query: string): Promise<DbMasterResponse> {
+type DbBusiness = { businessId: number; businessName: string };
+async function fetchBusinessOptions(): Promise<DbBusiness[]> {
+  const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master/businesses`);
+  if (!response.ok) throw new Error(`사업 목록 조회 오류 (HTTP ${response.status})`);
+  return (await response.json()) as DbBusiness[];
+}
+async function fetchDatabaseMaster(page: number, size: number, query: string, businessId: number | null): Promise<DbMasterResponse> {
   const params = new URLSearchParams({ page: String(page), size: String(size), query });
+  if (businessId != null) params.set('businessId', String(businessId));
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master?${params.toString()}`);
   if (!response.ok) throw new Error(`통합현황 데이터 요청에 실패했습니다. (HTTP ${response.status})`);
   return (await response.json()) as DbMasterResponse;
@@ -518,13 +525,16 @@ export function EquipmentMasterPage() {
   const [pageSize, setPageSize] = useState('50');
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
   const [page, setPage] = useState(1);
+  const [businessId, setBusinessId] = useState<number | null>(null);
+  const loadBusinessOptions = useCallback(() => fetchBusinessOptions(), []);
+  const businessesQuery = useAsyncQuery({ queryFn: loadBusinessOptions, enabled: realDataMode });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     if (!realDataMode) return;
     const timer = window.setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 450);
     return () => window.clearTimeout(timer);
   }, [search]);
-  const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch), [page, pageSize, debouncedSearch]);
+  const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId), [page, pageSize, debouncedSearch, businessId]);
   const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
   const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
   const allItems = realDataMode ? databaseItems : items;
@@ -551,7 +561,7 @@ export function EquipmentMasterPage() {
   const manageCount = allItems.filter((item) => item.progressTone === 'warning' || item.progressTone === 'error').length;
   const totalQuantity = allItems.reduce((sum, item) => sum + getTotalQuantity(item), 0);
 
-  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setPage(1); };
+  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setPage(1); };
   const openEditDialog = (item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); };
   const saveEditDialog = () => {
     if (!draft) return;
@@ -573,6 +583,17 @@ export function EquipmentMasterPage() {
         </Box>
 
         {realDataMode && <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}><Typography sx={{ fontSize: 12, fontWeight: 700 }}>현재 페이지 데이터 점검: {databaseItems.filter((item) => item.validationIssues?.length).length}개 품목에 확인 사항 · 계약정보 미등록 {databaseItems.filter((item) => !item.contractLines?.length).length}개 · 이 결과는 전체 등록건 전수검증이 아닙니다.</Typography></Paper>}
+        {realDataMode && <Paper variant="outlined" sx={{ mb: 1.5, p: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 245 }}><InputLabel id="master-business-filter-label">사업</InputLabel>
+            <Select labelId="master-business-filter-label" label="사업" value={businessId == null ? '' : String(businessId)}
+              onChange={(event) => { setBusinessId(event.target.value ? Number(event.target.value) : null); setPage(1); }}>
+              <MenuItem value="">전체 사업</MenuItem>
+              {(businessesQuery.data ?? []).map((business) => <MenuItem key={business.businessId} value={String(business.businessId)}>{business.businessName}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>같은 품번도 사업별로 구분됩니다. 사업 필터는 서버의 전체 목록에 적용돼요.</Typography>
+          {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
+        </Paper>}
         <FilterBar search={search} setSearch={setSearch} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
         <Paper variant="outlined" sx={{ mb: 1.5, borderRadius: 2, overflow: 'hidden' }}>
