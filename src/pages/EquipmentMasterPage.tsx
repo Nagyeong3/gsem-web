@@ -48,7 +48,7 @@ import { initialEquipmentMasterItems, masterUnits, progressOptions } from '../da
 import type { EquipmentMasterItem, MasterViewMode, ProgressTone, RiskLevel, UnitDelivery } from '../types/equipmentMaster';
 
 type DbDelivery = { matchId: number; subContractName: string | null; destination: string | null; quantity: number | null; receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null; contractDate: string | null; buyerName: string | null; vendorName: string | null; subContractId: number };
-type DbMasterRow = { integratedId: number; businessId: number; businessName: string | null; itemNumber: string; itemNameKor: string | null; description: string | null; managerName: string | null; manufacturer: string | null; imagePath: string | null; deliveries: DbDelivery[] };
+type DbMasterRow = { integratedId: number; itemId: number; businessId: number; businessName: string | null; itemNumber: string; itemNameKor: string | null; description: string | null; managerName: string | null; manufacturer: string | null; imagePath: string | null; deliveries: DbDelivery[] };
 type DbMasterResponse = { items: DbMasterRow[]; page: number; size: number; totalElements: number; totalPages: number; readOnly: boolean };
 const realDataMode = runtimeConfig.dataSource === 'api';
 
@@ -96,7 +96,7 @@ function mapDatabaseItem(row: DbMasterRow): EquipmentMasterItem {
   const buyer = [...new Set(unique.map((entry) => entry.buyerName).filter(Boolean))].join(', ');
   const supplier = [...new Set(unique.map((entry) => entry.vendorName).filter(Boolean))].join(', ');
   return {
-    id: String(row.integratedId), businessName: row.businessName || `사업 ID ${row.businessId}`, managerName: row.managerName || '-',
+    id: String(row.integratedId), businessName: row.businessName || `사업 ID ${row.businessId}`, itemId: row.itemId, imagePath: row.imagePath || undefined, managerName: row.managerName || '-',
     contractLines: unique.map((line) => ({ matchId: line.matchId, subContractId: line.subContractId, subContractName: line.subContractName || '-', destination: line.destination || '미등록', quantity: line.quantity, receivingExpected: dateText(line.receivingExpected), receivedAt: dateText(line.receivedAt), deliveredAt: dateText(line.deliveredAt), deliveryPlan: dateText(line.contractDate), buyerName: line.buyerName || '-', vendorName: line.vendorName || '-' })),
     validationIssues: issues,
     risk: '?', itemNameKor: row.itemNameKor || '-', itemNumber: row.itemNumber || '-', material: '-', buyer: buyer || '-', supplier: supplier || '-',
@@ -106,14 +106,18 @@ function mapDatabaseItem(row: DbMasterRow): EquipmentMasterItem {
 }
 
 type DbBusiness = { businessId: number; businessName: string };
+type DbFilterOptions = { vendors: string[]; buyers: string[] };
+async function fetchMasterFilterOptions(): Promise<DbFilterOptions> { const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master/filter-options`); if (!response.ok) throw new Error(`필터 조회 실패 (HTTP ${response.status})`); return (await response.json()) as DbFilterOptions; }
 async function fetchBusinessOptions(): Promise<DbBusiness[]> {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master/businesses`);
   if (!response.ok) throw new Error(`사업 목록 조회 오류 (HTTP ${response.status})`);
   return (await response.json()) as DbBusiness[];
 }
-async function fetchDatabaseMaster(page: number, size: number, query: string, businessId: number | null): Promise<DbMasterResponse> {
+async function fetchDatabaseMaster(page: number, size: number, query: string, businessId: number | null, vendor: string, buyer: string): Promise<DbMasterResponse> {
   const params = new URLSearchParams({ page: String(page), size: String(size), query });
   if (businessId != null) params.set('businessId', String(businessId));
+  if (vendor) params.set('vendor', vendor);
+  if (buyer) params.set('buyer', buyer);
   const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master?${params.toString()}`);
   if (!response.ok) throw new Error(`통합현황 데이터 요청에 실패했습니다. (HTTP ${response.status})`);
   return (await response.json()) as DbMasterResponse;
@@ -182,8 +186,19 @@ function ProgressChip({ item }: { item: EquipmentMasterItem }) {
   return <Chip label={item.progress} size="small" sx={{ bgcolor: style.bg, color: style.color, border: `1px solid ${style.color}33`, fontWeight: 700, maxWidth: 138, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }} />;
 }
 
+function DbImage({ item }: { item: EquipmentMasterItem }) {
+  const [missing, setMissing] = useState(false);
+  const url = `${runtimeConfig.apiBaseUrl}/equipment-master/image/${item.itemId}`;
+  if (missing) return <Box sx={{ width: 58, height: 42, border: '1px solid', borderColor: 'divider', color: 'text.secondary', fontSize: 10, display: 'grid', placeItems: 'center' }}>미연결</Box>;
+  return <Box className="equipment-master-thumbnail" sx={{ position: 'relative', width: 58, height: 42 }}>
+    <Box component="img" src={url} onError={() => setMissing(true)} alt={`${item.itemNameKor} 이미지`} sx={{ width: 58, height: 42, objectFit: 'contain', display: 'block' }} />
+    <Box sx={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 1600, width: 400, height: 300, bgcolor: 'background.paper', boxShadow: 10, p: 1, opacity: 0, pointerEvents: 'none', '.equipment-master-thumbnail:hover &': { opacity: 1 } }}>
+      <Box component="img" src={url} alt={`${item.itemNameKor} 확대`} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    </Box>
+  </Box>;
+}
 function EquipmentThumbnail({ item }: { item: EquipmentMasterItem }) {
-  if (realDataMode) return <Box sx={{ width: 58, height: 42, border: '1px solid', borderColor: 'divider', display: 'grid', placeItems: 'center', color: 'text.secondary', fontSize: 10 }}>미연결</Box>;
+  if (realDataMode) return item.imagePath && item.itemId ? <DbImage item={item} /> : <Box sx={{ width: 58, height: 42, border: '1px solid', borderColor: 'divider', display: 'grid', placeItems: 'center', color: 'text.secondary', fontSize: 10 }}>이미지 없음</Box>;
   const src = equipmentImageDataUrl(item);
   const largeSrc = equipmentImageDataUrl(item, true);
   const alt = `${item.itemNameKor} 장비형상`;
@@ -222,7 +237,7 @@ function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterItem; onC
       </Box>
       <Box sx={{ px: 2.25, py: 1.75 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 54px', gap: 1.25, alignItems: 'stretch' }}>
-          <Box component="img" src={realDataMode ? undefined : equipmentImageDataUrl(item, true)} alt={`${item.itemNameKor} 장비형상`} sx={{ width: '100%', height: 168, objectFit: 'cover', borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }} />
+          <Box component="img" src={realDataMode ? (item.itemId && item.imagePath ? `${runtimeConfig.apiBaseUrl}/equipment-master/image/${item.itemId}` : undefined) : equipmentImageDataUrl(item, true)} alt={`${item.itemNameKor} 장비형상`} sx={{ width: '100%', height: 168, objectFit: 'cover', borderRadius: 2, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>{(realDataMode ? [] : [0, 1, 2]).map((index) => <Box key={index} component="img" src={equipmentImageDataUrl(item)} alt={`${item.itemNameKor} 썸네일 ${index + 1}`} sx={{ width: 54, height: 50, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: index === 0 ? 'primary.main' : 'divider' }} />)}</Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.75 }}>
@@ -318,6 +333,13 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
     const fit = Math.max(...labels.map((label) => context.measureText(label).width)) + 34;
     updateWidth(index, fit);
   };
+  const onHeaderPointerMove = (event: ReactPointerEvent<HTMLTableSectionElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const th = target.closest<HTMLTableCellElement>('th[data-resize-index]');
+    const nearEdge = !!th && th.getBoundingClientRect().right - event.clientX <= 12;
+    if (th) th.style.cursor = nearEdge ? 'col-resize' : 'default';
+  };
   const onHeaderPointerDown = (event: ReactPointerEvent<HTMLTableSectionElement>) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -352,7 +374,7 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
     <TableContainer sx={{ height: 860, minHeight: 860, maxHeight: 'none', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'background.paper' }}>
       <Table ref={tableRef} size="small" stickyHeader aria-label="엑셀 친화형 지원장비 통합현황" sx={{ tableLayout: 'fixed', width: widths.reduce((sum, width) => sum + width, 0), minWidth: 0, '& th, & td': { borderColor: '#D6DEE8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', boxSizing: 'border-box' }, '& th[data-resize-index]': { cursor: 'default' }, '& th[data-resize-index]::after': { content: '""', position: 'absolute', right: 1, top: '19%', height: '62%', borderRight: '2px solid rgba(40,83,140,0.3)' } }}>
         <colgroup>{columns.map((col, index) => <col key={col.key} style={{ width: widths[index], minWidth: widths[index] }} />)}</colgroup>
-        <TableHead onPointerDownCapture={onHeaderPointerDown} onDoubleClickCapture={onHeaderDoubleClick}>
+        <TableHead onPointerMoveCapture={onHeaderPointerMove} onPointerDownCapture={onHeaderPointerDown} onDoubleClickCapture={onHeaderDoubleClick}>
           <TableRow>
             <TableCell data-resize-index={0} rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(offsets[0], widths[0], true) }}>번호</TableCell>
             <TableCell data-resize-index={1} rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(offsets[1], widths[1], true) }}>RISK</TableCell>
@@ -526,6 +548,11 @@ export function EquipmentMasterPage() {
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
   const [page, setPage] = useState(1);
   const [businessId, setBusinessId] = useState<number | null>(null);
+  const [vendorFilter, setVendorFilter] = useState('');
+  const [buyerFilter, setBuyerFilter] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const loadFilterOptions = useCallback(() => fetchMasterFilterOptions(), []);
+  const masterFilterOptions = useAsyncQuery({ queryFn: loadFilterOptions, enabled: realDataMode });
   const loadBusinessOptions = useCallback(() => fetchBusinessOptions(), []);
   const businessesQuery = useAsyncQuery({ queryFn: loadBusinessOptions, enabled: realDataMode });
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -534,7 +561,7 @@ export function EquipmentMasterPage() {
     const timer = window.setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 450);
     return () => window.clearTimeout(timer);
   }, [search]);
-  const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId), [page, pageSize, debouncedSearch, businessId]);
+  const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId, vendorFilter, buyerFilter), [page, pageSize, debouncedSearch, businessId, vendorFilter, buyerFilter]);
   const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
   const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
   const allItems = realDataMode ? databaseItems : items;
@@ -561,7 +588,24 @@ export function EquipmentMasterPage() {
   const manageCount = allItems.filter((item) => item.progressTone === 'warning' || item.progressTone === 'error').length;
   const totalQuantity = allItems.reduce((sum, item) => sum + getTotalQuantity(item), 0);
 
-  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setPage(1); };
+  const downloadExcel = async () => {
+    if (!realDataMode || downloading) return;
+    setDownloading(true);
+    try {
+      const params = new URLSearchParams({ query: debouncedSearch });
+      if (businessId != null) params.set('businessId', String(businessId));
+      if (vendorFilter) params.set('vendor', vendorFilter);
+      if (buyerFilter) params.set('buyer', buyerFilter);
+      const response = await fetch(`${runtimeConfig.apiBaseUrl}/equipment-master/export?${params}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.blob();
+      const objectUrl = URL.createObjectURL(data);
+      const anchor = document.createElement('a'); anchor.href = objectUrl; anchor.download = 'GSEM_equipment_master.csv';
+      document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(objectUrl);
+    } catch (error) { window.alert(`엑셀 다운로드 실패: ${error instanceof Error ? error.message : '서버 오류'}`); }
+    finally { setDownloading(false); }
+  };
+  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
   const openEditDialog = (item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); };
   const saveEditDialog = () => {
     if (!draft) return;
@@ -591,6 +635,9 @@ export function EquipmentMasterPage() {
               {(businessesQuery.data ?? []).map((business) => <MenuItem key={business.businessId} value={String(business.businessId)}>{business.businessName}</MenuItem>)}
             </Select>
           </FormControl>
+          <FormControl size="small" sx={{ minWidth: 190 }}><InputLabel id="gsem-vendor-label">조달원</InputLabel><Select labelId="gsem-vendor-label" label="조달원" value={vendorFilter} onChange={(event) => { setVendorFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 조달원</MenuItem>{(masterFilterOptions.data?.vendors ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
+          <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel id="gsem-buyer-label">바이어</InputLabel><Select labelId="gsem-buyer-label" label="바이어" value={buyerFilter} onChange={(event) => { setBuyerFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 바이어</MenuItem>{(masterFilterOptions.data?.buyers ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
+          {masterFilterOptions.isError && <Button size="small" onClick={masterFilterOptions.refetch}>조달원·바이어 다시 조회</Button>}
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>같은 품번도 사업별로 구분됩니다. 사업 필터는 서버의 전체 목록에 적용돼요.</Typography>
           {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
         </Paper>}
@@ -606,7 +653,7 @@ export function EquipmentMasterPage() {
               <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{realDataMode ? totalRows : filteredItems.length}건</Box></Typography>
               <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['20', '50', '100'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
               <Tooltip title="Mock 프로토타입에서는 컬럼 저장은 동작하지 않습니다."><span><Button variant="outlined" startIcon={<SettingsOutlined />}>컬럼 설정</Button></span></Tooltip>
-              <Tooltip title="Mock 프로토타입에서는 실제 파일 다운로드는 후속 범위입니다."><span><Button variant="outlined" startIcon={<DownloadOutlined />}>엑셀 다운로드</Button></span></Tooltip>
+              <Tooltip title={realDataMode ? '현재 검색·필터에 해당하는 전체 데이터 다운로드 (Excel 호환 CSV)' : 'Mock 모드에서는 다운로드 미지원'}><span><Button variant="outlined" disabled={!realDataMode || downloading} onClick={downloadExcel} startIcon={<DownloadOutlined />}>{downloading ? '다운로드 중...' : '엑셀 다운로드 (CSV)'}</Button></span></Tooltip>
             </Box>
           </Box>
           <Box sx={{ px: 1.5, py: 1, bgcolor: '#FBFCFE', borderBottom: '1px solid', borderColor: 'divider' }}>
