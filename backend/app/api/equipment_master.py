@@ -109,6 +109,27 @@ def _date(value):
     return value.isoformat() if value is not None else None
 
 
+@router.get("/equipment-master/businesses")
+def list_equipment_master_businesses():
+    """Return all businesses appearing in the equipment master, not just current page."""
+    if _setting("GSEM_DATA_SOURCE", "memory").lower() != "sqlserver":
+        raise HTTPException(503, "통합현황 실DB 조회는 GSEM_DATA_SOURCE=sqlserver에서만 사용 가능합니다.")
+    conn = _connect()
+    try:
+        cursor = conn.cursor()
+        rows = _rows(cursor.execute("""
+            SELECT DISTINCT b.business_id, b.biz_name
+            FROM Business AS b
+            JOIN Integrated_Info AS ii ON ii.business_id = b.business_id
+            ORDER BY b.biz_name, b.business_id
+        """))
+        return [{"businessId": row["business_id"], "businessName": row["biz_name"]} for row in rows]
+    except Exception as exc:
+        raise HTTPException(500, "사업 목록 조회 중 DB 오류가 발생했습니다.") from exc
+    finally:
+        conn.close()
+
+
 @router.get("/equipment-master")
 def list_equipment_master(
     page: int = Query(1, ge=1),
