@@ -1,254 +1,15 @@
-import {
-  Close,
-  DownloadOutlined,
-  History,
-  OpenInNew,
-  Refresh,
-  Search,
-  SettingsOutlined,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Chip,
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Radio,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import { useCallback, useMemo } from 'react';
+import { DownloadOutlined, Search, SettingsOutlined } from '@mui/icons-material';
+import { Box, Button, FormControl, InputAdornment, InputLabel, MenuItem, Pagination, Select, TextField, Tooltip, Typography } from '@mui/material';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
-import { QueryStatePanel } from '../components/common/QueryStatePanel';
-import { StatusChip } from '../components/common/StatusChip';
-import {
-  getAircraftTypes,
-  getBusinesses,
-  getDestinations,
-  summarize,
-  summarizeManagers,
-} from '../features/equipment-search/equipmentSearch';
-import { equipmentService } from '../services';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
-import type {
-  Equipment,
-  EquipmentFilterOptions,
-  EquipmentFilters,
-  EquipmentSortKey,
-  SortDirection,
-} from '../types/domain';
-
-const pageSize = 5;
-
-interface FilterSelectProps {
-  id: keyof EquipmentFilters;
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (key: keyof EquipmentFilters, value: string) => void;
-}
-
-function FilterSelect({ id, label, value, options, onChange }: FilterSelectProps) {
-  const labelId = `${id}-label`;
-  return (
-    <FormControl size="small" fullWidth>
-      <InputLabel id={labelId}>{label}</InputLabel>
-      <Select
-        labelId={labelId}
-        value={value}
-        label={label}
-        onChange={(event) => onChange(id, event.target.value)}
-      >
-        <MenuItem value="">전체</MenuItem>
-        {options.map((option) => (
-          <MenuItem key={option} value={option}>
-            {option}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-}
-
-const columns: Array<{ key: EquipmentSortKey; label: string }> = [
-  { key: 'itemNum', label: '품번' },
-  { key: 'itemNameKor', label: '품명' },
-  { key: 'aircraftType', label: '기종' },
-  { key: 'business', label: '사업' },
-  { key: 'system', label: '계통' },
-  { key: 'category', label: '장비 구분' },
-  { key: 'manager', label: '담당자' },
-  { key: 'destination', label: '주요 납지' },
-  { key: 'status', label: '상태' },
-  { key: 'recentChangeDate', label: '최근 변경일' },
-];
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 1.5, py: 0.45 }}>
-      <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography>
-      <Typography sx={{ color: 'text.primary', fontSize: 12, fontWeight: 500 }}>{value}</Typography>
-    </Box>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box sx={{ py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-      <Typography sx={{ mb: 0.75, fontSize: 13, fontWeight: 700 }}>{title}</Typography>
-      {children}
-    </Box>
-  );
-}
-
-function EquipmentDetail({
-  equipment,
-  onClose,
-  onOpenFullDetail,
-}: {
-  equipment: Equipment;
-  onClose: () => void;
-  onOpenFullDetail: () => void;
-}) {
-  const businesses = getBusinesses(equipment);
-  const aircraftTypes = getAircraftTypes(equipment);
-  const destinations = getDestinations(equipment);
-
-  return (
-    <Paper
-      component="aside"
-      square
-      elevation={0}
-      aria-label="선택 장비 상세"
-      sx={{
-        width: 336,
-        flex: '0 0 336px',
-        minHeight: 'calc(100vh - 58px)',
-        borderLeft: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-      }}
-    >
-      <Box
-        sx={{
-          height: 52,
-          px: 2.25,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Typography sx={{ fontSize: 15, fontWeight: 700 }}>장비 상세</Typography>
-        <IconButton size="small" aria-label="상세 패널 닫기" onClick={onClose}>
-          <Close sx={{ fontSize: 19 }} />
-        </IconButton>
-      </Box>
-
-      <Box sx={{ px: 2.25, py: 1.75 }}>
-        <StatusChip status={equipment.status} />
-        <Typography sx={{ mt: 1, fontSize: 20, fontWeight: 700 }}>
-          {equipment.itemNameKor}
-        </Typography>
-        <Typography sx={{ mt: 0.25, color: 'text.secondary' }}>{equipment.itemNum}</Typography>
-
-        <DetailSection title="기본정보">
-          <DetailRow label="품번" value={equipment.itemNum} />
-          <DetailRow label="품명" value={equipment.itemNameKor} />
-          <DetailRow label="영문 품명" value={equipment.itemNameEng} />
-          <DetailRow label="장비 구분" value={equipment.category.name} />
-          <DetailRow label="제조사" value={equipment.manufacturer} />
-          <DetailRow label="최근 변경" value={equipment.recentChangeDate} />
-        </DetailSection>
-
-        <DetailSection title="적용정보">
-          <DetailRow label="기종" value={aircraftTypes.join(' · ') || '-'} />
-          <DetailRow label="사업" value={businesses.join(' · ') || '-'} />
-          <DetailRow
-            label="계통"
-            value={equipment.systems.map((system) => system.name).join(' · ') || '-'}
-          />
-          <DetailRow
-            label="정비 계단"
-            value={equipment.maintenanceLevels.map((level) => level.name).join(' · ') || '-'}
-          />
-        </DetailSection>
-
-        <DetailSection title="담당자">
-          {equipment.managers.map((manager) => (
-            <Box
-              key={`${manager.id}-${manager.role}`}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '44px 72px 1fr',
-                alignItems: 'center',
-                gap: 0.75,
-                py: 0.5,
-              }}
-            >
-              <Chip
-                label={manager.assignmentType ?? '미지정'}
-                size="small"
-                variant="outlined"
-                color={manager.assignmentType === '정' ? 'primary' : 'default'}
-              />
-              <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{manager.name}</Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: 11 }}>
-                {manager.role ?? '역할 미지정'}
-              </Typography>
-            </Box>
-          ))}
-        </DetailSection>
-
-        <DetailSection title="용도 및 납품">
-          <DetailRow label="용도" value={equipment.itemUsageKor} />
-          <DetailRow label="영문 용도" value={equipment.itemUsageEng} />
-          <DetailRow label="주요 납지" value={destinations.join(' · ') || '-'} />
-        </DetailSection>
-
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 1, pt: 1.25 }}>
-          <Tooltip title="변경 이력은 후속 프로토타입 범위입니다.">
-            <span>
-              <Button fullWidth variant="outlined" startIcon={<History />} disabled>
-                변경 이력
-              </Button>
-            </span>
-          </Tooltip>
-          <Button
-            fullWidth
-            variant="contained"
-            endIcon={<OpenInNew />}
-            onClick={onOpenFullDetail}
-          >
-            전체 상세
-          </Button>
-        </Box>
-      </Box>
-    </Paper>
-  );
-}
+import { equipmentService } from '../services';
+import type { Equipment, EquipmentFilterOptions, EquipmentFilters, EquipmentSortKey, SortDirection } from '../types/domain';
+import { columns, defaultPageSize, pageSizeOptions } from '../features/equipment-search/searchConfig';
+import { EquipmentDetail } from '../features/equipment-search/components/EquipmentSearchDetail';
+import { EquipmentSearchFilters } from '../features/equipment-search/components/EquipmentSearchFilters';
+import { EquipmentSearchResults } from '../features/equipment-search/components/EquipmentSearchResults';
 
 export function EquipmentSearchPage() {
   const navigate = useNavigate();
@@ -263,6 +24,7 @@ export function EquipmentSearchPage() {
     destination: searchParams.get('destination') ?? '',
     status: searchParams.get('status') ?? '',
   }), [searchParams]);
+
   const requestedSortKey = searchParams.get('sort') as EquipmentSortKey | null;
   const sortKey = columns.some((column) => column.key === requestedSortKey)
     ? requestedSortKey!
@@ -270,12 +32,17 @@ export function EquipmentSearchPage() {
   const sortDirection: SortDirection = searchParams.get('direction') === 'desc' ? 'desc' : 'asc';
   const requestedPage = Number(searchParams.get('page'));
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const selectedParam = searchParams.get('selected');
-  const requestedSelectedId = selectedParam === 'none'
-    ? null
-    : Number.isInteger(Number(selectedParam)) && Number(selectedParam) > 0
-      ? Number(selectedParam)
-      : 1;
+  const requestedPageSize = Number(searchParams.get('size'));
+  const pageSize = pageSizeOptions.includes(requestedPageSize)
+    ? requestedPageSize
+    : defaultPageSize;
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '');
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    const selectedParam = searchParams.get('selected');
+    if (selectedParam === 'none') return null;
+    const parsed = Number(selectedParam);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+  });
 
   const updateParams = (updates: Record<string, string | number | null>) => {
     const next = new URLSearchParams(searchParams);
@@ -288,7 +55,7 @@ export function EquipmentSearchPage() {
 
   const searchEquipment = useCallback(
     () => equipmentService.search({ filters, sortKey, sortDirection, page, size: pageSize }),
-    [filters, page, sortDirection, sortKey],
+    [filters, page, pageSize, sortDirection, sortKey],
   );
   const equipmentQuery = useAsyncQuery({ queryFn: searchEquipment, keepPreviousData: true });
   const loadFilterOptions = useCallback(() => equipmentService.getFilterOptions(), []);
@@ -302,12 +69,7 @@ export function EquipmentSearchPage() {
   };
 
   const safePage = Math.min(page, totalPages);
-  const visibleEquipment = equipment;
-  const selectedId = requestedSelectedId === null
-    ? null
-    : equipment.some((item) => item.itemId === requestedSelectedId)
-      ? requestedSelectedId
-      : (equipment[0]?.itemId ?? null);
+
   const loadSelectedEquipment = useCallback(
     () => equipmentService.getById(selectedId ?? 0),
     [selectedId],
@@ -321,7 +83,7 @@ export function EquipmentSearchPage() {
     selectedId === null
       ? null
       : (equipment.find((item) => item.itemId === selectedId) ??
-        visibleEquipment[0] ??
+        equipment[0] ??
         null);
   const selectedEquipment =
     detailQuery.data?.itemId === selectedSummary?.itemId ? detailQuery.data : selectedSummary;
@@ -330,10 +92,15 @@ export function EquipmentSearchPage() {
     updateParams({ [key === 'query' ? 'q' : key]: value, page: null });
   };
 
+  const applySearch = () => {
+    updateFilter('query', searchInput);
+  };
+
   const resetFilters = () => {
     const next = new URLSearchParams();
     const dataSource = searchParams.get('__gsemDataSource');
     if (dataSource) next.set('__gsemDataSource', dataSource);
+    setSearchInput('');
     setSearchParams(next, { replace: true });
   };
 
@@ -360,8 +127,11 @@ export function EquipmentSearchPage() {
     });
   };
 
-  const setSelectedId = (itemId: number | null) => {
-    updateParams({ selected: itemId === null ? 'none' : itemId });
+  const changePageSize = (nextPageSize: number) => {
+    updateParams({
+      size: nextPageSize === defaultPageSize ? null : nextPageSize,
+      page: null,
+    });
   };
 
   return (
@@ -375,8 +145,13 @@ export function EquipmentSearchPage() {
         <Box sx={{ display: 'flex', gap: 1, mb: 1.5, maxWidth: 790 }}>
           <TextField
             fullWidth
-            value={filters.query}
-            onChange={(event) => updateFilter('query', event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                applySearch();
+              }
+            }}
             placeholder="품번, 품명, 용도 검색"
             slotProps={{
               htmlInput: {
@@ -394,121 +169,13 @@ export function EquipmentSearchPage() {
           <Button
             variant="contained"
             sx={{ minWidth: 74 }}
-            onClick={equipmentQuery.refetch}
+            onClick={applySearch}
           >
             검색
           </Button>
         </Box>
 
-        <Paper variant="outlined" sx={{ p: 1.75, mb: 1.75 }}>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(140px, 1fr))',
-              gap: 1.25,
-            }}
-          >
-            <FilterSelect
-              id="aircraftType"
-              label="기종"
-              value={filters.aircraftType}
-              options={options.aircraftTypes}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="business"
-              label="사업"
-              value={filters.business}
-              options={options.businesses}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="system"
-              label="계통"
-              value={filters.system}
-              options={options.systems}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="category"
-              label="장비 구분"
-              value={filters.category}
-              options={options.categories}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="manager"
-              label="담당자"
-              value={filters.manager}
-              options={options.managers}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="destination"
-              label="주요 납지"
-              value={filters.destination}
-              options={options.destinations}
-              onChange={updateFilter}
-            />
-            <FilterSelect
-              id="status"
-              label="사용 상태"
-              value={filters.status}
-              options={options.statuses}
-              onChange={updateFilter}
-            />
-            <Tooltip title="상세 조건은 후속 프로토타입에서 제공할 예정입니다.">
-              <span>
-                <Button fullWidth variant="outlined" disabled sx={{ height: 38 }}>
-                  상세 조건
-                </Button>
-              </span>
-            </Tooltip>
-          </Box>
-
-          <Box
-            sx={{
-              minHeight: 42,
-              mt: 1.5,
-              pt: 1.25,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 2,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-              {activeFilters.length === 0 ? (
-                <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
-                  선택된 검색 조건이 없습니다.
-                </Typography>
-              ) : (
-                activeFilters.map(([key, value]) => (
-                  <Chip
-                    key={key}
-                    label={`${filterLabels[key]}: ${value}`}
-                    onDelete={() => updateFilter(key, '')}
-                    variant="outlined"
-                  />
-                ))
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-              <Button variant="outlined" startIcon={<Refresh />} onClick={resetFilters}>
-                초기화
-              </Button>
-              <Tooltip title="실제 다운로드는 현재 프로토타입 범위에서 제외됩니다.">
-                <span>
-                  <Button variant="outlined" startIcon={<DownloadOutlined />} disabled>
-                    엑셀 다운로드
-                  </Button>
-                </span>
-              </Tooltip>
-            </Box>
-          </Box>
-        </Paper>
+        <EquipmentSearchFilters filters={filters} options={options} activeFilters={activeFilters} filterLabels={filterLabels} updateFilter={updateFilter} resetFilters={resetFilters} />
 
         <Box
           sx={{
@@ -524,13 +191,30 @@ export function EquipmentSearchPage() {
               {totalElements}건
             </Box>
           </Typography>
-          <Tooltip title="개인별 컬럼 저장은 후속 프로토타입에서 제공할 예정입니다.">
-            <span>
-              <Button variant="outlined" startIcon={<SettingsOutlined />} disabled>
-                컬럼 설정
-              </Button>
-            </span>
-          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FormControl size="small" sx={{ minWidth: 116 }}>
+              <InputLabel id="equipment-page-size-label">표시 개수</InputLabel>
+              <Select
+                labelId="equipment-page-size-label"
+                value={String(pageSize)}
+                label="표시 개수"
+                onChange={(event) => changePageSize(Number(event.target.value))}
+              >
+                {pageSizeOptions.map((option) => (
+                  <MenuItem key={option} value={String(option)}>
+                    {option}개
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="개인별 컬럼 저장은 후속 프로토타입에서 제공할 예정입니다.">
+              <span>
+                <Button variant="outlined" startIcon={<SettingsOutlined />} disabled>
+                  컬럼 설정
+                </Button>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
 
         <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
@@ -558,6 +242,7 @@ export function EquipmentSearchPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ width: 42 }} />
+                    <TableCell sx={{ width: 70 }}>이미지</TableCell>
                     {columns.map((column) => (
                       <TableCell key={column.key}>
                         <TableSortLabel
@@ -612,6 +297,9 @@ export function EquipmentSearchPage() {
                               input: { 'aria-label': `${item.itemNameKor} 선택` },
                             }}
                           />
+                        </TableCell>
+                        <TableCell>
+                          <EquipmentImagePreview equipment={item} />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{item.itemNum}</TableCell>
                         <TableCell>{item.itemNameKor}</TableCell>
