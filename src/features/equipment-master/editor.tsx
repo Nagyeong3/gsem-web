@@ -1,3 +1,4 @@
+/** Mock-only edit dialog. SQL Server mode deliberately prevents writes. */
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, TextField, Typography, type SelectChangeEvent } from '@mui/material';
 import { Close, SaveOutlined } from '@mui/icons-material';
 import type { EquipmentMasterItem, RiskLevel, UnitDelivery } from '../../types/equipmentMaster';
