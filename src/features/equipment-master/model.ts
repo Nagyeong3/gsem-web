@@ -1,3 +1,4 @@
+/** API response contracts, DB-to-view mapping, and pure equipment-master helpers. */
 import { runtimeConfig } from '../../config/runtime';
 import { progressOptions } from '../../data/equipmentMasterMock';
 import type { EquipmentMasterItem, ProgressTone, RiskLevel, UnitDelivery } from '../../types/equipmentMaster';
