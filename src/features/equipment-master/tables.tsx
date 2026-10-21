@@ -1,3 +1,4 @@
+/** Excel-friendly resizable grid, optimized grid, and search controls. */
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { Box, Button, InputAdornment, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { EditOutlined, Refresh, Search } from '@mui/icons-material';
