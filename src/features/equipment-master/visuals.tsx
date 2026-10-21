@@ -1,3 +1,4 @@
+/** Shared read-only presentation widgets and equipment detail panel. */
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, type SelectChangeEvent } from '@mui/material';
 import { Close, EditOutlined } from '@mui/icons-material';
