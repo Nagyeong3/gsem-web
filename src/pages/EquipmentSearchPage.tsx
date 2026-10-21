@@ -1,4 +1,4 @@
-import { DownloadOutlined, Search, SettingsOutlined } from '@mui/icons-material';
+import { Search, SettingsOutlined } from '@mui/icons-material';
 import { Box, Button, FormControl, InputAdornment, InputLabel, MenuItem, Pagination, Select, TextField, Tooltip, Typography } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
