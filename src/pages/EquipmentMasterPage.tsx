@@ -9,13 +9,14 @@ import { initialEquipmentMasterItems, masterUnits } from '../data/equipmentMaste
 import type { EquipmentMasterItem, MasterViewMode } from '../types/equipmentMaster';
 import { cloneItem, fetchBusinessOptions, fetchMasterFilterOptions, fetchDatabaseMaster, getTotalQuantity, mapDatabaseItem, realDataMode } from '../features/equipment-master/model';
 import { DetailPanel, SummaryCard } from '../features/equipment-master/visuals';
-import { ExcelFriendlyTable, OptimizedTable, FilterBar } from '../features/equipment-master/tables';
+import { StableExcelFriendlyTable, StableOptimizedTable, FilterBar } from '../features/equipment-master/tables';
 import { EditDialog } from '../features/equipment-master/editor';
 
 export function EquipmentMasterPage() {
   const [items, setItems] = useState(() => initialEquipmentMasterItems.map(cloneItem));
   const [mode, setMode] = useState<MasterViewMode>('excel');
   const [search, setSearch] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
   const [risk, setRisk] = useState('');
   const [supplier, setSupplier] = useState('');
   const [progress, setProgress] = useState('');
@@ -32,21 +33,42 @@ export function EquipmentMasterPage() {
   const loadBusinessOptions = useCallback(() => fetchBusinessOptions(), []);
   const businessesQuery = useAsyncQuery({ queryFn: loadBusinessOptions, enabled: realDataMode });
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Korean IME input should never trigger a request before composition ends.
   useEffect(() => {
-    if (!realDataMode) return;
-    const timer = window.setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 450);
+    if (isComposing) return;
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 550);
     return () => window.clearTimeout(timer);
-  }, [search]);
+  }, [search, isComposing]);
   const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId, vendorFilter, buyerFilter), [page, pageSize, debouncedSearch, businessId, vendorFilter, buyerFilter]);
   const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
   const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
   const allItems = realDataMode ? databaseItems : items;
   const totalRows = realDataMode ? (dbQuery.data?.totalElements ?? 0) : items.length;
-  const unitNames = useMemo(() => realDataMode ? [...new Set(databaseItems.flatMap((item) => item.deliveries.map((d) => d.unitName)))].sort() : masterUnits, [databaseItems]);
-  useEffect(() => { setSelectedId(null); }, [page, debouncedSearch, pageSize]);
+  // Stabilize destination columns between searches. A new destination may add a column,
+  // but filtering or an empty result must not remove existing headers and reset widths.
+  const [knownUnitNames, setKnownUnitNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (!realDataMode || !dbQuery.data) return;
+    const discovered = databaseItems.flatMap((item) => item.deliveries.map((d) => d.unitName));
+    setKnownUnitNames((previous) => {
+      const additions = [...new Set(discovered)].filter((name) => !previous.includes(name)).sort();
+      return additions.length ? [...previous, ...additions] : previous;
+    });
+  }, [databaseItems, dbQuery.data]);
+  const unitNames = realDataMode ? knownUnitNames : masterUnits;
+  // Keep selected item if its integrated ID still exists in the newly loaded result.
+  useEffect(() => {
+    if (!realDataMode || !dbQuery.data || dbQuery.isLoading || dbQuery.isError) return;
+    setSelectedId((previous) => previous && !databaseItems.some((item) => item.id === previous) ? null : previous);
+  }, [databaseItems, dbQuery.data, dbQuery.isLoading, dbQuery.isError]);
+  // In mock mode, a page change may hide the selected item; clear it consistently.
+  useEffect(() => { if (!realDataMode) setSelectedId(null); }, [page, debouncedSearch, pageSize]);
 
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.toLowerCase();
     return allItems.filter((item) => {
       if (realDataMode) return true;
       const searchTargets = [item.itemNameKor, item.itemNumber, item.material, item.supplier, item.buyer, item.progress, item.description];
@@ -56,7 +78,7 @@ export function EquipmentMasterPage() {
       const matchesProgress = !progress || item.progress === progress;
       return matchesQuery && matchesRisk && matchesSupplier && matchesProgress;
     });
-  }, [allItems, progress, risk, search, supplier]);
+  }, [allItems, progress, risk, debouncedSearch, supplier]);
 
   const visibleItems = realDataMode ? filteredItems : filteredItems.slice((page - 1) * Number(pageSize), page * Number(pageSize));
   const selectedItem = selectedId ? allItems.find((item) => item.id === selectedId) ?? null : null;
@@ -81,8 +103,8 @@ export function EquipmentMasterPage() {
     } catch (error) { window.alert(`엑셀 다운로드 실패: ${error instanceof Error ? error.message : '서버 오류'}`); }
     finally { setDownloading(false); }
   };
-  const resetFilters = () => { setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
-  const openEditDialog = (item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); };
+  const resetFilters = () => { setIsComposing(false); setDebouncedSearch(''); setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
+  const openEditDialog = useCallback((item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); }, []);
   const saveEditDialog = () => {
     if (!draft) return;
     setItems((current) => current.map((item) => item.id === draft.id ? cloneItem(draft) : item));
@@ -117,7 +139,7 @@ export function EquipmentMasterPage() {
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>같은 품번도 사업별로 구분됩니다. 사업 필터는 서버의 전체 목록에 적용돼요.</Typography>
           {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
         </Paper>}
-        <FilterBar search={search} setSearch={setSearch} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
+        <FilterBar search={search} setSearch={setSearch} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
         <Paper variant="outlined" sx={{ mb: 1.5, borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', gap: 2 }}>
@@ -141,11 +163,11 @@ export function EquipmentMasterPage() {
 
         <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {realDataMode && dbQuery.isLoading && !dbQuery.data && <Typography sx={{ p: 2 }}>DB에서 통합현황 조회 중...</Typography>}
-            {realDataMode && dbQuery.isError && <Box sx={{ p: 2 }}><Typography color="error">데이터 조회 실패. API 연결과 서버 로그를 확인하세요.</Typography><Button onClick={dbQuery.refetch}>재시도</Button></Box>}
-            {(!realDataMode || (!dbQuery.isError && !dbQuery.isLoading)) && (mode === 'excel'
-              ? <ExcelFriendlyTable items={visibleItems} unitNames={unitNames} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />
-              : <OptimizedTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />)}
+            {realDataMode && dbQuery.isLoading && <Typography role="status" aria-live="polite" sx={{ px: 1, py: 0.5, fontSize: 12, color: 'text.secondary' }}>검색 결과 갱신 중... 기존 결과를 표시합니다.</Typography>}
+            {realDataMode && dbQuery.isError && <Box role="alert" sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}><Typography color="error" sx={{ fontSize: 12 }}>조회 실패. 이전 결과를 유지합니다.</Typography><Button size="small" onClick={dbQuery.refetch}>재시도</Button></Box>}
+            {mode === 'excel'
+              ? <StableExcelFriendlyTable items={visibleItems} unitNames={unitNames} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />
+              : <StableOptimizedTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
               <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{totalRows === 0 ? 0 : (page - 1) * Number(pageSize) + 1} - {(page - 1) * Number(pageSize) + visibleItems.length} / {realDataMode ? totalRows : filteredItems.length}건</Typography>
               <Pagination page={page} onChange={(_, next) => setPage(next)} count={Math.max(1, realDataMode ? (dbQuery.data?.totalPages ?? 1) : Math.ceil(filteredItems.length / Number(pageSize)))} color="primary" shape="rounded" />
