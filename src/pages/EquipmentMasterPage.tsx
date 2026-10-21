@@ -1,3 +1,4 @@
+/** Equipment-master page coordinator: filters, queries, pagination, and view state. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Pagination, Paper, Select, Tab, Tabs, Tooltip, Typography, type SelectChangeEvent } from '@mui/material';
 import { DownloadOutlined, SettingsOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
