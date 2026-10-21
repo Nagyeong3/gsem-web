@@ -1,5 +1,5 @@
 import { Close, History, OpenInNew } from '@mui/icons-material';
-import { Box, Button, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Chip, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import type { Equipment } from '../../../types/domain';
 import { StatusChip } from '../../../components/common/StatusChip';
