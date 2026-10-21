@@ -327,8 +327,8 @@ function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: 
     const context = canvas.getContext('2d');
     if (!context) return;
     context.font = '600 12px "Noto Sans KR", sans-serif';
-    const rows = Array.from(tableRef.current.querySelectorAll('tbody tr'));
-    const labels = [col.title, ...rows.map((row) => row.cells[index]?.textContent?.trim() ?? '')];
+    const rows = Array.from(tableRef.current.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const labels = [col.title, ...rows.map((row) => row.cells.item(index)?.textContent?.trim() ?? '')];
     // Only the currently loaded page can be measured. Remaining server-side pages are not in the DOM.
     const fit = Math.max(...labels.map((label) => context.measureText(label).width)) + 34;
     updateWidth(index, fit);
