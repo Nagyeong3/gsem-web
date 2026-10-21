@@ -1,5 +1,5 @@
 /** Excel-friendly resizable grid, optimized grid, and search controls. */
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { memo, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { Box, Button, InputAdornment, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { EditOutlined, Refresh, Search } from '@mui/icons-material';
 import type { EquipmentMasterItem } from '../../types/equipmentMaster';
@@ -118,6 +118,7 @@ export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onE
           </TableRow>
         </TableHead>
         <TableBody>
+          {items.length === 0 && <TableRow><TableCell colSpan={columns.length} sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>검색 결과가 없습니다.</TableCell></TableRow>}
           {items.map((item, index) => {
             const selected = item.id === selectedId;
             const rowBg = selected ? '#EEF5FF' : index % 2 ? '#FBFCFE' : '#FFFFFF';
@@ -172,9 +173,13 @@ export function OptimizedTable({ items, selectedId, onSelect, onEdit }: { items:
   );
 }
 
-export function FilterBar({ search, setSearch, risk, setRisk, supplier, setSupplier, progress, setProgress, reset, items, apiMode }: { search: string; setSearch: (value: string) => void; risk: string; setRisk: (value: string) => void; supplier: string; setSupplier: (value: string) => void; progress: string; setProgress: (value: string) => void; reset: () => void; items: EquipmentMasterItem[]; apiMode: boolean }) {
+export function FilterBar({ search, setSearch, onCompositionStart, onCompositionEnd, risk, setRisk, supplier, setSupplier, progress, setProgress, reset, items, apiMode }: { search: string; setSearch: (value: string) => void; onCompositionStart: () => void; onCompositionEnd: () => void; risk: string; setRisk: (value: string) => void; supplier: string; setSupplier: (value: string) => void; progress: string; setProgress: (value: string) => void; reset: () => void; items: EquipmentMasterItem[]; apiMode: boolean }) {
   const suppliers = Array.from(new Set(items.map((item) => item.supplier)));
   const progresses = Array.from(new Set(items.map((item) => item.progress)));
-  return <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 2 }}><Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}><TextField size="small" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="품명, 품번, Material, 조달원 검색" sx={{ minWidth: 360, flex: '1 1 360px' }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> } }} />{!apiMode && <FilterSelect label="RISK" value={risk} options={['G', 'Y', 'R']} onChange={setRisk} />}{!apiMode && <FilterSelect label="조달원" value={supplier} options={suppliers} onChange={setSupplier} />}{!apiMode && <FilterSelect label="진행상태" value={progress} options={progresses} onChange={setProgress} />}<Button variant="outlined" startIcon={<Refresh />} onClick={reset}>초기화</Button></Box></Paper>;
+  return <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, mb: 2 }}><Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}><TextField size="small" value={search} onChange={(event) => setSearch(event.target.value)} onCompositionStart={onCompositionStart} onCompositionEnd={onCompositionEnd} placeholder="품명, 품번, Material, 조달원 검색" sx={{ minWidth: 360, flex: '1 1 360px' }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment> } }} />{!apiMode && <FilterSelect label="RISK" value={risk} options={['G', 'Y', 'R']} onChange={setRisk} />}{!apiMode && <FilterSelect label="조달원" value={supplier} options={suppliers} onChange={setSupplier} />}{!apiMode && <FilterSelect label="진행상태" value={progress} options={progresses} onChange={setProgress} />}<Button variant="outlined" startIcon={<Refresh />} onClick={reset}>초기화</Button></Box></Paper>;
 }
 
+
+// A text field keystroke must not re-render heavy table rows before new results arrive.
+export const StableExcelFriendlyTable = memo(ExcelFriendlyTable);
+export const StableOptimizedTable = memo(OptimizedTable);
