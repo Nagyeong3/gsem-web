@@ -92,6 +92,11 @@ export function EquipmentSearchPage() {
     updateParams({ [key === 'query' ? 'q' : key]: value, page: null });
   };
 
+  const removeFilter = (key: keyof EquipmentFilters) => {
+    if (key === 'query') setSearchInput('');
+    updateFilter(key, '');
+  };
+
   const applySearch = () => {
     updateFilter('query', searchInput);
   };
@@ -175,7 +180,7 @@ export function EquipmentSearchPage() {
           </Button>
         </Box>
 
-        <EquipmentSearchFilters filters={filters} options={options} activeFilters={activeFilters} filterLabels={filterLabels} updateFilter={updateFilter} resetFilters={resetFilters} />
+        <EquipmentSearchFilters filters={filters} options={options} activeFilters={activeFilters} filterLabels={filterLabels} updateFilter={updateFilter} resetFilters={resetFilters} onRemoveFilter={removeFilter} />
 
         <Box
           sx={{
