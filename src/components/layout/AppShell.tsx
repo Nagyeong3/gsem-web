@@ -93,7 +93,7 @@ export function AppShell({ children }: AppShellProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const selected =
-              item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path);
+              item.path === '/' ? location.pathname === '/' : (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
             return (
               <Tooltip
                 key={item.label}
