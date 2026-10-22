@@ -32,13 +32,14 @@ function FilterSelect({ id, label, value, options, onChange }: FilterSelectProps
   );
 }
 
-export function EquipmentSearchFilters({ filters, options, activeFilters, filterLabels, updateFilter, resetFilters }: {
+export function EquipmentSearchFilters({ filters, options, activeFilters, filterLabels, updateFilter, resetFilters, onRemoveFilter }: {
   filters: EquipmentFilters;
   options: EquipmentFilterOptions;
   activeFilters: Array<[keyof EquipmentFilters, string]>;
   filterLabels: Record<keyof EquipmentFilters, string>;
   updateFilter: (key: keyof EquipmentFilters, value: string) => void;
   resetFilters: () => void;
+  onRemoveFilter: (key: keyof EquipmentFilters) => void;
 }) {
   return (
         <Paper variant="outlined" sx={{ p: 1.75, mb: 1.75 }}>
@@ -130,10 +131,7 @@ export function EquipmentSearchFilters({ filters, options, activeFilters, filter
                   <Chip
                     key={key}
                     label={`${filterLabels[key]}: ${value}`}
-                    onDelete={() => {
-                      if (key === 'query') setSearchInput('');
-                      updateFilter(key, '');
-                    }}
+                    onDelete={() => onRemoveFilter(key)}
                     variant="outlined"
                   />
                 ))
