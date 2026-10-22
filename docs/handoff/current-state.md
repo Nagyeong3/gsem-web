@@ -1,6 +1,17 @@
 # 프로젝트 현재 상태
 
-## 기준 버전
+## 현재 안정화 기준 (v0.9.0)
+
+- 기준 브랜치: `feature/main-workflow-page`, 기준 커밋: `0376c62a4a487b0634c95b286053d97d0aed9b62`
+- 작업 브랜치: `agent/v0.9.0-stabilization`
+- 지원장비 통합현황을 포함한 기존 화면을 보존한다.
+- 검색 입력과 적용 조건을 분리하고 Enter/버튼 제출·한글 IME 보호를 공통화했다.
+- 장비 검색과 통합현황의 URL 상태 복원, 필터 개별 삭제, 보기별 컬럼 너비 저장·초기화를 제공한다.
+- 통합현황 SQL Server 경로는 읽기 전용이며 실제 접속·데이터 검증은 별도다.
+- 적용·복원 절차와 현재 검사 결과는 `docs/releases/v0.9.0-apply-restore.md`, `docs/releases/v0.9.0-validation.md`를 우선 확인한다.
+- 아래 V7 내용은 기존 인메모리 API 및 업무 흐름의 배경이다. 최신 범위가 충돌하면 이 절과 v0.9.0 문서를 우선한다.
+
+## V7 기준 버전 (과거 기록)
 
 - 최신 통합 개발본: `develop/prototype`
 - 릴리즈 준비본: `release/prototype-v7`

@@ -1,5 +1,12 @@
 # 지원장비 관리시스템 프로토타입
 
+현재 안정화 버전은 **v0.9.0**이며 `feature/main-workflow-page`를 기준으로 한다. 지원장비 통합현황·장비 검색·기존 여섯 화면을 보존한다. 검색은 Enter/검색 버튼으로 실행하고, 장비 검색·통합현황의 조건은 URL로 복원한다. 컬럼 너비는 보기별 브라우저 저장이며 검색 조건과 별도로 초기화한다.
+
+- [적용·복원 및 폐쇄망 반입 가이드](docs/releases/v0.9.0-apply-restore.md)
+- [검증 결과와 SQL Server 검증 구분](docs/releases/v0.9.0-validation.md)
+
+이하 V7 설명의 인메모리 API와 별도로, 통합현황에는 SQL Server 읽기 전용 경로가 있다. 실데이터 검증 완료를 의미하지 않는다. 자동 테스트 캡처는 `test-results/screenshots`에 생성하며 기준 이미지는 변경하지 않는다.
+
 지원장비 정보를 통합 조회하고 납품·변경 현황을 확인하기 위한 웹 프로토타입입니다. 현재 단계에서는 실제 DB와 운영 API를 연결하지 않고 일반화한 목업 데이터를 사용합니다.
 
 ## 현재 구현 범위
@@ -55,7 +62,7 @@ V7에서는 V6 전체 화면과 품질 감사 결과를 유지하면서 백엔�
 Node.js와 Python 3.12 설치 후 저장소 루트에서 실행합니다.
 
 ```bash
-npm install
+npm ci
 python -m venv .venv
 # Windows: .venv\Scripts\python -m pip install -r requirements-dev.txt
 # macOS/Linux: .venv/bin/python -m pip install -r requirements-dev.txt
@@ -95,7 +102,7 @@ FastAPI와 API 모드 프론트를 한 번에 실행하려면 다음 명령을 �
 npm run dev:api
 ```
 
-실행 화면 캡처는 다음 위치에 생성됩니다.
+실행 화면 캡처는 `test-results/screenshots`에 생성됩니다. 과거 기준 캡처는 다음 위치에 보존되어 있습니다.
 
 - `docs/prototype-screenshots/dashboard.png`
 - `docs/prototype-screenshots/equipment-search.png`
