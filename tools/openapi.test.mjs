@@ -3,6 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { parse } from 'yaml';
 const implementedApiPaths = [
+  "/equipment-master/businesses",
+  "/equipment-master/filter-options",
+  "/equipment-master/image/{item_id}",
+  "/equipment-master/export",
+  "/equipment-master",
   '/dashboard/overview',
   '/items/filter-options',
   '/items',

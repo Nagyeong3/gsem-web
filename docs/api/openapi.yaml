@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GSEM 조회 API
-  version: 0.2.0-prototype
+  version: 0.9.0
   description: |
     지원장비 관리시스템의 프론트엔드-백엔드 조회 계약 초안입니다.
     상태값, 페이징 및 일부 필드는 프로토타입 가정이며 운영 규칙이 아닙니다.
@@ -286,6 +286,172 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/ChangeEvent"
+  /equipment-master/businesses:
+    get:
+      summary: List Equipment Master Businesses
+      description: Return all businesses appearing in the equipment master, not just
+        current page.
+      operationId: list_equipment_master_businesses_api_v1_equipment_master_businesses_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /equipment-master/filter-options:
+    get:
+      summary: Equipment Master Filter Options
+      operationId: equipment_master_filter_options_api_v1_equipment_master_filter_options_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /equipment-master/image/{item_id}:
+    get:
+      summary: Equipment Master Image
+      description: Serve only files under explicitly configured GSEM_IMAGE_DIR; never
+        arbitrary DB paths.
+      operationId: equipment_master_image_api_v1_equipment_master_image__item_id__get
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Item Id
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        "422":
+          description: 입력 검증 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /equipment-master/export:
+    get:
+      summary: Equipment Master Export
+      description: UTF-8 BOM CSV that opens directly in Excel; export all matching
+        rows, not only the current page.
+      operationId: equipment_master_export_api_v1_equipment_master_export_get
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+            default: ""
+            title: Query
+        - name: businessId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+                minimum: 1
+              - type: "null"
+            title: Businessid
+        - name: vendor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+            default: ""
+            title: Vendor
+        - name: buyer
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+            default: ""
+            title: Buyer
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        "422":
+          description: 입력 검증 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /equipment-master:
+    get:
+      summary: List Equipment Master
+      operationId: list_equipment_master_api_v1_equipment_master_get
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            title: Page
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 100
+            minimum: 1
+            default: 20
+            title: Size
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+            default: ""
+            title: Query
+        - name: businessId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+                minimum: 1
+              - type: "null"
+            title: Businessid
+        - name: vendor
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+            default: ""
+            title: Vendor
+        - name: buyer
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+            default: ""
+            title: Buyer
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        "422":
+          description: 입력 검증 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
 components:
   parameters:
     ItemId:

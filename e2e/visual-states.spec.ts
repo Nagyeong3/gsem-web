@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
-const screenshotDirectory = 'docs/prototype-screenshots/flows';
+const screenshotDirectory = 'test-results/screenshots/flows';
 
 async function capture(page: Page, name: string) {
   await page.evaluate(() => document.fonts.ready);
@@ -27,14 +27,14 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await expect(page.getByRole('heading', { name: '지원장비 관리 현황' })).toBeVisible();
   await page.getByLabel('통합 장비 검색').fill('XXXXXX-01');
   await capture(page, '01-dashboard-search-input');
-  await page.getByRole('button', { name: '검색 실행' }).click();
+  await page.getByRole('button', { name: '검색', exact: true }).click();
   await expect(page).toHaveURL(/\/equipment\?q=XXXXXX-01/);
   await expect(page.getByRole('heading', { name: '검색 결과 1건' })).toBeVisible();
   await capture(page, '02-equipment-search-result');
 
   await page.goto('/equipment');
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
-  await page.getByLabel('사업').click();
+  await page.getByRole('combobox', { name: '사업', exact: true }).click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
   await capture(page, '03-equipment-business-filter');
@@ -43,12 +43,14 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await expect(page).toHaveURL(/sort=recentChangeDate/);
   await capture(page, '04-equipment-sorted');
 
-  await page.goto('/equipment');
-  await page.getByRole('button', { name: '2' }).click();
-  await expect(page).toHaveURL(/page=2/);
-  await capture(page, '05-equipment-page-2');
+  await page.goto('/equipment?size=50');
+  await expect(page.getByRole('combobox', { name: '표시 개수' })).toHaveText('50개');
+  await page.reload();
+  await expect(page).toHaveURL(/size=50/);
+  await capture(page, '05-equipment-page-size-50');
 
   await page.getByLabel('품번, 품명, 용도 검색').fill('존재하지 않는 품목');
+  await page.getByLabel('품번, 품명, 용도 검색').press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
   await capture(page, '06-equipment-empty');
 
@@ -64,13 +66,13 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await capture(page, '08-delivery-completed-filter');
 
   await page.goto('/requests');
-  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('combobox', { name: 'Mock 사용자 역할', exact: true }).click();
   await capture(page, '09-role-selector-open');
   await page.getByRole('option', { name: '일반 조회자' }).click();
   await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeDisabled();
   await capture(page, '10-change-request-viewer-role');
 
-  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('combobox', { name: 'Mock 사용자 역할', exact: true }).click();
   await page.getByRole('option', { name: '지원장비 담당자' }).click();
   await page.getByRole('button', { name: '변경 신청 초안' }).click();
   await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
@@ -83,9 +85,11 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await page.goto('/history');
   await expect(page.getByText('5단계 (현재)')).toBeVisible();
   await page.getByLabel('변경 이력 검색').fill('A-4장비');
+  await page.getByLabel('변경 이력 검색').press('Enter');
   await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
   await capture(page, '13-change-history-search');
   await page.getByLabel('변경 이력 검색').fill('');
+  await page.getByLabel('변경 이력 검색').press('Enter');
   await page.getByText('B-1장비', { exact: true }).click();
   await expect(page.getByRole('complementary', { name: '변경 상세' })).toContainText('B-1장비');
   await capture(page, '14-change-history-branch-selection');

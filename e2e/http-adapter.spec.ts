@@ -11,12 +11,13 @@ test('HTTP Adapter 모드에서 대시보드와 장비 검색 흐름이 동작�
   await expect(page.getByText('12건')).toBeVisible();
   await expect(page.getByText('A장비', { exact: true }).first()).toBeVisible();
 
-  await page.getByLabel('사업').click();
+  await page.getByRole('combobox', { name: '사업', exact: true }).click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByText('4건')).toBeVisible();
 
   const searchInput = page.getByLabel('품번, 품명, 용도 검색');
   await searchInput.fill('존재하지 않는 품목');
+  await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();

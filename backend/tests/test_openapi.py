@@ -1,6 +1,11 @@
 from fastapi.testclient import TestClient
 
 EXPECTED_PATHS = {
+    "/api/v1/equipment-master",
+    "/api/v1/equipment-master/businesses",
+    "/api/v1/equipment-master/filter-options",
+    "/api/v1/equipment-master/image/{item_id}",
+    "/api/v1/equipment-master/export",
     "/api/v1/dashboard/overview",
     "/api/v1/items/filter-options",
     "/api/v1/items",

@@ -1,36 +1,8 @@
 import { DownloadOutlined, Refresh } from '@mui/icons-material';
-import { Box, Button, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Paper, Tooltip, Typography } from '@mui/material';
+import { FilterSelect } from '../../../components/common/FilterSelect';
+import { ActiveFilterChip } from '../../../components/common/ActiveFilterChip';
 import type { EquipmentFilterOptions, EquipmentFilters } from '../../../types/domain';
-
-interface FilterSelectProps {
-  id: keyof EquipmentFilters;
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (key: keyof EquipmentFilters, value: string) => void;
-}
-
-function FilterSelect({ id, label, value, options, onChange }: FilterSelectProps) {
-  const labelId = `${id}-label`;
-  return (
-    <FormControl size="small" fullWidth>
-      <InputLabel id={labelId}>{label}</InputLabel>
-      <Select
-        labelId={labelId}
-        value={value}
-        label={label}
-        onChange={(event) => onChange(id, event.target.value)}
-      >
-        <MenuItem value="">전체</MenuItem>
-        {options.map((option) => (
-          <MenuItem key={option} value={option}>
-            {option}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-}
 
 export function EquipmentSearchFilters({ filters, options, activeFilters, filterLabels, updateFilter, resetFilters, onRemoveFilter }: {
   filters: EquipmentFilters;
@@ -55,49 +27,49 @@ export function EquipmentSearchFilters({ filters, options, activeFilters, filter
               label="기종"
               value={filters.aircraftType}
               options={options.aircraftTypes}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('aircraftType', value)}
             />
             <FilterSelect
               id="business"
               label="사업"
               value={filters.business}
               options={options.businesses}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('business', value)}
             />
             <FilterSelect
               id="system"
               label="계통"
               value={filters.system}
               options={options.systems}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('system', value)}
             />
             <FilterSelect
               id="category"
               label="장비 구분"
               value={filters.category}
               options={options.categories}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('category', value)}
             />
             <FilterSelect
               id="manager"
               label="담당자"
               value={filters.manager}
               options={options.managers}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('manager', value)}
             />
             <FilterSelect
               id="destination"
               label="주요 납지"
               value={filters.destination}
               options={options.destinations}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('destination', value)}
             />
             <FilterSelect
               id="status"
               label="사용 상태"
               value={filters.status}
               options={options.statuses}
-              onChange={updateFilter}
+              onChange={(value) => updateFilter('status', value)}
             />
             <Tooltip title="상세 조건은 후속 프로토타입에서 제공할 예정입니다.">
               <span>
@@ -128,11 +100,10 @@ export function EquipmentSearchFilters({ filters, options, activeFilters, filter
                 </Typography>
               ) : (
                 activeFilters.map(([key, value]) => (
-                  <Chip
+                  <ActiveFilterChip
                     key={key}
                     label={`${filterLabels[key]}: ${value}`}
                     onDelete={() => onRemoveFilter(key)}
-                    variant="outlined"
                   />
                 ))
               )}

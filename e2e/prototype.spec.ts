@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
-const screenshotDirectory = 'docs/prototype-screenshots';
+const screenshotDirectory = 'test-results/screenshots';
 
 test.beforeAll(async () => {
   await mkdir(screenshotDirectory, { recursive: true });
@@ -36,12 +36,13 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   await expect(page.getByRole('complementary', { name: '선택 장비 상세' })).toBeVisible();
   await expect(page.getByText('A장비', { exact: true }).first()).toBeVisible();
 
-  await page.getByLabel('사업').click();
+  await page.getByRole('combobox', { name: '사업', exact: true }).click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByText('4건')).toBeVisible();
 
   const searchInput = page.getByLabel('품번, 품명, 용도 검색');
   await searchInput.fill('존재하지 않는 품목');
+  await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
@@ -244,8 +245,10 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
   await expect(page.getByText('다 사업', { exact: true }).first()).toBeVisible();
 
   await page.getByLabel('변경 이력 검색').fill('A-4장비');
+  await page.getByLabel('변경 이력 검색').press('Enter');
   await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
   await page.getByLabel('변경 이력 검색').fill('');
+  await page.getByLabel('변경 이력 검색').press('Enter');
   await page.waitForTimeout(600);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/change-history.png`, fullPage: false });
@@ -264,7 +267,7 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
 test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async ({ page }) => {
   await page.goto('/equipment?business=%EB%82%98+%EC%82%AC%EC%97%85&sort=recentChangeDate&direction=desc&page=1');
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
-  await expect(page.getByLabel('사업')).toHaveText(/나 사업/);
+  await expect(page.getByRole('combobox', { name: '사업', exact: true })).toHaveText(/나 사업/);
   await page.reload();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
   await expect(page).toHaveURL(/business=/);
@@ -286,11 +289,11 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   await expect(page).toHaveURL(/\/requests\?itemId=1/);
   await expect(page.getByText('Mock 권한: 지원장비 담당자', { exact: false })).toBeVisible();
 
-  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('combobox', { name: 'Mock 사용자 역할', exact: true }).click();
   await page.getByRole('option', { name: '일반 조회자' }).click();
   await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeDisabled();
 
-  await page.getByLabel('Mock 사용자 역할').click();
+  await page.getByRole('combobox', { name: 'Mock 사용자 역할', exact: true }).click();
   await page.getByRole('option', { name: '지원장비 담당자' }).click();
   await page.getByRole('button', { name: '변경 신청 초안' }).click();
   await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');

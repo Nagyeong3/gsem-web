@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHttpException
 
-from backend.app.api.router import create_api_router
 from backend.app.api.equipment_master import router as equipment_master_router
+from backend.app.api.router import create_api_router
 from backend.app.core.config import settings
 from backend.app.core.errors import ApiError, error_body
 from backend.app.core.middleware import RequestContextMiddleware
@@ -41,7 +41,7 @@ def _validation_fields(error: RequestValidationError) -> list[dict[str, str]]:
 def create_app(service: GsemService | None = None) -> FastAPI:
     app = FastAPI(
         title="GSEM API",
-        version="1.0.0-prototype",
+        version="0.9.0",
         description="지원장비 관리시스템 프로토타입 조회 API",
     )
     app.add_middleware(
@@ -81,6 +81,10 @@ def create_app(service: GsemService | None = None) -> FastAPI:
     async def http_error(request: Request, error: StarletteHttpException) -> JSONResponse:
         if error.status_code == 405:
             code, message = "METHOD_NOT_ALLOWED", "지원하지 않는 요청 방식입니다."
+        elif error.status_code == 503:
+            code, message = "SERVICE_UNAVAILABLE", "데이터 공급자 설정 또는 연결을 확인하세요."
+        elif error.status_code >= 500:
+            code, message = "INTERNAL_ERROR", "요청 처리 중 오류가 발생했습니다."
         else:
             code, message = "NOT_FOUND", "요청한 경로가 없습니다."
         return JSONResponse(status_code=error.status_code, content=error_body(code, message, _request_id(request)))

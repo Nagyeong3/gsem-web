@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
-const screenshotDirectory = 'docs/prototype-screenshots/flows';
+const screenshotDirectory = 'test-results/screenshots/flows';
 
 test.beforeAll(async () => {
   await mkdir(screenshotDirectory, { recursive: true });
@@ -33,7 +33,7 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
   await page.getByRole('button', { name: '장비 검색' }).click();
   await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
-  await page.getByLabel('사업').click();
+  await page.getByRole('combobox', { name: '사업', exact: true }).click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
 
@@ -101,4 +101,42 @@ test('HTTP API 지연·오류·재시도 상태를 화면으로 기록한다', a
   await page.screenshot({ path: `${screenshotDirectory}/19-equipment-api-recovered.png`, fullPage: false });
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
+test('통합현황 HTTP 경계의 필터 삭제·조회 실패·재시도와 컬럼 너비를 보존한다 (DB fixture)', async ({ page }) => {
+  const requests: string[] = [];
+  let fail = false;
+  await page.route('**/api/v1/equipment-master/businesses', (route) => route.fulfill({ json: [{ businessId: 1, businessName: '가 사업' }] }));
+  await page.route('**/api/v1/equipment-master/filter-options', (route) => route.fulfill({ json: { vendors: ['가 업체'], buyers: ['김책임'] } }));
+  await page.route(/\/api\/v1\/equipment-master(?:\?|$)/, async (route) => {
+    requests.push(route.request().url());
+    if (fail) { await route.fulfill({ status: 503, json: { error: 'fixture unavailable' } }); return; }
+    const query = new URL(route.request().url()).searchParams.get('query');
+    await route.fulfill({ json: { items: query ? [] : [{ integratedId: 1, itemId: 1, businessId: 1, businessName: '가 사업', itemNumber: 'XXXXXX', itemNameKor: 'A장비', description: null, managerName: null, manufacturer: null, imagePath: null, deliveries: [] }], page: 1, size: 50, totalElements: query ? 0 : 1, totalPages: 1, readOnly: true } });
+  });
+  await page.goto('/equipment-master');
+  const table = page.getByRole('table', { name: '엑셀 친화형 지원장비 통합현황' });
+  await expect(table.getByText('A장비')).toBeVisible();
+  const header = table.locator('th[data-resize-index="2"]');
+  await header.focus(); await page.keyboard.press('ArrowRight');
+  const input = page.getByLabel('품명, 품번, Material, 조달원 검색');
+  await input.fill('빈결과');
+  expect(requests.filter((url) => new URL(url).searchParams.get('query') === '빈결과')).toHaveLength(0);
+  await input.press('Enter');
+  await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
+  await page.getByRole('button', { name: '검색어: 빈결과 삭제', exact: true }).click();
+  await expect(table.getByText('A장비')).toBeVisible();
+  await expect(table.locator('col').nth(2)).toHaveAttribute('style', /250px/);
+  fail = true;
+  await page.getByRole('combobox', { name: '조달원', exact: true }).click();
+  await page.getByRole('option', { name: '가 업체' }).click();
+  await expect(page.getByRole('alert')).toContainText('조회 실패');
+  await expect(table.getByText('A장비')).toBeVisible();
+  fail = false;
+  await page.getByRole('button', { name: '재시도', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(table.getByText('A장비')).toBeVisible();
+  await page.getByRole('button', { name: '조달원: 가 업체 삭제', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: '조달원', exact: true })).toHaveText('');
+  await expect(table.locator('col').nth(2)).toHaveAttribute('style', /250px/);
 });

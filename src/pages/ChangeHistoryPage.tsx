@@ -1,7 +1,7 @@
-import { CalendarMonthOutlined, Check, FitScreen, Search } from '@mui/icons-material';
+import { CalendarMonthOutlined, Check, FitScreen } from '@mui/icons-material';
 import {
-  Box, Chip, FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select,
-  TextField, Typography,
+  Box, Chip, FormControl, InputLabel, MenuItem, Paper, Select,
+  Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,6 +10,8 @@ import {
   type Edge, type Node, type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { SearchField } from '../components/common/SearchField';
+import { useSearchDraft } from '../hooks/useSearchDraft';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { replacementHistoryService } from '../services';
@@ -72,6 +74,7 @@ function findConnected(graph: ReplacementGraph, relation?: ReplacementRelation) 
 export function ChangeHistoryPage() {
   const theme = useTheme();
   const [query, setQuery] = useState('');
+  const [searchInput, setSearchInput] = useSearchDraft(query);
   const [business, setBusiness] = useState('');
   const [status, setStatus] = useState('');
   const [selectedRelationId, setSelectedRelationId] = useState('r9');
@@ -107,7 +110,7 @@ export function ChangeHistoryPage() {
   return <Box sx={{ p: 3, minWidth: 1080, height: 'calc(100vh - 58px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
     <PageHeader title="장비 변경 이력" description="단종품과 대체품의 관계 및 주요 정보 변경 내역을 추적합니다." />
     <Box sx={{ display: 'flex', gap: 1.25, mb: 1.5 }}>
-      <TextField value={query} onChange={(event) => setQuery(event.target.value)} placeholder="장비명 또는 품번 검색" sx={{ width: 260 }} slotProps={{ htmlInput: { 'aria-label': '변경 이력 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
+      <SearchField value={searchInput} onChange={setSearchInput} onSearch={() => setQuery(searchInput.trim())} label="변경 이력 검색" placeholder="장비명 또는 품번 검색" />
       <FormControl size="small" sx={{ width: 150 }}><InputLabel id="history-business-label">사업</InputLabel><Select labelId="history-business-label" label="사업" value={business} onChange={(event) => setBusiness(event.target.value)}><MenuItem value="">전체</MenuItem>{['가 사업', '나 사업', '다 사업'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>
       <FormControl size="small" sx={{ width: 150 }}><InputLabel id="history-status-label">상태</InputLabel><Select labelId="history-status-label" label="상태" value={status} onChange={(event) => setStatus(event.target.value)}><MenuItem value="">전체</MenuItem>{['사용 중', '단종', '대체 예정'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</Select></FormControl>
       <Paper variant="outlined" sx={{ ml: 'auto', px: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}><FitScreen sx={{ fontSize: 18, color: 'text.secondary' }} /><Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>선택 경로가 파란색으로 강조됩니다.</Typography></Paper>

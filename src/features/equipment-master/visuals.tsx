@@ -1,6 +1,6 @@
 /** Shared read-only presentation widgets and equipment detail panel. */
 import { useState, type ReactNode } from 'react';
-import { Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, type SelectChangeEvent } from '@mui/material';
+import { Box, Button, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { Close, EditOutlined } from '@mui/icons-material';
 import { runtimeConfig } from '../../config/runtime';
 import type { EquipmentMasterItem, RiskLevel } from '../../types/equipmentMaster';
@@ -42,9 +42,6 @@ export function EquipmentThumbnail({ item }: { item: EquipmentMasterItem }) {
   );
 }
 
-export function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <FormControl size="small" sx={{ minWidth: 154 }}><InputLabel>{label}</InputLabel><Select value={value} label={label} onChange={(event: SelectChangeEvent) => onChange(event.target.value)}><MenuItem value="">전체</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</Select></FormControl>;
-}
 
 export function SummaryCard({ label, value, helper, tone = '#0F6BFF' }: { label: string; value: string; helper: string; tone?: string }) {
   return <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, minHeight: 92 }}><Typography sx={{ color: 'text.secondary', fontSize: 12, fontWeight: 700 }}>{label}</Typography><Typography sx={{ mt: 0.5, color: tone, fontSize: 27, fontWeight: 800, letterSpacing: '-0.04em' }}>{value}</Typography><Typography sx={{ mt: 0.25, color: 'text.secondary', fontSize: 11 }}>{helper}</Typography></Paper>;

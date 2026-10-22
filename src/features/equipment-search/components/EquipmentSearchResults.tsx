@@ -1,12 +1,15 @@
 import { Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
+import { ColumnResizeHandle } from '../../../components/common/ColumnResizeHandle';
 import { QueryStatePanel } from '../../../components/common/QueryStatePanel';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { getAircraftTypes, getBusinesses, getDestinations, summarize, summarizeManagers } from '../equipmentSearch';
 import type { Equipment, EquipmentSortKey, SortDirection } from '../../../types/domain';
 import { EquipmentImagePreview } from './EquipmentSearchImage';
+import type { useColumnWidths } from '../../../hooks/useColumnWidths';
 import { columns } from '../searchConfig';
 
-export function EquipmentSearchResults({ equipment, selectedId, isLoading, isError, refetch, resetFilters, sortKey, sortDirection, changeSort, onSelect }: {
+export function EquipmentSearchResults({ equipment, selectedId, isLoading, isError, refetch, resetFilters, sortKey, sortDirection, changeSort, onSelect, columnWidths }: {
+  columnWidths: ReturnType<typeof useColumnWidths>;
   equipment: Equipment[];
   selectedId: number | null;
   isLoading: boolean;
@@ -32,6 +35,8 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                 size="small"
                 aria-label="장비 검색 결과"
                 sx={{
+                  tableLayout: 'fixed',
+                  width: 112 + columns.reduce((sum, column) => sum + (columnWidths.widths[column.key] ?? 112), 0),
                   minWidth: 850,
                   '& .MuiTableCell-root': {
                     px: 0.75,
@@ -41,12 +46,13 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                   },
                 }}
               >
+                <colgroup><col style={{ width: 42 }} /><col style={{ width: 70 }} />{columns.map((column) => <col key={column.key} style={{ width: columnWidths.widths[column.key] ?? 112 }} />)}</colgroup>
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ width: 42 }} />
                     <TableCell sx={{ width: 70 }}>이미지</TableCell>
                     {columns.map((column) => (
-                      <TableCell key={column.key}>
+                      <TableCell key={column.key} sx={{ position: 'relative' }}>
                         <TableSortLabel
                           active={sortKey === column.key}
                           direction={sortKey === column.key ? sortDirection : 'asc'}
@@ -54,6 +60,9 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                         >
                           {column.label}
                         </TableSortLabel>
+                        <ColumnResizeHandle label={column.label} width={columnWidths.widths[column.key] ?? 112} defaultWidth={112}
+                          onWidth={(width) => columnWidths.setWidth(column.key, width)}
+                          onResize={(event) => columnWidths.beginResize(column.key, columnWidths.widths[column.key] ?? 112, event)} />
                       </TableCell>
                     ))}
                   </TableRow>

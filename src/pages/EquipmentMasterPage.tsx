@@ -1,7 +1,10 @@
 /** Equipment-master page coordinator: filters, queries, pagination, and view state. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Pagination, Paper, Select, Tab, Tabs, Tooltip, Typography, type SelectChangeEvent } from '@mui/material';
-import { DownloadOutlined, SettingsOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
+import { DownloadOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
+import { useUrlState } from '../hooks/useUrlState';
+import { useSearchDraft } from '../hooks/useSearchDraft';
+import { ActiveFilterChip } from '../components/common/ActiveFilterChip';
 import { PageHeader } from '../components/common/PageHeader';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import { runtimeConfig } from '../config/runtime';
@@ -14,34 +17,38 @@ import { EditDialog } from '../features/equipment-master/editor';
 
 export function EquipmentMasterPage() {
   const [items, setItems] = useState(() => initialEquipmentMasterItems.map(cloneItem));
-  const [mode, setMode] = useState<MasterViewMode>('excel');
-  const [search, setSearch] = useState('');
-  const [isComposing, setIsComposing] = useState(false);
-  const [risk, setRisk] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [progress, setProgress] = useState('');
+  const { params, update } = useUrlState();
+  const mode: MasterViewMode = params.get('view') === 'optimized' ? 'optimized' : 'excel';
+  const setMode = (value: MasterViewMode) => update({ view: value });
+  const debouncedSearch = params.get('q') ?? '';
+  const [search, setSearch] = useSearchDraft(debouncedSearch);
+  const setDebouncedSearch = (value: string) => update({ q: value });
+  const risk = params.get('risk') ?? '';
+  const setRisk = (value: string) => update({ risk: value, page: null });
+  const supplier = params.get('supplier') ?? '';
+  const setSupplier = (value: string) => update({ supplier: value, page: null });
+  const progress = params.get('progress') ?? '';
+  const setProgress = (value: string) => update({ progress: value, page: null });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState('50');
+  const pageSize = ['20', '50', '100'].includes(params.get('size') ?? '') ? params.get('size')! : '50';
+  const setPageSize = (value: string) => update({ size: value, page: null });
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
-  const [page, setPage] = useState(1);
-  const [businessId, setBusinessId] = useState<number | null>(null);
-  const [vendorFilter, setVendorFilter] = useState('');
-  const [buyerFilter, setBuyerFilter] = useState('');
+  const requestedPage = Number(params.get('page'));
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const setPage = (value: number) => update({ page: value === 1 ? null : value });
+  const requestedBusiness = Number(params.get('businessId'));
+  const businessId = Number.isSafeInteger(requestedBusiness) && requestedBusiness > 0 ? requestedBusiness : null;
+  const setBusinessId = (value: number | null) => update({ businessId: value, page: null });
+  const vendorFilter = params.get('vendor') ?? '';
+  const setVendorFilter = (value: string) => update({ vendor: value, page: null });
+  const buyerFilter = params.get('buyer') ?? '';
+  const setBuyerFilter = (value: string) => update({ buyer: value, page: null });
   const [downloading, setDownloading] = useState(false);
   const loadFilterOptions = useCallback(() => fetchMasterFilterOptions(), []);
   const masterFilterOptions = useAsyncQuery({ queryFn: loadFilterOptions, enabled: realDataMode });
   const loadBusinessOptions = useCallback(() => fetchBusinessOptions(), []);
   const businessesQuery = useAsyncQuery({ queryFn: loadBusinessOptions, enabled: realDataMode });
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  // Korean IME input should never trigger a request before composition ends.
-  useEffect(() => {
-    if (isComposing) return;
-    const timer = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
-      setPage(1);
-    }, 550);
-    return () => window.clearTimeout(timer);
-  }, [search, isComposing]);
+  const applySearch = () => { setDebouncedSearch(search.trim()); setPage(1); setSelectedId(null); };
   const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId, vendorFilter, buyerFilter), [page, pageSize, debouncedSearch, businessId, vendorFilter, buyerFilter]);
   const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
   const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
@@ -103,7 +110,7 @@ export function EquipmentMasterPage() {
     } catch (error) { window.alert(`엑셀 다운로드 실패: ${error instanceof Error ? error.message : '서버 오류'}`); }
     finally { setDownloading(false); }
   };
-  const resetFilters = () => { setIsComposing(false); setDebouncedSearch(''); setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
+  const resetFilters = () => { setDebouncedSearch(''); setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
   const openEditDialog = useCallback((item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); }, []);
   const saveEditDialog = () => {
     if (!draft) return;
@@ -139,8 +146,12 @@ export function EquipmentMasterPage() {
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>같은 품번도 사업별로 구분됩니다. 사업 필터는 서버의 전체 목록에 적용돼요.</Typography>
           {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
         </Paper>}
-        <FilterBar search={search} setSearch={setSearch} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
+        <FilterBar search={search} setSearch={setSearch} onSearch={applySearch} risk={risk} setRisk={(value) => { setRisk(value); setPage(1); setSelectedId(null); }} supplier={supplier} setSupplier={(value) => { setSupplier(value); setPage(1); setSelectedId(null); }} progress={progress} setProgress={(value) => { setProgress(value); setPage(1); setSelectedId(null); }} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+          {([['q', '검색어', debouncedSearch], ['risk', 'RISK', risk], ['supplier', '조달원', supplier], ['progress', '진행상태', progress], ['businessId', '사업', businessId == null ? '' : businessesQuery.data?.find((business) => business.businessId === businessId)?.businessName ?? String(businessId)], ['vendor', '조달원', vendorFilter], ['buyer', '바이어', buyerFilter]] as const)
+            .filter(([, , value]) => value).map(([key, label, value]) => <ActiveFilterChip key={key} label={`${label}: ${value}`} onDelete={() => { if (key === 'q') setSearch(''); update({ [key]: null, page: null }); setSelectedId(null); }} />)}
+        </Box>
         <Paper variant="outlined" sx={{ mb: 1.5, borderRadius: 2, overflow: 'hidden' }}>
           <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider', gap: 2 }}>
             <Tabs value={mode} onChange={(_, nextMode: MasterViewMode) => setMode(nextMode)} sx={{ minHeight: 38, '& .MuiTab-root': { minHeight: 38 } }}>
@@ -150,7 +161,6 @@ export function EquipmentMasterPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{realDataMode ? totalRows : filteredItems.length}건</Box></Typography>
               <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['20', '50', '100'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
-              <Tooltip title="Mock 프로토타입에서는 컬럼 저장은 동작하지 않습니다."><span><Button variant="outlined" startIcon={<SettingsOutlined />}>컬럼 설정</Button></span></Tooltip>
               <Tooltip title={realDataMode ? '현재 검색·필터에 해당하는 전체 데이터 다운로드 (Excel 호환 CSV)' : 'Mock 모드에서는 다운로드 미지원'}><span><Button variant="outlined" disabled={!realDataMode || downloading} onClick={downloadExcel} startIcon={<DownloadOutlined />}>{downloading ? '다운로드 중...' : '엑셀 다운로드 (CSV)'}</Button></span></Tooltip>
             </Box>
           </Box>

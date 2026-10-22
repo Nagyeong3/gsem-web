@@ -1,19 +1,22 @@
-import { ArrowForward, AssignmentOutlined, Search } from '@mui/icons-material';
+import { ArrowForward, AssignmentOutlined } from '@mui/icons-material';
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select, Snackbar,
+  Paper, Snackbar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FilterSelect } from '../components/common/FilterSelect';
+import { SearchField } from '../components/common/SearchField';
+import { useSearchDraft } from '../hooks/useSearchDraft';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { changeRequestService } from '../services';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import type { ChangeRequest, ChangeRequestFilters, ChangeRequestStatus } from '../types/domain';
-import { useMockRole } from '../auth/mockRoleContext';
+import { mockRoles, type MockRole, useMockRole } from '../auth/mockRoleContext';
 
 const statusTone: Record<ChangeRequestStatus, 'default' | 'warning' | 'success'> = {
   접수: 'default', '검토 중': 'warning', '처리 완료': 'success',
@@ -23,10 +26,6 @@ function RequestStatus({ status }: { status: ChangeRequestStatus }) {
   return <Chip label={status} size="small" color={statusTone[status]} variant="outlined" />;
 }
 
-function FilterSelect({ id, label, value, options, onChange }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  const labelId = `request-${id}-label`;
-  return <FormControl size="small" fullWidth><InputLabel id={labelId}>{label}</InputLabel><Select id={`request-${id}`} labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}><MenuItem value="">전체</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</Select></FormControl>;
-}
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return <Box sx={{ display: 'grid', gridTemplateColumns: '94px 1fr', gap: 1.5, py: 0.65 }}><Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography><Typography component="div" sx={{ fontSize: 12.5, fontWeight: 500 }}>{children}</Typography></Box>;
@@ -34,13 +33,14 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 
 export function ChangeRequestPage() {
   const theme = useTheme();
-  const { role, permissions } = useMockRole();
+  const { role, permissions, setRole } = useMockRole();
   const [searchParams] = useSearchParams();
   const [requestedSelectedId, setRequestedSelectedId] = useState<string>();
   const [draftOpen, setDraftOpen] = useState(false);
   const [draftReason, setDraftReason] = useState('');
   const [draftSaved, setDraftSaved] = useState(false);
   const [filters, setFilters] = useState<ChangeRequestFilters>({ query: '', changeType: '', status: searchParams.get('status') ?? '', requester: '' });
+  const [searchInput, setSearchInput] = useSearchDraft(filters.query);
 
   const itemIdParam = searchParams.get('itemId') ?? '';
   const loadAllRequests = useCallback(
@@ -86,12 +86,15 @@ export function ChangeRequestPage() {
       }
     />
     <Alert severity="info" variant="outlined" sx={{ mb: 1.5, py: 0 }}>
-      Mock 권한: {role} · {permissions.description}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 0.5 }}>
+        <Box>Mock 권한: {role} · {permissions.description}</Box>
+        <Box sx={{ minWidth: 190 }}><FilterSelect label="Mock 사용자 역할" value={role} options={mockRoles} onChange={(value) => { if (mockRoles.includes(value as MockRole)) setRole(value as MockRole); }} /></Box>
+      </Box>
       {permissions.canReviewChange ? ' 실제 승인·반려 처리는 제공하지 않습니다.' : ''}
     </Alert>
     {draftSaved && <Alert severity="success" sx={{ mb: 1.5 }}>작성한 초안은 현재 브라우저 메모리에만 보관되며 새로고침하면 사라집니다.</Alert>}
     <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}><Box sx={{ display: 'grid', gridTemplateColumns: '1.6fr repeat(3, minmax(150px, 1fr))', gap: 1 }}>
-      <TextField value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="신청번호, 품번, 품명, 변경 유형 검색" slotProps={{ htmlInput: { 'aria-label': '변경 신청 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
+      <SearchField value={searchInput} onChange={setSearchInput} onSearch={() => setFilters((current) => ({ ...current, query: searchInput.trim() }))} label="변경 신청 검색" placeholder="신청번호, 품번, 품명, 변경 유형 검색" />
       <FilterSelect id="type" label="변경 유형" value={filters.changeType} options={options.types} onChange={(value) => setFilters((current) => ({ ...current, changeType: value }))} />
       <FilterSelect id="status" label="처리 상태" value={filters.status} options={['접수', '검토 중', '처리 완료']} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
       <FilterSelect id="requester" label="신청자" value={filters.requester} options={options.requesters} onChange={(value) => setFilters((current) => ({ ...current, requester: value }))} />

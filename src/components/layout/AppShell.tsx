@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { isNavigationSelected } from './navigation';
 import { useThemeMode } from '../../theme/themeModeContext';
 
 interface AppShellProps {
@@ -93,7 +94,7 @@ export function AppShell({ children }: AppShellProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const selected =
-              item.path === '/' ? location.pathname === '/' : (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+              isNavigationSelected(location.pathname, item.path);
             return (
               <Tooltip
                 key={item.label}

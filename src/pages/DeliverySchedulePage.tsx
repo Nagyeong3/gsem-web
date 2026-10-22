@@ -3,27 +3,23 @@ import {
   ErrorOutlined,
   Inventory2Outlined,
   LocalShippingOutlined,
-  Search,
 } from '@mui/icons-material';
 import {
   Box,
-  FormControl,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FilterSelect } from '../components/common/FilterSelect';
+import { SearchField } from '../components/common/SearchField';
+import { useSearchDraft } from '../hooks/useSearchDraft';
 import { PageHeader } from '../components/common/PageHeader';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
@@ -40,18 +36,6 @@ const initialFilters: DeliveryScheduleFilters = {
   status: '',
 };
 
-function FilterSelect({ id, label, value, options, onChange }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  const labelId = `delivery-${id}-label`;
-  return (
-    <FormControl size="small" fullWidth>
-      <InputLabel id={labelId}>{label}</InputLabel>
-      <Select id={`delivery-${id}`} labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}>
-        <MenuItem value="">전체</MenuItem>
-        {options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
-      </Select>
-    </FormControl>
-  );
-}
 
 function Metric({ icon, label, value, helper }: { icon: ReactNode; label: string; value: string; helper: string }) {
   return (
@@ -78,6 +62,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 export function DeliverySchedulePage() {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState(initialFilters);
+  const [searchInput, setSearchInput] = useSearchDraft(filters.query);
   const [requestedSelectedId, setRequestedSelectedId] = useState<number>();
   const loadAllSchedules = useCallback(() => deliveryScheduleService.list(initialFilters), []);
   const allSchedulesQuery = useAsyncQuery<DeliverySchedule[]>({ queryFn: loadAllSchedules });
@@ -120,7 +105,7 @@ export function DeliverySchedulePage() {
 
       <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1.5fr repeat(4, minmax(130px, 1fr))', gap: 1 }}>
-          <TextField value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="품번, 품명, 사업, 납지 검색" slotProps={{ htmlInput: { 'aria-label': '납품 일정 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
+          <SearchField value={searchInput} onChange={setSearchInput} onSearch={() => setFilters((current) => ({ ...current, query: searchInput.trim() }))} label="납품 일정 검색" placeholder="품번, 품명, 사업, 납지 검색" />
           <FilterSelect id="business" label="사업" value={filters.business} options={options.businesses} onChange={(value) => setFilters((current) => ({ ...current, business: value }))} />
           <FilterSelect id="aircraft-type" label="기종" value={filters.aircraftType} options={options.aircraftTypes} onChange={(value) => setFilters((current) => ({ ...current, aircraftType: value }))} />
           <FilterSelect id="destination" label="납지" value={filters.destination} options={options.destinations} onChange={(value) => setFilters((current) => ({ ...current, destination: value }))} />
