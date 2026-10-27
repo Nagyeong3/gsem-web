@@ -27,7 +27,7 @@ export function DashboardMetrics({ metrics, onNavigate }: {
           mb: 1.5,
         }}
       >
-        {data.metrics.map((metric) => {
+        {metrics.map((metric) => {
           const Icon = iconByMetric[metric.id];
           const primary = metric.id === 'attention';
           return (
