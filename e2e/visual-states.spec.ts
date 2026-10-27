@@ -44,11 +44,15 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await capture(page, '04-equipment-sorted');
 
   await page.goto('/equipment');
-  await page.getByRole('button', { name: '2' }).click();
-  await expect(page).toHaveURL(/page=2/);
-  await capture(page, '05-equipment-page-2');
+  // The 12-item Mock dataset has one page at the current 20-row default.
+  // Verify page-size switching rather than asserting an unavailable second page.
+  await page.getByLabel('표시 개수').click();
+  await page.getByRole('option', { name: '50개' }).click();
+  await expect(page).toHaveURL(/size=50/);
+  await capture(page, '05-equipment-page-size-50');
 
   await page.getByLabel('품번, 품명, 용도 검색').fill('존재하지 않는 품목');
+  await page.getByLabel('품번, 품명, 용도 검색').press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
   await capture(page, '06-equipment-empty');
 
