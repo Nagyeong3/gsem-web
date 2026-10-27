@@ -77,6 +77,40 @@ jobs:
       - name: FastAPI 브라우저 연동 검사
         run: npm run test:e2e:api
 
+      - name: 전체 소스 패키징 (의존성 및 비밀환경 제외)
+        run: |
+          mkdir -p release-bundle
+          # git archive includes only tracked files, excluding ignored local deps and .env
+          git archive --format=zip --prefix=GSEM_v0.9.0/ HEAD > release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip
+          python - <<'PY'
+          import zipfile
+          path = 'release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip'
+          with zipfile.ZipFile(path) as z:
+              names = [x.filename for x in z.infolist()]
+              banned = ('node_modules', 'wheelhouse', '.venv', 'venv', '.git', '__pycache__', 'dist', 'build')
+              bad = []
+              for name in names:
+                  parts = name.split('/')
+                  filename = parts[-1]
+                  if any(p in banned for p in parts) or filename == '.env' or filename.endswith('.pyc'):
+                      bad.append(name)
+              needed = ('package.json', 'package-lock.json', 'src/', 'backend/', 'docs/', 'tools/', 'e2e/')
+              for p in needed:
+                  if not any(n.startswith('GSEM_v0.9.0/' + p) for n in names):
+                      raise SystemExit('Missing required path ' + p)
+              if bad:
+                  raise SystemExit('Sensitive or excluded files found: ' + str(bad[:20]))
+              print('Packaged', len(names), 'tracked files / paths')
+          PY
+
+      - name: 최종 전체 소스 ZIP 보관
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSEM_v0.9.0_FULL_SOURCE
+          path: release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip
+          if-no-files-found: error
+          retention-days: 30
+
       - name: 실행 화면 캡처 보관
         if: always()
         uses: actions/upload-artifact@v4
