@@ -17,6 +17,7 @@ test('HTTP Adapter 모드에서 대시보드와 장비 검색 흐름이 동작�
 
   const searchInput = page.getByLabel('품번, 품명, 용도 검색');
   await searchInput.fill('존재하지 않는 품목');
+  await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
