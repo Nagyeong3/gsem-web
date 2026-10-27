@@ -1,5 +1,5 @@
 /** Excel-friendly resizable grid, optimized grid, and search controls. */
-import { memo, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import { Box, Button, InputAdornment, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { EditOutlined, Refresh, Search } from '@mui/icons-material';
 import type { EquipmentMasterItem } from '../../types/equipmentMaster';
