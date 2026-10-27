@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHttpException
 
-from backend.app.api.router import create_api_router
 from backend.app.api.equipment_master import router as equipment_master_router
+from backend.app.api.router import create_api_router
 from backend.app.core.config import settings
 from backend.app.core.errors import ApiError, error_body
 from backend.app.core.middleware import RequestContextMiddleware
