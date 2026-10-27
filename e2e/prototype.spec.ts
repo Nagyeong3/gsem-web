@@ -42,6 +42,7 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
 
   const searchInput = page.getByLabel('품번, 품명, 용도 검색');
   await searchInput.fill('존재하지 않는 품목');
+  await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
@@ -273,7 +274,8 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   const firstRow = page.getByRole('table', { name: '장비 검색 결과' }).getByRole('row').nth(1);
   await firstRow.focus();
   await firstRow.press('Enter');
-  await expect(page).toHaveURL(/selected=/);
+  // Row selection is local UI state to preserve the list position; it no longer updates the URL.
+  await expect(firstRow).toHaveAttribute('aria-selected', 'true');
 
   await page.goto('/equipment/1');
   await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
