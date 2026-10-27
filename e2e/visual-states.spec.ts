@@ -68,14 +68,11 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await capture(page, '08-delivery-completed-filter');
 
   await page.goto('/requests');
-  await page.getByLabel('Mock 사용자 역할').click();
-  await capture(page, '09-role-selector-open');
-  await page.getByRole('option', { name: '일반 조회자' }).click();
-  await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeDisabled();
-  await capture(page, '10-change-request-viewer-role');
-
-  await page.getByLabel('Mock 사용자 역할').click();
-  await page.getByRole('option', { name: '지원장비 담당자' }).click();
+  // The role selection UI is intentionally hidden; test the current role without changing it.
+  await expect(page.getByLabel('Mock 사용자 역할')).toHaveCount(0);
+  await capture(page, '09-change-request-default-role');
+  await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeEnabled();
+  await capture(page, '10-change-request-current-role');
   await page.getByRole('button', { name: '변경 신청 초안' }).click();
   await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
   await expect(page.getByRole('dialog', { name: '변경 신청 초안' })).toBeVisible();
