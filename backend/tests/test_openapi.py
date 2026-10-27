@@ -8,6 +8,11 @@ EXPECTED_PATHS = {
     "/api/v1/items/{item_id}/replacement-graph",
     "/api/v1/deliveries",
     "/api/v1/change-events",
+    "/api/v1/equipment-master",
+    "/api/v1/equipment-master/businesses",
+    "/api/v1/equipment-master/filter-options",
+    "/api/v1/equipment-master/export",
+    "/api/v1/equipment-master/image/{item_id}",
 }
 
 
