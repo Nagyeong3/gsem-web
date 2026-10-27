@@ -28,7 +28,29 @@ export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onE
       ['unplanned', 82, '비계획'], ['image', 104, '장비형상'], ['description', 380, '장비설명'],
     ].map(([key, width, title]) => ({ key: String(key), width: Number(width), title: String(title) })),
   ], [unitNames]);
-  const [customWidths, setCustomWidths] = useState<Record<string, number>>({});
+  // Persist only UI widths. Never store equipment data or credentials in browser storage.
+  const [customWidths, setCustomWidths] = useState<Record<string, number>>(() => {
+    try {
+      const stored = window.localStorage.getItem('gsem:master-column-widths:v1');
+      if (!stored) return {};
+      const parsed: unknown = JSON.parse(stored);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return Object.fromEntries(
+        Object.entries(parsed).filter(([key, value]) =>
+          key.length <= 256 && typeof value === 'number' &&
+          Number.isFinite(value) && value >= 52 && value <= 700),
+      );
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try { window.localStorage.setItem('gsem:master-column-widths:v1', JSON.stringify(customWidths)); }
+      catch { /* Disabled or full storage should not interrupt column resizing. */ }
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [customWidths]);
   const widths = columns.map((col) => customWidths[col.key] ?? col.width);
   const offsets = widths.map((_, index) => widths.slice(0, index).reduce((sum, width) => sum + width, 0));
   const tableRef = useRef<HTMLTableElement | null>(null);
