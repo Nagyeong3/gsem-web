@@ -288,12 +288,8 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   await expect(page).toHaveURL(/\/requests\?itemId=1/);
   await expect(page.getByText('Mock 권한: 지원장비 담당자', { exact: false })).toBeVisible();
 
-  await page.getByLabel('Mock 사용자 역할').click();
-  await page.getByRole('option', { name: '일반 조회자' }).click();
-  await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeDisabled();
-
-  await page.getByLabel('Mock 사용자 역할').click();
-  await page.getByRole('option', { name: '지원장비 담당자' }).click();
+  // Role picker was intentionally removed; current Mock permission is shown as read-only.
+  await expect(page.getByLabel('Mock 사용자 역할')).toHaveCount(0);
   await page.getByRole('button', { name: '변경 신청 초안' }).click();
   await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
   await page.getByRole('button', { name: '메모리에 보관' }).click();
