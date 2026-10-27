@@ -2,13 +2,13 @@
 
 GSEM_DATA_SOURCE=sqlserver일 때만 DB에 연결한다. 기존 API는 변경하지 않는다.
 """
-import os
 import csv
 import io
+import os
 from pathlib import Path
-from fastapi.responses import StreamingResponse, FileResponse
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse, StreamingResponse
 
 router = APIRouter()
 
@@ -131,7 +131,7 @@ ORDER BY ii.integrated_id, sc.sub_contract_id, m.match_id
 
 def _rows(cursor):
     names = [column[0] for column in cursor.description]
-    return [dict(zip(names, row)) for row in cursor.fetchall()]
+    return [dict(zip(names, row, strict=True)) for row in cursor.fetchall()]
 
 
 def _date(value):
@@ -204,7 +204,11 @@ def equipment_master_image(item_id: int):
     if not file_name or file_name in (".", ".."):
         raise HTTPException(404, "이미지가 없습니다.")
     candidate = (root / file_name).resolve()
-    if not candidate.is_relative_to(root) or not candidate.is_file() or candidate.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+    if (
+        not candidate.is_relative_to(root)
+        or not candidate.is_file()
+        or candidate.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp", ".gif")
+    ):
         raise HTTPException(404, "이미지를 찾을 수 없습니다.")
     return FileResponse(candidate)
 
@@ -220,14 +224,20 @@ def equipment_master_export(
     if _setting("GSEM_DATA_SOURCE", "memory").lower() != "sqlserver":
         raise HTTPException(503, "SQL Server 모드에서만 내보낼 수 있습니다.")
     term = query.strip()
-    params = (business_id, business_id, term, f"%{term}%", f"%{term}%", vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip())
+    params = (
+        business_id, business_id, term, f"%{term}%", f"%{term}%",
+        vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip(),
+    )
     conn = _connect()
     try:
         cursor = conn.cursor()
         total = cursor.execute(COUNT_SQL, *params).fetchone()[0]
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["통합ID","사업ID","사업명","품번","품명","담당자","장비설명","계약상세ID","계약명","납품처","바이어","조달원","수량","입고예정","입고일","납품일","계약상 납기"])
+        writer.writerow([
+            "통합ID", "사업ID", "사업명", "품번", "품명", "담당자", "장비설명", "계약상세ID",
+            "계약명", "납품처", "바이어", "조달원", "수량", "입고예정", "입고일", "납품일", "계약상 납기",
+        ])
         for offset in range(0, total, 100):
             records = _rows(cursor.execute(BASE_SQL, *(params + (offset, 100))))
             ids = [row["integrated_id"] for row in records]
@@ -237,11 +247,25 @@ def equipment_master_export(
                 for entry in _rows(cursor.execute(DELIVERY_SQL.format(placeholders=placeholders), *ids)):
                     by_id[entry["integrated_id"]].append(entry)
             for item in records:
-                prefix = [item["integrated_id"],item["business_id"],item["biz_name"],item["item_num"],item["item_name_kor"],item["manager_name"],item["item_usage_kor"]]
+                prefix = [
+                    item["integrated_id"], item["business_id"], item["biz_name"], item["item_num"],
+                    item["item_name_kor"], item["manager_name"], item["item_usage_kor"],
+                ]
                 for detail in by_id[item["integrated_id"]] or [None]:
-                    line = prefix + ([detail["match_id"],detail["sub_contract_name"],detail["delivery_dest_name"],detail["buyer_name"],detail["vendor_name"],detail["quantity"],_date(detail["date_receiving_expect"]),_date(detail["date_receiving"]),_date(detail["date_deliver"]),_date(detail["delivery_date_contract"])] if detail else [None]*10)
+                    detail_values = (
+                        [
+                            detail["match_id"], detail["sub_contract_name"], detail["delivery_dest_name"],
+                            detail["buyer_name"], detail["vendor_name"], detail["quantity"],
+                            _date(detail["date_receiving_expect"]), _date(detail["date_receiving"]),
+                            _date(detail["date_deliver"]), _date(detail["delivery_date_contract"]),
+                        ] if detail else [None] * 10
+                    )
+                    line = prefix + detail_values
                     # Avoid Excel formula execution from untrusted DB text.
-                    writer.writerow([("'" + v) if isinstance(v, str) and v.lstrip().startswith(("=", "+", "-", "@")) else v for v in line])
+                    writer.writerow([
+                        ("'" + v) if isinstance(v, str) and v.lstrip().startswith(("=", "+", "-", "@"))
+                        else v for v in line
+                    ])
         data = output.getvalue().encode("utf-8-sig")
         return StreamingResponse(iter([data]), media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": 'attachment; filename="GSEM_equipment_master.csv"'})
@@ -263,7 +287,10 @@ def list_equipment_master(
 
     term = query.strip()
     pattern = f"%{term}%"
-    params = (business_id, business_id, term, pattern, pattern, vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip())
+    params = (
+        business_id, business_id, term, pattern, pattern,
+        vendor.strip(), vendor.strip(), buyer.strip(), buyer.strip(),
+    )
     conn = _connect()
     try:
         cursor = conn.cursor()
