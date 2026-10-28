@@ -7,8 +7,6 @@ import type { DashboardData } from '../../types/domain';
 
 const attentionItems = [
   { label: '납품 지연', count: 3, tone: 'error' as const, status: '보류' },
-  { label: '단종·대체 미확정', count: 5, tone: 'warning' as const, status: '대체 검토' },
-  { label: '승인 대기', count: 4, tone: 'info' as const, status: '보류' },
 ];
 export function DashboardDeliveryOverview({ monthlyDeliveries, moveToSearch }: {
  monthlyDeliveries: DashboardData['monthlyDeliveries'];
