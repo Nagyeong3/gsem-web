@@ -22,12 +22,12 @@ export function DashboardMetrics({ metrics, onNavigate }: {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: '1.9fr repeat(5, minmax(0, 1fr))',
+          gridTemplateColumns: '1.9fr repeat(3, minmax(0, 1fr))',
           gap: 1.5,
           mb: 1.5,
         }}
       >
-        {metrics.map((metric) => {
+        {metrics.filter((metric) => metric.id !== 'approval' && metric.id !== 'replacement').map((metric) => {
           const Icon = iconByMetric[metric.id];
           const primary = metric.id === 'attention';
           return (
@@ -39,8 +39,6 @@ export function DashboardMetrics({ metrics, onNavigate }: {
               onClick={() =>
                 metric.id === 'delivery' || metric.id === 'delay'
                   ? navigate('/deliveries')
-                  : metric.id === 'approval'
-                    ? navigate('/requests?status=검토%20중')
                   : moveToSearch()
               }
               sx={{
