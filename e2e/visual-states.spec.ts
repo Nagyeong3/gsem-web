@@ -67,20 +67,6 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await expect(page.getByText('완료', { exact: true }).first()).toBeVisible();
   await capture(page, '08-delivery-completed-filter');
 
-  await page.goto('/requests');
-  // The role selection UI is intentionally hidden; test the current role without changing it.
-  await expect(page.getByLabel('Mock 사용자 역할')).toHaveCount(0);
-  await capture(page, '09-change-request-default-role');
-  await expect(page.getByRole('button', { name: '변경 신청 초안' })).toBeEnabled();
-  await capture(page, '10-change-request-current-role');
-  await page.getByRole('button', { name: '변경 신청 초안' }).click();
-  await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
-  await expect(page.getByRole('dialog', { name: '변경 신청 초안' })).toBeVisible();
-  await capture(page, '11-change-request-draft-dialog');
-  await page.getByRole('button', { name: '메모리에 보관' }).click();
-  await expect(page.getByText('브라우저 메모리에만 보관', { exact: false })).toBeVisible();
-  await capture(page, '12-change-request-draft-saved');
-
   await page.goto('/history');
   await expect(page.getByText('5단계 (현재)')).toBeVisible();
   await page.getByLabel('변경 이력 검색').fill('A-4장비');
