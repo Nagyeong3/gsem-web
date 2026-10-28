@@ -1,7 +1,7 @@
 /** Equipment-master page coordinator: filters, queries, pagination, and view state. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Pagination, Paper, Select, Tab, Tabs, Tooltip, Typography, type SelectChangeEvent } from '@mui/material';
-import { DownloadOutlined, SettingsOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
+import { DownloadOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
 import { PageHeader } from '../components/common/PageHeader';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import { runtimeConfig } from '../config/runtime';
@@ -165,7 +165,7 @@ export function EquipmentMasterPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 800 }}>전체 <Box component="span" sx={{ color: 'primary.main' }}>{realDataMode ? totalRows : filteredItems.length}건</Box></Typography>
               <FormControl size="small" sx={{ minWidth: 118 }}><InputLabel>페이지당</InputLabel><Select value={pageSize} label="페이지당" onChange={(event: SelectChangeEvent) => { setPageSize(event.target.value); setPage(1); }}>{['20', '50', '100'].map((value) => <MenuItem key={value} value={value}>{value}개</MenuItem>)}</Select></FormControl>
-              <Tooltip title="엑셀 친화형 표의 헤더 오른쪽 경계를 드래그하거나 두 번 클릭하면 너비를 조절할 수 있습니다. 너비는 이 브라우저에 저장됩니다."><span><Button variant="outlined" disabled startIcon={<SettingsOutlined />}>컬럼 너비 조절 안내</Button></span></Tooltip>
+              <Tooltip title="엑셀 친화형 표의 컬럼 경계를 드래그하거나 두 번 클릭하면 너비를 조절할 수 있고, 변경값은 브라우저에 저장됩니다."><Typography sx={{ color: "text.secondary", fontSize: 11, cursor: "help" }}>열 너비: 헤더 경계 드래그 · 더블클릭</Typography></Tooltip>
               <Tooltip title={realDataMode ? '현재 검색·필터에 해당하는 전체 데이터 다운로드 (Excel 호환 CSV)' : 'Mock 모드에서는 다운로드 미지원'}><span><Button variant="outlined" disabled={!realDataMode || downloading} onClick={downloadExcel} startIcon={<DownloadOutlined />}>{downloading ? '다운로드 중...' : '엑셀 다운로드 (CSV)'}</Button></span></Tooltip>
             </Box>
           </Box>
