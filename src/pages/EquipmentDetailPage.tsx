@@ -1,6 +1,5 @@
 import {
   ArrowBack,
-  AssignmentOutlined,
   BusinessOutlined,
   CalendarMonthOutlined,
   History,
