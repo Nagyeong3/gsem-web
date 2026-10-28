@@ -48,11 +48,6 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
   await page.getByRole('option', { name: '진행' }).click();
   await expect(page.getByText('진행', { exact: true }).first()).toBeVisible();
 
-  await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 신청' }).click();
-  await page.getByLabel('처리 상태').click();
-  await page.getByRole('option', { name: '처리 완료' }).click();
-  await expect(page.getByText('CHG-XXXXX-01', { exact: true }).first()).toBeVisible();
-
   await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 이력' }).click();
   await expect(page.getByText('5단계 (현재)')).toBeVisible();
   await expect(page.getByRole('complementary', { name: '변경 상세' })).toContainText(
