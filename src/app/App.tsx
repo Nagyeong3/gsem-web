@@ -26,11 +26,6 @@ const DeliverySchedulePage = lazy(() =>
     default: module.DeliverySchedulePage,
   })),
 );
-const ChangeRequestPage = lazy(() =>
-  import('../pages/ChangeRequestPage').then((module) => ({
-    default: module.ChangeRequestPage,
-  })),
-);
 const ChangeHistoryPage = lazy(() =>
   import('../pages/ChangeHistoryPage').then((module) => ({ default: module.ChangeHistoryPage })),
 );
@@ -51,7 +46,6 @@ export function App() {
           <Route path="/equipment" element={<EquipmentSearchPage />} />
           <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
           <Route path="/deliveries" element={<DeliverySchedulePage />} />
-          <Route path="/requests" element={<ChangeRequestPage />} />
           <Route path="/history" element={<ChangeHistoryPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
