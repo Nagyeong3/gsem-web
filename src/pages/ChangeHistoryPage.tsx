@@ -156,8 +156,6 @@ export function ChangeHistoryPage() {
           </Box>
           <Typography sx={{ mt: 1.5, fontSize: 12.5, fontWeight: 700 }}>변경 사유</Typography><Typography sx={{ mt: 0.65, color: 'text.secondary', fontSize: 12, lineHeight: 1.6 }}>{selectedRelation.reason}</Typography>
           <Typography sx={{ mt: 1.75, fontSize: 12.5, fontWeight: 700 }}>적용 사업</Typography><Box sx={{ mt: 0.75, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{graph.items.find((item) => item.id === selectedRelation.target)?.businesses.map((value) => <Chip key={value} label={value} size="small" variant="outlined" />)}</Box>
-          <Typography sx={{ mt: 1.75, fontSize: 12.5, fontWeight: 700 }}>처리 과정</Typography>
-          <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.4 }}>{['신청', '검토', '승인', '완료'].map((value) => <Box key={value} sx={{ textAlign: 'center' }}><Box sx={{ mx: 'auto', width: 22, height: 22, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'primary.main', color: 'primary.contrastText' }}><Check sx={{ fontSize: 14 }} /></Box><Typography sx={{ mt: 0.5, fontSize: 10.5 }}>{value}</Typography></Box>)}</Box>
           <Box sx={{ mt: 2, p: 1.1, display: 'flex', gap: 1, bgcolor: 'action.hover', borderRadius: 1 }}><CalendarMonthOutlined sx={{ fontSize: 17, color: 'text.secondary' }} /><Typography sx={{ color: 'text.secondary', fontSize: 10.5, lineHeight: 1.5 }}>이 화면은 기존 단종·대체 관계 기록을 조회합니다. 담당자 직접 수정 이력은 별도 감사 로그로 제공할 예정입니다.</Typography></Box>
         </>}
       </Paper>
