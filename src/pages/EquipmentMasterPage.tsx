@@ -32,6 +32,17 @@ export function EquipmentMasterPage() {
   const masterFilterOptions = useAsyncQuery({ queryFn: loadFilterOptions, enabled: realDataMode });
   const loadBusinessOptions = useCallback(() => fetchBusinessOptions(), []);
   const businessesQuery = useAsyncQuery({ queryFn: loadBusinessOptions, enabled: realDataMode });
+  // The first demo opens only LAH 2차 PBL. Match the business returned by SQL Server,
+  // rather than hard-coding a numeric ID that may differ between environments.
+  const demoBusiness = (businessesQuery.data ?? []).find(
+    (business) => business.businessName.replace(/\s+/g, '').toUpperCase() === 'LAH2차PBL',
+  );
+  useEffect(() => {
+    if (!realDataMode) return;
+    const allowedId = demoBusiness?.businessId ?? null;
+    setBusinessId((current) => current === allowedId ? current : allowedId);
+    setPage(1);
+  }, [demoBusiness?.businessId]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   // Korean IME input should never trigger a request before composition ends.
   useEffect(() => {
@@ -43,7 +54,7 @@ export function EquipmentMasterPage() {
     return () => window.clearTimeout(timer);
   }, [search, isComposing]);
   const loadDatabaseMaster = useCallback(() => fetchDatabaseMaster(page, Number(pageSize), debouncedSearch, businessId, vendorFilter, buyerFilter), [page, pageSize, debouncedSearch, businessId, vendorFilter, buyerFilter]);
-  const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode, keepPreviousData: true });
+  const dbQuery = useAsyncQuery({ queryFn: loadDatabaseMaster, enabled: realDataMode && businessId != null && businessId === demoBusiness?.businessId, keepPreviousData: true });
   const databaseItems = useMemo(() => (dbQuery.data?.items ?? []).map(mapDatabaseItem), [dbQuery.data]);
   const allItems = realDataMode ? databaseItems : items;
   const totalRows = realDataMode ? (dbQuery.data?.totalElements ?? 0) : items.length;
@@ -103,7 +114,7 @@ export function EquipmentMasterPage() {
     } catch (error) { window.alert(`엑셀 다운로드 실패: ${error instanceof Error ? error.message : '서버 오류'}`); }
     finally { setDownloading(false); }
   };
-  const resetFilters = () => { setIsComposing(false); setDebouncedSearch(''); setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
+  const resetFilters = () => { setIsComposing(false); setDebouncedSearch(''); setSearch(''); setRisk(''); setSupplier(''); setProgress(''); setBusinessId(demoBusiness?.businessId ?? null); setVendorFilter(''); setBuyerFilter(''); setPage(1); };
   const openEditDialog = useCallback((item: EquipmentMasterItem) => { if (realDataMode) return; setSelectedId(item.id); setDraft(cloneItem(item)); }, []);
   const saveEditDialog = () => {
     if (!draft) return;
@@ -129,15 +140,19 @@ export function EquipmentMasterPage() {
           <FormControl size="small" sx={{ minWidth: 245 }}><InputLabel id="master-business-filter-label">사업</InputLabel>
             <Select labelId="master-business-filter-label" label="사업" value={businessId == null ? '' : String(businessId)}
               onChange={(event) => { setBusinessId(event.target.value ? Number(event.target.value) : null); setPage(1); }}>
-              <MenuItem value="">전체 사업</MenuItem>
-              {(businessesQuery.data ?? []).map((business) => <MenuItem key={business.businessId} value={String(business.businessId)}>{business.businessName}</MenuItem>)}
+              {demoBusiness && <MenuItem value={String(demoBusiness.businessId)}>{demoBusiness.businessName}</MenuItem>}
+              {(businessesQuery.data ?? []).filter((business) => business.businessId !== demoBusiness?.businessId)
+                .map((business) => <MenuItem key={business.businessId} value={String(business.businessId)} disabled>
+                  {business.businessName} (추후 오픈 예정)
+                </MenuItem>)}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 190 }}><InputLabel id="gsem-vendor-label">조달원</InputLabel><Select labelId="gsem-vendor-label" label="조달원" value={vendorFilter} onChange={(event) => { setVendorFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 조달원</MenuItem>{(masterFilterOptions.data?.vendors ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
           <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel id="gsem-buyer-label">바이어</InputLabel><Select labelId="gsem-buyer-label" label="바이어" value={buyerFilter} onChange={(event) => { setBuyerFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 바이어</MenuItem>{(masterFilterOptions.data?.buyers ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
           {masterFilterOptions.isError && <Button size="small" onClick={masterFilterOptions.refetch}>조달원·바이어 다시 조회</Button>}
-          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>같은 품번도 사업별로 구분됩니다. 사업 필터는 서버의 전체 목록에 적용돼요.</Typography>
+          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>1차 데모는 LAH 2차 PBL 사업만 조회할 수 있습니다. 나머지 사업은 추후 오픈 예정입니다.</Typography>
           {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
+          {!businessesQuery.isLoading && !businessesQuery.isError && !demoBusiness && <Typography color="error" sx={{ fontSize: 12 }}>LAH 2차 PBL 사업을 찾지 못했습니다. 조회를 중단했습니다. DB의 사업명을 확인하세요.</Typography>}
         </Paper>}
         <FilterBar search={search} setSearch={setSearch} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
