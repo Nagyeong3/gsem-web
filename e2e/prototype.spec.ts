@@ -126,31 +126,11 @@ test('대시보드 납품 지표에서 일정 관리로 이동하고 필터링�
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
-test('변경 신청 목록에서 처리 현황과 변경 전후를 조회한다', async ({ page }) => {
-  await page.goto('/requests');
-  await expect(page.getByRole('heading', { name: '변경 신청 및 처리 현황' })).toBeVisible();
-  await expect(page.getByRole('table', { name: '변경 신청 목록' })).toBeVisible();
-  await expect(page.getByText('변경 전·후 비교')).toBeVisible();
-  await expect(page.getByText('실제 승인 처리는 제공하지 않습니다.', { exact: false })).toBeVisible();
-
-  await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: `${screenshotDirectory}/change-request.png`, fullPage: false });
-
-  await page.getByLabel('처리 상태').click();
-  await page.getByRole('option', { name: '검토 중' }).click();
-  await expect(page.getByText('B장비', { exact: true })).toBeVisible();
-
-  const bodyText = await page.locator('body').innerText();
-  expect(bodyText).not.toContain('승인하기');
-  expect(bodyText).not.toContain('반려하기');
-  expect(bodyText).not.toContain('기준정보 관리');
-  expect(bodyText).not.toContain('사원');
-  expect(bodyText).not.toContain('대리');
-  expect(bodyText).not.toContain('과장');
-
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+test('데모에서는 승인 신청 화면이 없고 변경 이력은 유지된다', async ({ page }) => {
+  await page.goto('/history');
+  await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
+  await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 신청' })).toHaveCount(0);
+  await expect(page.getByText('처리 과정')).toHaveCount(0);
 });
 
 test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없이 표시된다', async ({ page }) => {
@@ -166,7 +146,6 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
   const routes = [
     ['/equipment/1', '장비 통합 상세', 'equipment-detail-dark.png'],
     ['/deliveries', '납품 일정 관리', 'delivery-schedule-dark.png'],
-    ['/requests', '변경 신청 및 처리 현황', 'change-request-dark.png'],
   ] as const;
 
   for (const [route, heading, screenshot] of routes) {
@@ -282,18 +261,6 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   await expect(page).toHaveURL(/\/deliveries\?itemId=1/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByText('XXXXXX-01', { exact: true }).first()).toBeVisible();
-
-  await page.goto('/equipment/1');
-  await page.locator('main').getByRole('button', { name: '변경 신청 내역' }).click();
-  await expect(page).toHaveURL(/\/requests\?itemId=1/);
-  await expect(page.getByText('Mock 권한: 지원장비 담당자', { exact: false })).toBeVisible();
-
-  // Role picker was intentionally removed; current Mock permission is shown as read-only.
-  await expect(page.getByLabel('Mock 사용자 역할')).toHaveCount(0);
-  await page.getByRole('button', { name: '변경 신청 초안' }).click();
-  await page.getByLabel('변경 사유').fill('프로토타입 변경 사유');
-  await page.getByRole('button', { name: '메모리에 보관' }).click();
-  await expect(page.getByText('브라우저 메모리에 보관했습니다.', { exact: false }).first()).toBeVisible();
 
   await page.goto('/equipment/1');
   await page.locator('main').getByRole('button', { name: '변경 이력' }).click();
