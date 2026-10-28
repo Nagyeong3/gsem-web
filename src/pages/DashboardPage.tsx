@@ -62,7 +62,7 @@ export function DashboardPage() {
   }
 
   return (
-    <Box sx={{ p: 3, minWidth: 1024 }}>
+    <Box sx={{ p: { xs: 1.5, md: 3 }, minWidth: 0 }}>
       <PageHeader
         title="지원장비 관리 현황"
         description="지원장비 정보와 납품·변경 현황을 확인합니다."
