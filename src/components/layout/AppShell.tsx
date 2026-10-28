@@ -39,7 +39,6 @@ const navItems = [
   { label: '장비 검색', icon: Search, path: '/equipment', available: true },
   { label: '납품 일정', icon: CalendarMonthOutlined, path: '/deliveries', available: true },
   { label: '변경 이력', icon: History, path: '/history', available: true },
-  { label: '변경 신청', icon: AssignmentOutlined, path: '/requests', available: true },
 ] as const;
 
 export function AppShell({ children }: AppShellProps) {
