@@ -1,5 +1,4 @@
 import {
-  AssignmentOutlined,
   CalendarMonthOutlined,
   ChevronLeft,
   DashboardOutlined,
