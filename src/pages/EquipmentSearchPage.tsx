@@ -140,8 +140,8 @@ export function EquipmentSearchPage() {
   };
 
   return (
-    <Box sx={{ display: 'flex', minWidth: 1080, bgcolor: 'background.paper' }}>
-      <Box sx={{ flex: 1, minWidth: 0, p: 3, bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minWidth: 0, bgcolor: 'background.paper' }}>
+      <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, md: 3 }, bgcolor: 'background.default' }}>
         <PageHeader
           title="장비 검색"
           description="품번과 지원장비 정보를 빠르게 조회합니다."
