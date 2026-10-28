@@ -108,7 +108,7 @@ export function DeliverySchedulePage() {
   const completedQuantity = schedules.reduce((sum, item) => sum + (item.deliveredQuantity ?? 0), 0);
 
   return (
-    <Box sx={{ p: 3, minWidth: 1080, bgcolor: 'background.default' }}>
+    <Box sx={{ p: { xs: 1.5, md: 3 }, minWidth: 0, bgcolor: 'background.default' }}>
       <PageHeader title="납품 일정 관리" description="사업과 납지별 납품 일정 및 수량을 확인합니다." />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1.5, mb: 1.5 }}>
