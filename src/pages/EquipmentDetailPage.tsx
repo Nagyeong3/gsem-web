@@ -121,7 +121,7 @@ export function EquipmentDetailPage() {
   const primaryManager = equipment.managers.find((manager) => manager.assignmentType === '정');
 
   return (
-    <Box sx={{ p: 3, minWidth: 1040, bgcolor: 'background.default' }}>
+    <Box sx={{ p: { xs: 1.5, md: 3 }, minWidth: 0, bgcolor: 'background.default' }}>
       <PageHeader
         title="장비 통합 상세"
         description="품목의 기본정보와 사업·담당자·납품 연계정보를 한 화면에서 확인합니다."
