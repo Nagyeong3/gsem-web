@@ -146,7 +146,6 @@ export function EquipmentDetailPage() {
           <Stack sx={{ flexDirection: 'row', gap: 1, alignItems: 'flex-start' }}>
             <Button variant="outlined" startIcon={<CalendarMonthOutlined />} onClick={() => navigate(`/deliveries?itemId=${equipment.itemId}`)}>납품 일정</Button>
             <Button variant="outlined" startIcon={<History />} onClick={() => navigate(`/history?itemId=${equipment.itemId}`)}>변경 이력</Button>
-            <Button variant="outlined" startIcon={<AssignmentOutlined />} onClick={() => navigate(`/requests?itemId=${equipment.itemId}`)}>변경 신청 내역</Button>
           </Stack>
         </Box>
         <Divider />
