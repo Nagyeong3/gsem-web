@@ -104,7 +104,7 @@ export function ChangeHistoryPage() {
     };
   });
 
-  return <Box sx={{ p: 3, minWidth: 1080, height: 'calc(100vh - 58px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+  return <Box sx={{ p: { xs: 1.5, md: 3 }, minWidth: 0, height: 'max(600px, calc(100vh - 58px))', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
     <PageHeader title="장비 변경 이력" description="단종품과 대체품의 관계 및 주요 정보 변경 내역을 추적합니다." />
     <Box sx={{ display: 'flex', gap: 1.25, mb: 1.5 }}>
       <TextField value={query} onChange={(event) => setQuery(event.target.value)} placeholder="장비명 또는 품번 검색" sx={{ width: 260 }} slotProps={{ htmlInput: { 'aria-label': '변경 이력 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
