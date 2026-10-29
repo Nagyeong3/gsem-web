@@ -138,7 +138,7 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
     await page.goto(route);
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     if (route === '/deliveries') {
-      await expect(page.getByText('10건', { exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
     }
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -246,7 +246,7 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
   await expect(page).toHaveURL(/\/deliveries\?itemId=1/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByText('XXXXXX-01', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
 
   await page.goto('/equipment/1');
   await page.locator('main').getByRole('button', { name: '변경 이력' }).click();
