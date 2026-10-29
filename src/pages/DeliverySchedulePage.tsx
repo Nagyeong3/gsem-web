@@ -26,7 +26,7 @@ export function DeliverySchedulePage() {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CalendarMonthOutlined color="primary" />
-            <Typography fontSize={17} fontWeight={800}>월간 납품 일정</Typography>
+            <Typography sx={{ fontSize: 17, fontWeight: 800 }}>월간 납품 일정</Typography>
             <Chip label="화면 예시" size="small" variant="outlined" />
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -58,7 +58,7 @@ export function DeliverySchedulePage() {
         <Box sx={{ position: 'absolute', inset: 0, top: 70, zIndex: 2, display: 'grid', placeItems: 'center', p: 2, pointerEvents: 'none' }}>
           <Paper elevation={7} sx={{ maxWidth: 430, width: '100%', textAlign: 'center', p: { xs: 2.5, md: 4 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
             <LockClockOutlined color="primary" sx={{ fontSize: 36, mb: 1 }} />
-            <Typography component="h2" fontSize={20} fontWeight={800}>달력형 납품 일정 화면 개발 예정</Typography>
+            <Typography component="h2" sx={{ fontSize: 20, fontWeight: 800 }}>달력형 납품 일정 화면 개발 예정</Typography>
             <Typography sx={{ mt: 1.25, color: 'text.secondary', fontSize: 13, lineHeight: 1.7 }}>예정 · 진행 · 완료 · 연기 상태를 기준으로 일정을 확인할 수 있도록 준비하고 있습니다.</Typography>
             <Typography sx={{ mt: 1.5, fontSize: 11, color: 'text.disabled' }}>배경의 일정은 실제 납품 데이터가 아닌 화면 예시입니다.</Typography>
           </Paper>
