@@ -95,7 +95,7 @@ test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자�
 test('대시보드와 메뉴에서 납품 일정 미리보기로 이동한다', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
-  await expect(page).toHaveURL(/\\/deliveries$/);
+  await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
   await expect(page.getByText('현재는 1차 데모를 위한 미리보기 화면입니다.')).toBeVisible();
   await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
@@ -103,7 +103,7 @@ test('대시보드와 메뉴에서 납품 일정 미리보기로 이동한다', 
   await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
   await page.goto('/');
   await page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' }).click();
-  await expect(page).toHaveURL(/\\/deliveries$/);
+  await expect(page).toHaveURL(/\/deliveries$/);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
   for (const label of ['예정', '진행', '완료', '연기']) {
