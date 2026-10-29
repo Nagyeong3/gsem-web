@@ -59,3 +59,25 @@ test('1차 데모: 장비 검색에서 키보드 Enter 검색, 칩 삭제, 필�
   await expect(search).toHaveValue('');
   await expect(page.getByRole('table', { name: '장비 검색 결과' })).toBeVisible();
 });
+
+test('엑셀형 통합현황은 두 줄 제목행을 스크롤 중에도 고정한다', async ({ page }) => {
+  await page.goto('/equipment-master');
+  const table = page.getByRole('table', { name: '엑셀 친화형 지원장비 통합현황' });
+  await expect(table).toBeVisible();
+  const scroller = table.locator('xpath=..');
+  const headers = table.locator('thead tr');
+  await expect(headers).toHaveCount(2);
+  const first = headers.nth(0).locator('th').first();
+  const second = headers.nth(1).locator('th').first();
+  const before = await Promise.all([first.boundingBox(), second.boundingBox()]);
+  await scroller.evaluate((el) => { el.scrollTop = 240; el.scrollLeft = 320; });
+  await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const after = await Promise.all([first.boundingBox(), second.boundingBox()]);
+  expect(before[0]).not.toBeNull();
+  expect(before[1]).not.toBeNull();
+  expect(after[0]).not.toBeNull();
+  expect(after[1]).not.toBeNull();
+  expect(Math.abs(after[0]!.y - before[0]!.y)).toBeLessThan(3);
+  expect(Math.abs(after[1]!.y - before[1]!.y)).toBeLessThan(3);
+  expect(after[1]!.y).toBeGreaterThanOrEqual(after[0]!.y + 40);
+});
