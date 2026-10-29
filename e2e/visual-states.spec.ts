@@ -62,9 +62,7 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
 
   await page.goto('/deliveries');
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await page.getByLabel('진행 상태').click();
-  await page.getByRole('option', { name: '완료' }).click();
-  await expect(page.getByText('완료', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
   await capture(page, '08-delivery-completed-filter');
 
   await page.goto('/history');
