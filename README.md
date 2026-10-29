@@ -89,11 +89,32 @@ FastAPI를 포함한 HTTP Adapter 브라우저 연결을 검증하려면 다음 
 npm run test:e2e:api
 ```
 
-FastAPI와 API 모드 프론트를 한 번에 실행하려면 다음 명령을 사용합니다.
+### Windows / 폐쇄망에서 FastAPI와 프론트 실행
 
-```bash
-npm run dev:api
+프로젝트 **루트 디렉터리**에서 PowerShell 터미널 두 개를 열어 각각 실행합니다. 기존 가상환경 `.venv`와 `node_modules`를 그대로 사용할 수 있습니다.
+
+**터미널 1 — FastAPI (4010 포트):**
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 4010
 ```
+
+가상환경을 이미 활성화했다면 아래 명령으로도 실행할 수 있습니다.
+
+```powershell
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 4010
+```
+
+**터미널 2 — 프론트엔드 API 모드 (기본 5173 포트):**
+
+```powershell
+$env:VITE_DATA_SOURCE = "api"
+npm run dev -- --host 127.0.0.1 --mode api
+```
+
+브라우저: `http://127.0.0.1:5173` · API 상태 확인: `http://127.0.0.1:4010/health`
+
+`npm run dev:api`는 두 프로세스를 한 번에 실행하는 편의 명령이지만, 일부 Windows/Node.js 환경에서는 `spawn EINVAL` 오류가 발생할 수 있습니다. 이 경우 위와 같이 **터미널을 분리하여 실행**합니다. PowerShell에서 `$env:VITE_DATA_SOURCE` 설정은 해당 터미널 세션에만 적용됩니다.
 
 실행 화면 캡처는 다음 위치에 생성됩니다.
 
