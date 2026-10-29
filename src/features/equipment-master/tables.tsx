@@ -9,7 +9,7 @@ import { EquipmentThumbnail, ProgressChip, RiskBadge, FilterSelect } from './vis
 const baseHeaderSx = { py: 1, px: 1, fontSize: 11, fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap', borderColor: '#D6DEE8' } as const;
 
 function stickySx(left: number, width: number, header = false, selected = false) {
-  return { position: 'sticky', left, width, minWidth: width, maxWidth: width, zIndex: header ? 4 : 2, bgcolor: header ? '#DDF5DA' : selected ? '#EEF5FF' : 'background.paper', boxShadow: '1px 0 0 #D6DEE8' } as const;
+  return { position: 'sticky', left, width, minWidth: width, maxWidth: width, zIndex: header ? 8 : 2, bgcolor: header ? '#DDF5DA' : selected ? '#EEF5FF' : 'background.paper', boxShadow: '1px 0 0 #D6DEE8' } as const;
 }
 
 export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onEdit }: { items: EquipmentMasterItem[]; unitNames: string[]; selectedId: string | null; onSelect: (id: string) => void; onEdit: (item: EquipmentMasterItem) => void }) {
@@ -112,7 +112,12 @@ export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onE
     <TableContainer sx={{ height: 'clamp(380px, 58vh, 780px)', minHeight: 380, maxHeight: '78vh', overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'background.paper' }}>
       <Table ref={tableRef} size="small" stickyHeader aria-label="엑셀 친화형 지원장비 통합현황" sx={{ tableLayout: 'fixed', width: widths.reduce((sum, width) => sum + width, 0), minWidth: 0, '& th, & td': { borderColor: '#D6DEE8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', boxSizing: 'border-box' }, '& th[data-resize-index]': { cursor: 'default' }, '& th[data-resize-index]::after': { content: '""', position: 'absolute', right: 1, top: '19%', height: '62%', borderRight: '2px solid rgba(40,83,140,0.3)' } }}>
         <colgroup>{columns.map((col, index) => <col key={col.key} style={{ width: widths[index], minWidth: widths[index] }} />)}</colgroup>
-        <TableHead onPointerMoveCapture={onHeaderPointerMove} onPointerDownCapture={onHeaderPointerDown} onDoubleClickCapture={onHeaderDoubleClick}>
+        <TableHead sx={{
+          '& > tr:first-of-type': { height: 92 },
+          '& > tr:first-of-type > th': { top: 0, zIndex: 5, backgroundClip: 'padding-box', boxShadow: '0 1px 0 #B9C8D9' },
+          '& > tr:first-of-type > th:nth-of-type(-n+6)': { zIndex: 9 },
+          '& > tr:nth-of-type(2) > th': { top: 92, zIndex: 5, backgroundClip: 'padding-box', boxShadow: '0 1px 0 #B9C8D9' },
+        }} onPointerMoveCapture={onHeaderPointerMove} onPointerDownCapture={onHeaderPointerDown} onDoubleClickCapture={onHeaderDoubleClick}>
           <TableRow>
             <TableCell data-resize-index={0} rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(offsets[0], widths[0], true) }}>번호</TableCell>
             <TableCell data-resize-index={1} rowSpan={2} sx={{ ...baseHeaderSx, ...stickySx(offsets[1], widths[1], true) }}>RISK</TableCell>
@@ -188,7 +193,7 @@ export function OptimizedTable({ items, selectedId, onSelect, onEdit }: { items:
   return (
     <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5, overflow: 'auto', height: 'clamp(380px, 58vh, 780px)', minHeight: 380, maxHeight: '78vh' }}>
       <Table size="small" stickyHeader aria-label="업무 최적화형 지원장비 통합현황" sx={{ minWidth: 1120 }}>
-        <TableHead><TableRow>{['', 'RISK', '장비형상', '품명', '사업명', '품번', 'Material', '담당 바이어', '조달원', '진행상태', '계약부대', '총수량', '정비 기준', '수정'].map((header) => <TableCell key={header} sx={{ fontWeight: 800, bgcolor: '#F6F9FC', whiteSpace: 'nowrap' }}>{header}</TableCell>)}</TableRow></TableHead>
+        <TableHead sx={{ '& th': { top: 0, zIndex: 4, backgroundClip: 'padding-box', boxShadow: '0 1px 0 #CBD5E1' } }}><TableRow>{['', 'RISK', '장비형상', '품명', '사업명', '품번', 'Material', '담당 바이어', '조달원', '진행상태', '계약부대', '총수량', '정비 기준', '수정'].map((header) => <TableCell key={header} sx={{ fontWeight: 800, bgcolor: '#F6F9FC', whiteSpace: 'nowrap' }}>{header}</TableCell>)}</TableRow></TableHead>
         <TableBody>{items.map((item) => { const selected = item.id === selectedId; const contractedUnits = item.deliveries.filter((delivery) => delivery.contracted).length; return <TableRow key={item.id} hover selected={selected} onClick={() => onSelect(item.id)} onDoubleClick={() => onEdit(item)} sx={{ cursor: 'pointer' }}><TableCell padding="checkbox"><Radio checked={selected} size="small" /></TableCell><TableCell><RiskBadge risk={item.risk} /></TableCell><TableCell><EquipmentThumbnail item={item} /></TableCell><TableCell sx={{ fontWeight: 800 }}>{item.itemNameKor}</TableCell><TableCell sx={{ fontWeight: 700 }}>{item.businessName || '-'}</TableCell><TableCell>{item.itemNumber}</TableCell><TableCell>{item.material}</TableCell><TableCell>{item.buyer}</TableCell><TableCell>{item.supplier}</TableCell><TableCell><ProgressChip item={item} /></TableCell><TableCell>{contractedUnits}개 부대</TableCell><TableCell sx={{ fontWeight: 800 }}>{getTotalQuantity(item)}</TableCell><TableCell>{item.maintenance.periodicInspection === '-' ? '일반' : `주기검사 ${item.maintenance.periodicInspection}`}</TableCell><TableCell><Button size="small" disabled={realDataMode} startIcon={<EditOutlined />} onClick={(event) => { event.stopPropagation(); onEdit(item); }}>수정</Button></TableCell></TableRow>; })}</TableBody>
       </Table>
     </TableContainer>
