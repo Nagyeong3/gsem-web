@@ -40,10 +40,7 @@ test('HTTP Adapter 모드에서 상세·납품·변경·대체 이력 화면이 
 
   await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByRole('table', { name: '납품 일정 목록' })).toBeVisible();
-  await page.getByLabel('진행 상태').click();
-  await page.getByRole('option', { name: '진행' }).click();
-  await expect(page.getByText('진행', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
 
   await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 이력' }).click();
   await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
