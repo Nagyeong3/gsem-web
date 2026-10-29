@@ -69,6 +69,13 @@ test('엑셀형 통합현황은 두 줄 제목행을 스크롤 중에도 고정�
   await expect(headers).toHaveCount(2);
   const first = headers.nth(0).locator('th').first();
   const second = headers.nth(1).locator('th').first();
+  // Mock data may contain fewer rows than the scroll viewport. Add display-only copies
+  // inside the browser fixture to exercise the sticky layout without changing app data.
+  await table.locator('tbody').evaluate((body) => {
+    const sample = body.querySelector('tr');
+    if (!sample) throw new Error('Expected a rendered equipment row');
+    for (let i = 0; i < 28; i += 1) body.appendChild(sample.cloneNode(true));
+  });
   const before = await Promise.all([first.boundingBox(), second.boundingBox()]);
   await scroller.evaluate((el) => { el.scrollTop = 240; el.scrollLeft = 320; });
   await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
