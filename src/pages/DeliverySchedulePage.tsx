@@ -1,173 +1,69 @@
-import {
-  CalendarMonthOutlined,
-  ErrorOutlined,
-  Inventory2Outlined,
-  LocalShippingOutlined,
-  Search,
-} from '@mui/icons-material';
-import {
-  Box,
-  FormControl,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { CalendarMonthOutlined, LockClockOutlined } from '@mui/icons-material';
+import { Box, Chip, Paper, Typography } from '@mui/material';
 import { PageHeader } from '../components/common/PageHeader';
-import { QueryStatePanel } from '../components/common/QueryStatePanel';
-import { SectionCard } from '../components/common/SectionCard';
-import { StatusChip } from '../components/common/StatusChip';
-import { deliveryScheduleService } from '../services';
-import { useAsyncQuery } from '../hooks/useAsyncQuery';
-import type { DeliverySchedule, DeliveryScheduleFilters } from '../types/domain';
 
-const initialFilters: DeliveryScheduleFilters = {
-  query: '',
-  business: '',
-  aircraftType: '',
-  destination: '',
-  status: '',
+const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+const statuses = [
+  { label: '예정', color: '#2674D9', bg: '#EAF2FF' },
+  { label: '진행', color: '#B46A00', bg: '#FFF0D5' },
+  { label: '완료', color: '#14804A', bg: '#E6F7ED' },
+  { label: '연기', color: '#BC4545', bg: '#FFECEB' },
+] as const;
+const previewEvents: Record<number, { title: string; status: number }> = {
+  4: { title: '납품 일정 예시', status: 0 },
+  9: { title: '납품 일정 예시', status: 1 },
+  15: { title: '납품 일정 예시', status: 2 },
+  22: { title: '납품 일정 예시', status: 3 },
+  27: { title: '납품 일정 예시', status: 0 },
 };
 
-function FilterSelect({ id, label, value, options, onChange }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  const labelId = `delivery-${id}-label`;
-  return (
-    <FormControl size="small" fullWidth>
-      <InputLabel id={labelId}>{label}</InputLabel>
-      <Select id={`delivery-${id}`} labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}>
-        <MenuItem value="">전체</MenuItem>
-        {options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
-      </Select>
-    </FormControl>
-  );
-}
-
-function Metric({ icon, label, value, helper }: { icon: ReactNode; label: string; value: string; helper: string }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 1.75, minHeight: 92, display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-      <Box>
-        <Typography sx={{ color: 'text.secondary', fontSize: 11, fontWeight: 600 }}>{label}</Typography>
-        <Typography sx={{ mt: 0.55, fontSize: 24, fontWeight: 700 }}>{value}</Typography>
-        <Typography sx={{ mt: 0.2, color: 'text.secondary', fontSize: 10.5 }}>{helper}</Typography>
-      </Box>
-      <Box sx={{ width: 36, height: 36, borderRadius: 1, display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'primary.main' }}>{icon}</Box>
-    </Paper>
-  );
-}
-
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '104px 1fr', gap: 1.5, py: 0.65 }}>
-      <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{label}</Typography>
-      <Typography component="div" sx={{ fontSize: 12.5, fontWeight: 500 }}>{children}</Typography>
-    </Box>
-  );
-}
-
+// Deliberately illustrative, not an operational schedule or live database result.
 export function DeliverySchedulePage() {
-  const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState(initialFilters);
-  const [requestedSelectedId, setRequestedSelectedId] = useState<number>();
-  const loadAllSchedules = useCallback(() => deliveryScheduleService.list(initialFilters), []);
-  const allSchedulesQuery = useAsyncQuery<DeliverySchedule[]>({ queryFn: loadAllSchedules });
-  const loadSchedules = useCallback(() => deliveryScheduleService.list(filters), [filters]);
-  const schedulesQuery = useAsyncQuery<DeliverySchedule[]>({
-    queryFn: loadSchedules,
-    keepPreviousData: true,
-  });
-  const allSchedules = useMemo(() => allSchedulesQuery.data ?? [], [allSchedulesQuery.data]);
-  const itemIdParam = Number(searchParams.get('itemId'));
-  const schedules = useMemo(() => {
-    const items = schedulesQuery.data ?? [];
-    return Number.isInteger(itemIdParam) && itemIdParam > 0
-      ? items.filter((item) => item.itemId === itemIdParam)
-      : items;
-  }, [itemIdParam, schedulesQuery.data]);
-  const selectedId = requestedSelectedId !== undefined && schedules.some((item) => item.deliveryId === requestedSelectedId)
-    ? requestedSelectedId
-    : schedules[0]?.deliveryId;
-
-  const options = useMemo(() => ({
-    businesses: [...new Set(allSchedules.map((item) => item.business))].sort(),
-    aircraftTypes: [...new Set(allSchedules.map((item) => item.aircraftType))].sort(),
-    destinations: [...new Set(allSchedules.map((item) => item.destination))].sort(),
-  }), [allSchedules]);
-  const selected = schedules.find((item) => item.deliveryId === selectedId);
-  const totalQuantity = schedules.reduce((sum, item) => sum + item.plannedQuantity, 0);
-  const completedQuantity = schedules.reduce((sum, item) => sum + (item.deliveredQuantity ?? 0), 0);
-
   return (
     <Box sx={{ p: { xs: 1.5, md: 3 }, minWidth: 0, bgcolor: 'background.default' }}>
-      <PageHeader title="납품 일정 관리" description="사업과 납지별 납품 일정 및 수량을 확인합니다." />
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1.5, mb: 1.5 }}>
-        <Metric icon={<CalendarMonthOutlined fontSize="small" />} label="조회 일정" value={`${schedules.length}건`} helper="현재 검색 조건 기준" />
-        <Metric icon={<Inventory2Outlined fontSize="small" />} label="계획 수량" value={`${totalQuantity}개`} helper="목업 데이터 합계" />
-        <Metric icon={<LocalShippingOutlined fontSize="small" />} label="납품 완료 수량" value={`${completedQuantity}개`} helper="완료 상태 기준" />
-        <Metric icon={<ErrorOutlined fontSize="small" />} label="지연 표시" value={`${schedules.filter((item) => item.delayed).length}건`} helper="판정 규칙 미확정" />
-      </Box>
-
-      <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1.5fr repeat(4, minmax(130px, 1fr))', gap: 1 }}>
-          <TextField value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder="품번, 품명, 사업, 납지 검색" slotProps={{ htmlInput: { 'aria-label': '납품 일정 검색' }, input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 19, color: 'text.secondary' }} /></InputAdornment> } }} />
-          <FilterSelect id="business" label="사업" value={filters.business} options={options.businesses} onChange={(value) => setFilters((current) => ({ ...current, business: value }))} />
-          <FilterSelect id="aircraft-type" label="기종" value={filters.aircraftType} options={options.aircraftTypes} onChange={(value) => setFilters((current) => ({ ...current, aircraftType: value }))} />
-          <FilterSelect id="destination" label="납지" value={filters.destination} options={options.destinations} onChange={(value) => setFilters((current) => ({ ...current, destination: value }))} />
-          <FilterSelect id="status" label="진행 상태" value={filters.status} options={['예정', '진행', '완료']} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
+      <PageHeader title="납품 일정 관리" description="현재는 1차 데모를 위한 미리보기 화면입니다." />
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, px: 2.5, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalendarMonthOutlined color="primary" />
+            <Typography fontSize={17} fontWeight={800}>월간 납품 일정</Typography>
+            <Chip label="화면 예시" size="small" variant="outlined" />
+          </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {statuses.map(({ label, color, bg }) => (
+              <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, borderRadius: 1, px: 1.25, py: 0.65, bgcolor: bg }}>
+                <Box sx={{ height: 8, width: 8, borderRadius: 1, bgcolor: color }} />
+                <Typography sx={{ color, fontSize: 12, fontWeight: 700 }}>{label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        <Box aria-hidden="true" sx={{ position: 'relative', filter: 'blur(2px)', opacity: 0.52, pointerEvents: 'none', userSelect: 'none' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', bgcolor: 'action.hover' }}>
+            {weekDays.map((day, index) => <Box key={day} sx={{ py: 1.25, textAlign: 'center', borderRight: '1px solid', borderBottom: '1px solid', borderColor: 'divider', color: index === 0 ? 'error.main' : 'text.secondary', fontSize: 12, fontWeight: 700 }}>{day}</Box>)}
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+            {Array.from({ length: 35 }, (_, i) => {
+              const day = i - 2;
+              const sample = previewEvents[day];
+              return <Box key={i} sx={{ minWidth: 0, minHeight: { xs: 68, md: 104 }, p: 1, borderRight: '1px solid', borderBottom: '1px solid', borderColor: 'divider', bgcolor: day < 1 || day > 31 ? 'action.hover' : 'background.paper' }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 650, color: day < 1 || day > 31 ? 'text.disabled' : 'text.primary' }}>{day < 1 ? 30 + day : day > 31 ? day - 31 : day}</Typography>
+                {sample && <Box sx={{ mt: 1, py: 0.6, px: 0.8, borderRadius: 1, bgcolor: statuses[sample.status].bg, borderLeft: '3px solid', borderColor: statuses[sample.status].color }}>
+                  <Typography noWrap sx={{ color: statuses[sample.status].color, fontSize: 11, fontWeight: 700 }}>{sample.title}</Typography>
+                </Box>}
+              </Box>;
+            })}
+          </Box>
+        </Box>
+        <Box sx={{ position: 'absolute', inset: 0, top: 70, zIndex: 2, display: 'grid', placeItems: 'center', p: 2, pointerEvents: 'none' }}>
+          <Paper elevation={7} sx={{ maxWidth: 430, width: '100%', textAlign: 'center', p: { xs: 2.5, md: 4 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <LockClockOutlined color="primary" sx={{ fontSize: 36, mb: 1 }} />
+            <Typography component="h2" fontSize={20} fontWeight={800}>달력형 납품 일정 화면 개발 예정</Typography>
+            <Typography sx={{ mt: 1.25, color: 'text.secondary', fontSize: 13, lineHeight: 1.7 }}>예정 · 진행 · 완료 · 연기 상태를 기준으로 일정을 확인할 수 있도록 준비하고 있습니다.</Typography>
+            <Typography sx={{ mt: 1.5, fontSize: 11, color: 'text.disabled' }}>배경의 일정은 실제 납품 데이터가 아닌 화면 예시입니다.</Typography>
+          </Paper>
         </Box>
       </Paper>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 310px', gap: 1.5 }}>
-        <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
-          <TableContainer>
-            <Table size="small" aria-label="납품 일정 목록">
-              <TableHead><TableRow>
-                <TableCell>품번</TableCell><TableCell>품명</TableCell><TableCell>사업</TableCell><TableCell>기종</TableCell><TableCell>납지</TableCell><TableCell align="right">계획</TableCell><TableCell align="right">발주</TableCell><TableCell align="right">입고</TableCell><TableCell align="right">납품</TableCell><TableCell>예정일</TableCell><TableCell>상태</TableCell>
-              </TableRow></TableHead>
-              <TableBody>
-                {schedulesQuery.isLoading ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="loading" loadingMessage="납품 일정을 불러오고 있습니다." minHeight={280} compact /></TableCell></TableRow>
-                  : schedulesQuery.isError ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="error" errorMessage="납품 일정을 불러오지 못했습니다." onRetry={schedulesQuery.refetch} minHeight={280} /></TableCell></TableRow>
-                  : schedules.length === 0 ? <TableRow><TableCell colSpan={11} sx={{ p: 0 }}><QueryStatePanel state="empty" emptyMessage="검색 결과가 없습니다." emptyDescription="검색 조건을 변경해보세요." onReset={() => setFilters(initialFilters)} minHeight={280} /></TableCell></TableRow>
-                  : schedules.map((item) => <TableRow key={item.deliveryId} hover selected={item.deliveryId === selectedId} onClick={() => setRequestedSelectedId(item.deliveryId)} sx={{ cursor: 'pointer' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>{item.itemNum}</TableCell><TableCell>{item.itemName}</TableCell><TableCell>{item.business}</TableCell><TableCell>{item.aircraftType}</TableCell><TableCell>{item.destination}</TableCell><TableCell align="right">{item.plannedQuantity}</TableCell><TableCell align="right">{item.orderedQuantity ?? '-'}</TableCell><TableCell align="right">{item.receivedQuantity ?? '-'}</TableCell><TableCell align="right">{item.deliveredQuantity ?? '-'}</TableCell><TableCell>{item.deliveryDate}</TableCell><TableCell><StatusChip status={item.status} /></TableCell>
-                  </TableRow>)}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-
-        <SectionCard title="선택 일정 상세">
-          <Box sx={{ p: 2 }}>
-            {!selected ? <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>일정을 선택해주세요.</Typography> : <>
-              <Typography sx={{ fontSize: 18, fontWeight: 700 }}>{selected.itemName}</Typography>
-              <Typography sx={{ mt: 0.2, mb: 1.5, color: 'text.secondary', fontSize: 12 }}>{selected.itemNum}</Typography>
-              <DetailRow label="사업">{selected.business}</DetailRow>
-              <DetailRow label="기종">{selected.aircraftType}</DetailRow>
-              <DetailRow label="납지">{selected.destination}</DetailRow>
-              <DetailRow label="납품 예정일">{selected.deliveryDate}</DetailRow>
-              <DetailRow label="진행 상태"><StatusChip status={selected.status} /></DetailRow>
-              <DetailRow label="담당자">{selected.managers.map((item) => item.name).join(' · ') || '-'}</DetailRow>
-              <Box sx={{ mt: 1.5, p: 1.25, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography sx={{ color: 'text.secondary', fontSize: 11.5 }}>발주·입고·납품 단계와 지연 판정 방식은 프로토타입 가정이며 실제 업무 상태값 확정 후 조정합니다.</Typography>
-              </Box>
-              <Box sx={{ mt: 1.5, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5 }}>
-                {[['계획', selected.plannedQuantity], ['발주', selected.orderedQuantity], ['입고', selected.receivedQuantity], ['납품', selected.deliveredQuantity]].map(([label, value]) => <Box key={String(label)} sx={{ textAlign: 'center', p: 0.8, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}><Typography sx={{ color: 'text.secondary', fontSize: 10 }}>{label}</Typography><Typography sx={{ mt: 0.2, fontSize: 13, fontWeight: 700 }}>{value ?? '-'}</Typography></Box>)}
-              </Box>
-            </>}
-          </Box>
-        </SectionCard>
-      </Box>
     </Box>
   );
 }
