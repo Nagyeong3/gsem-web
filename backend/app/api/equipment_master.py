@@ -149,7 +149,8 @@ def list_equipment_master_businesses():
         rows = _rows(cursor.execute("""
             SELECT DISTINCT b.business_id, b.biz_name
             FROM Business AS b
-            JOIN Integrated_Info AS ii ON ii.business_id = b.business_id
+            WHERE EXISTS (SELECT 1 FROM Integrated_Info AS ii WHERE ii.business_id = b.business_id)
+               OR EXISTS (SELECT 1 FROM Contract AS c WHERE c.business_id = b.business_id)
             ORDER BY b.biz_name, b.business_id
         """))
         return [{"businessId": row["business_id"], "businessName": row["biz_name"]} for row in rows]

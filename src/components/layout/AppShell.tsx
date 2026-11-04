@@ -31,6 +31,7 @@ interface AppShellProps {
 }
 
 const sidebarWidth = 216;
+const collapsedWidth = 64;
 
 const navItems = [
   { label: '대시보드', icon: DashboardOutlined, path: '/', available: true },
@@ -45,6 +46,9 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('gsem.sidebar.collapsed.v1') === 'true');
+  useEffect(() => { localStorage.setItem('gsem.sidebar.collapsed.v1', String(collapsed)); }, [collapsed]);
+  const currentWidth = collapsed ? collapsedWidth : sidebarWidth;
   const { mode, toggleMode } = useThemeMode();
 
   useEffect(() => {
@@ -59,7 +63,8 @@ export function AppShell({ children }: AppShellProps) {
           position: 'fixed',
           inset: '0 auto 0 0',
           zIndex: 1200,
-          width: sidebarWidth,
+          width: currentWidth,
+          transition: "width 180ms ease",
           color: '#FFFFFF',
           background: 'linear-gradient(180deg, #002B55 0%, #003664 55%, #002B55 100%)',
           borderRight: '1px solid rgba(255,255,255,0.08)',
@@ -71,11 +76,11 @@ export function AppShell({ children }: AppShellProps) {
             height: (theme) => theme.layout.headerHeight,
             display: 'flex',
             alignItems: 'center',
-            px: 2.25,
+            px: collapsed ? 1 : 2.25,
             borderBottom: '1px solid rgba(255,255,255,0.14)',
           }}
         >
-          <Typography
+          {!collapsed && <Typography
             sx={{
               fontSize: 12.5,
               lineHeight: 1.35,
@@ -85,7 +90,7 @@ export function AppShell({ children }: AppShellProps) {
             }}
           >
             지원장비 관리시스템 (GSEM)
-          </Typography>
+          </Typography>}
         </Box>
 
         <List component="nav" aria-label="주요 메뉴" sx={{ px: 1, py: 2 }}>
@@ -96,7 +101,7 @@ export function AppShell({ children }: AppShellProps) {
             return (
               <Tooltip
                 key={item.label}
-                title={item.available ? '' : '이전 통합현황 화면입니다.'}
+                title={collapsed ? item.label : item.available ? '' : '이전 통합현황 화면입니다.'}
                 placement="right"
               >
                 <ListItemButton
@@ -110,7 +115,8 @@ export function AppShell({ children }: AppShellProps) {
                   sx={{
                     minHeight: 48,
                     mb: 0.75,
-                    px: 1.25,
+                    px: collapsed ? 1 : 1.25,
+                    justifyContent: collapsed ? "center" : "initial",
                     borderRadius: 1,
                     color: '#FFFFFF',
                     opacity: item.available ? 1 : 0.48,
@@ -122,10 +128,10 @@ export function AppShell({ children }: AppShellProps) {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.09)' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
+                  <ListItemIcon sx={{ minWidth: collapsed ? 0 : 34, color: 'inherit', justifyContent: "center" }}>
                     <Icon sx={{ fontSize: 22 }} />
                   </ListItemIcon>
-                  <Typography
+                  {!collapsed && <Typography
                     noWrap
                     sx={{
                       minWidth: 0,
@@ -135,7 +141,7 @@ export function AppShell({ children }: AppShellProps) {
                     }}
                   >
                     {item.label}
-                  </Typography>
+                  </Typography>}
                 </ListItemButton>
               </Tooltip>
             );
@@ -155,13 +161,14 @@ export function AppShell({ children }: AppShellProps) {
           }}
         >
           <ListItemButton
-            onClick={() => setNoticeOpen(true)}
-            sx={{ borderRadius: 1, color: '#FFFFFF' }}
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? "메뉴 펼치기" : "메뉴 접기"}
+            sx={{ borderRadius: 1, color: '#FFFFFF', justifyContent: collapsed ? "center" : "initial" }}
           >
             <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
-              <ChevronLeft fontSize="small" />
+              <ChevronLeft fontSize="small" sx={{ transform: collapsed ? "rotate(180deg)" : "none" }} />
             </ListItemIcon>
-            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>메뉴 접기</Typography>
+            {!collapsed && <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>메뉴 접기</Typography>}
           </ListItemButton>
         </Box>
       </Box>
@@ -172,7 +179,8 @@ export function AppShell({ children }: AppShellProps) {
           position: 'fixed',
           top: 0,
           right: 0,
-          left: sidebarWidth,
+          left: currentWidth,
+          transition: "left 180ms ease",
           zIndex: 1100,
           height: (theme) => theme.layout.headerHeight,
           display: 'flex',
@@ -186,7 +194,7 @@ export function AppShell({ children }: AppShellProps) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton aria-label="메뉴 열기" size="small" onClick={() => setNoticeOpen(true)}>
+          <IconButton aria-label="메뉴 열기" size="small" onClick={() => setCollapsed((value) => !value)}>
             <Menu sx={{ color: 'text.primary' }} />
           </IconButton>
           <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
@@ -231,7 +239,8 @@ export function AppShell({ children }: AppShellProps) {
         component="main"
         sx={{
           minHeight: '100vh',
-          ml: `${sidebarWidth}px`,
+          ml: `${currentWidth}px`,
+          transition: "margin-left 180ms ease",
           pt: (theme) => `${theme.layout.headerHeight}px`,
           '@media (max-width: 900px)': { ml: 0 },
         }}

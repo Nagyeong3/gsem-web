@@ -12,12 +12,18 @@ def _require_db():
 
 
 @router.get("/delivery-rounds")
-def rounds(business_id: int = Query(..., alias="businessId", ge=1)):
+def rounds(
+    business_id: int | None = Query(None, alias="businessId", ge=1),
+    business_ids: list[int] | None = Query(None, alias="businessIds"),
+):
+    selected = list(dict.fromkeys(business_ids or ([business_id] if business_id else [])))
+    if not selected or any(value < 1 for value in selected):
+        raise HTTPException(422, "하나 이상의 올바른 사업 ID가 필요합니다.")
     _require_db()
     conn = _connect()
     try:
         records = _rows(conn.cursor().execute("""
-SELECT sc.sub_contract_id, b.biz_name, sc.delivery_dest_name,
+SELECT sc.sub_contract_id, b.business_id, b.biz_name, sc.delivery_dest_name,
        sc.sub_contract_name, sc.delivery_date_contract,
        COUNT(DISTINCT m.item_id) AS item_count,
        COUNT(m.match_id) AS line_count
@@ -25,13 +31,14 @@ FROM Sub_Contract AS sc
 JOIN Contract AS c ON sc.contract_id = c.contract_id
 JOIN Business AS b ON b.business_id = c.business_id
 LEFT JOIN Match_Sub_Contract_Item AS m ON m.sub_contract_id = sc.sub_contract_id
-WHERE c.business_id = ?
-GROUP BY sc.sub_contract_id, b.biz_name, sc.delivery_dest_name,
+WHERE c.business_id IN ({placeholders})
+GROUP BY sc.sub_contract_id, b.business_id, b.biz_name, sc.delivery_dest_name,
          sc.sub_contract_name, sc.delivery_date_contract
 ORDER BY sc.delivery_date_contract, sc.sub_contract_id
-""", business_id))
+""".replace("{placeholders}", ", ".join("?" for _ in selected)), *selected))
         return {"items": [{
             "subContractId": row["sub_contract_id"],
+            "businessId": row["business_id"],
             "businessName": row["biz_name"],
             "destination": row["delivery_dest_name"],
             "subContractName": row["sub_contract_name"],

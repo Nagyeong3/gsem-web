@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Box, Chip, CircularProgress, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button } from '@mui/material';
+import { Box, Chip, CircularProgress, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button, Autocomplete, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, RefreshOutlined } from '@mui/icons-material';
 import { PageHeader } from '../components/common/PageHeader';
 import { runtimeConfig } from '../config/runtime';
@@ -7,6 +7,7 @@ import { fetchBusinessOptions, type DbBusiness } from '../features/equipment-mas
 
 type Round = {
   subContractId: number;
+  businessId: number;
   businessName: string;
   destination: string | null;
   subContractName: string | null;
@@ -36,11 +37,24 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 export function DeliveryRoundMasterPage() {
-  const [business, setBusiness] = useState<DbBusiness | null>(null);
+  const [businesses, setBusinesses] = useState<DbBusiness[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('gsem.deliveryRound.businessIds.v1') || '[]') as unknown;
+      return Array.isArray(raw) ? raw.filter((id): id is number => Number.isSafeInteger(id) && id > 0) : [];
+    } catch { return []; }
+  });
+  const [aircraftCategory, setAircraftCategory] = useState<'all' | 'fixed' | 'rotary'>(() => {
+    const saved = localStorage.getItem('gsem.deliveryRound.aircraftCategory.v1');
+    return saved === 'fixed' || saved === 'rotary' ? saved : 'all';
+  });
   const [rounds, setRounds] = useState<LoadState<Round[]>>({ loading: true });
   const [expanded, setExpanded] = useState<number | null>(null);
   const [detail, setDetail] = useState<Record<number, LoadState<RoundItem[]>>>({});
   const [reload, setReload] = useState(0);
+
+  useEffect(() => { localStorage.setItem('gsem.deliveryRound.businessIds.v1', JSON.stringify(selectedIds)); }, [selectedIds]);
+  useEffect(() => { localStorage.setItem('gsem.deliveryRound.aircraftCategory.v1', aircraftCategory); }, [aircraftCategory]);
 
   useEffect(() => {
     if (runtimeConfig.dataSource !== 'api') {
@@ -49,39 +63,68 @@ export function DeliveryRoundMasterPage() {
     }
     let alive = true;
     fetchBusinessOptions()
-      .then((businesses) => {
-        if (!alive) return;
-        const selected = businesses.find((entry) => entry.businessName.replace(/\s+/g, '').toUpperCase() === 'LAH2차PBL');
-        if (!selected) {
-          setRounds({ loading: false, error: 'LAH 2차 PBL 사업을 찾지 못했습니다.' });
-          return;
-        }
-        setBusiness(selected);
-        return readJson<{ items: Round[] }>(`/delivery-rounds?businessId=${selected.businessId}`)
-          .then((result) => { if (alive) setRounds({ loading: false, data: result.items }); });
-      })
-      .catch((error: unknown) => { if (alive) setRounds({ loading: false, error: error instanceof Error ? error.message : '조회 실패' }); });
+      .then((options) => { if (alive) setBusinesses(options); })
+      .catch((error: unknown) => { if (alive) setRounds({ loading: false, error: error instanceof Error ? error.message : '사업 목록 조회 실패' }); });
     return () => { alive = false; };
   }, [reload]);
+
+  useEffect(() => {
+    if (runtimeConfig.dataSource !== 'api' || businesses.length === 0) return;
+    const valid = new Set(businesses.map((item) => item.businessId));
+    const ids = selectedIds.filter((id) => valid.has(id));
+    const chosen = ids.length ? ids : businesses.map((entry) => entry.businessId);
+    const params = new URLSearchParams();
+    chosen.forEach((id) => params.append('businessIds', String(id)));
+    let alive = true;
+    readJson<{ items: Round[] }>(`/delivery-rounds?${params.toString()}`)
+      .then((response) => { if (alive) setRounds({ loading: false, data: response.items }); })
+      .catch((error: unknown) => { if (alive) setRounds({ loading: false, error: error instanceof Error ? error.message : '차수 조회 실패' }); });
+    return () => { alive = false; };
+  }, [businesses, selectedIds, reload]);
+
+  const changeBusinessSelection = (ids: number[]) => {
+    setSelectedIds(ids);
+    setRounds({ loading: true });
+    setExpanded(null);
+    setDetail({});
+  };
 
   const openRound = useCallback(async (roundId: number) => {
     if (expanded === roundId) { setExpanded(null); return; }
     setExpanded(roundId);
-    if (!business || detail[roundId]?.data || detail[roundId]?.loading) return;
+    const round = rounds.data?.find((value) => value.subContractId === roundId);
+    if (!round || detail[roundId]?.data || detail[roundId]?.loading) return;
     setDetail((current) => ({ ...current, [roundId]: { loading: true } }));
     try {
-      const response = await readJson<{ items: RoundItem[] }>(`/delivery-rounds/${roundId}/items?businessId=${business.businessId}`);
+      const response = await readJson<{ items: RoundItem[] }>(`/delivery-rounds/${roundId}/items?businessId=${round.businessId}`);
       setDetail((current) => ({ ...current, [roundId]: { loading: false, data: response.items } }));
     } catch (error) {
       setDetail((current) => ({ ...current, [roundId]: { loading: false, error: error instanceof Error ? error.message : '품목 조회 실패' } }));
     }
-  }, [business, detail, expanded]);
+  }, [rounds.data, detail, expanded]);
 
   return (
     <Box sx={{ minWidth: 0, p: { xs: 1.5, md: 3 }, bgcolor: 'background.default' }}>
       <PageHeader title="지원장비 통합현황" description="사업·납품 부대·차수별 현황을 조회하고, 행을 펼쳐 해당 납품 품목을 확인합니다. (읽기 전용)" />
       <Paper variant="outlined" sx={{ p: 1.5, mb: 1.5, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5 }}>
-        <Chip label={business?.businessName ?? 'LAH 2차 PBL'} variant="outlined" color="primary" />
+        <Box sx={{ width: { xs: '100%', sm: 300 }, minWidth: 200 }}>
+          <Autocomplete multiple size="small" options={businesses}
+            value={businesses.filter((entry) => selectedIds.includes(entry.businessId))}
+            getOptionLabel={(entry) => entry.businessName}
+            isOptionEqualToValue={(a, b) => a.businessId === b.businessId}
+            onChange={(_, values) => changeBusinessSelection(values.map((entry) => entry.businessId))}
+            renderInput={(params) => <TextField {...params} label="사업 선택 (복수)" placeholder={selectedIds.length ? '' : '전체 사업'} />}
+            limitTags={2}
+          />
+        </Box>
+        <ToggleButtonGroup size="small" exclusive value={aircraftCategory}
+          onChange={(_, value: 'all' | 'fixed' | 'rotary' | null) => { if (value) setAircraftCategory(value); }}
+          aria-label="항공기 유형 (UI 시안)">
+          <ToggleButton value="all">전체</ToggleButton>
+          <ToggleButton value="fixed">고정익</ToggleButton>
+          <ToggleButton value="rotary">회전익</ToggleButton>
+        </ToggleButtonGroup>
+        <Chip size="small" variant="outlined" label="기종 분류 UI 시안 · 실제 필터 미적용" />
         <Typography color="text.secondary" sx={{ fontSize: 12 }}>부대·납품 차수는 실제 Sub_Contract 정보를 기준으로 구분합니다.</Typography>
         <Box sx={{ flex: 1 }} />
         <Button size="small" startIcon={<RefreshOutlined />} onClick={() => { setRounds({ loading: true }); setExpanded(null); setDetail({}); setReload((v) => v + 1); }}>새로고침</Button>
@@ -144,7 +187,7 @@ export function DeliveryRoundMasterPage() {
           </TableBody>
         </Table>
       </TableContainer>
-      <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>품목 종류는 서로 다른 item_id 수, 계약 품목 행은 match_id 건수입니다. PR·PO·완료 여부와 금액 집계는 업무 규칙 확인 후 추가합니다.</Typography>
+      <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>품목 종류는 서로 다른 item_id 수, 계약 품목 행은 match_id 건수입니다. 사업을 선택하지 않으면 전체 사업이 조회됩니다. 고정익/회전익은 DB 기종 분류 연동 전 UI만 제공합니다. PR·PO·완료 여부와 금액은 집계 규칙 확인 후 추가합니다.</Typography>
     </Box>
   );
 }
