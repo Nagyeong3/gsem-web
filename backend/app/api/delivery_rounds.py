@@ -1,4 +1,6 @@
 """Read-only SQL Server delivery rounds (sub-contract granularity)."""
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException, Path, Query
 
 from backend.app.api.equipment_master import _connect, _date, _rows, _setting
@@ -14,7 +16,7 @@ def _require_db():
 @router.get("/delivery-rounds")
 def rounds(
     business_id: int | None = Query(None, alias="businessId", ge=1),
-    business_ids: list[int] | None = Query(None, alias="businessIds"),
+    business_ids: Annotated[list[int] | None, Query(alias="businessIds")] = None,
 ):
     selected = list(dict.fromkeys(business_ids or ([business_id] if business_id else [])))
     if not selected or any(value < 1 for value in selected):

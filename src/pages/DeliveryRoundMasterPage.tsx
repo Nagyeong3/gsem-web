@@ -4,6 +4,7 @@ import { KeyboardArrowDown, KeyboardArrowUp, RefreshOutlined } from '@mui/icons-
 import { PageHeader } from '../components/common/PageHeader';
 import { runtimeConfig } from '../config/runtime';
 import { fetchBusinessOptions, type DbBusiness } from '../features/equipment-master/model';
+import { mockBusinesses, mockRounds, mockRoundItems } from '../data/deliveryRoundMock';
 
 type Round = {
   subContractId: number;
@@ -58,7 +59,7 @@ export function DeliveryRoundMasterPage() {
 
   useEffect(() => {
     if (runtimeConfig.dataSource !== 'api') {
-      setRounds({ loading: false, data: [] });
+      setBusinesses(mockBusinesses);
       return;
     }
     let alive = true;
@@ -69,12 +70,16 @@ export function DeliveryRoundMasterPage() {
   }, [reload]);
 
   useEffect(() => {
-    if (runtimeConfig.dataSource !== 'api' || businesses.length === 0) return;
+    if (businesses.length === 0) return;
     const valid = new Set(businesses.map((item) => item.businessId));
     const ids = selectedIds.filter((id) => valid.has(id));
     const chosen = ids.length ? ids : businesses.map((entry) => entry.businessId);
     const params = new URLSearchParams();
     chosen.forEach((id) => params.append('businessIds', String(id)));
+    if (runtimeConfig.dataSource !== 'api') {
+      setRounds({ loading: false, data: mockRounds.filter((round) => chosen.includes(round.businessId)) });
+      return;
+    }
     let alive = true;
     readJson<{ items: Round[] }>(`/delivery-rounds?${params.toString()}`)
       .then((response) => { if (alive) setRounds({ loading: false, data: response.items }); })
@@ -94,6 +99,10 @@ export function DeliveryRoundMasterPage() {
     setExpanded(roundId);
     const round = rounds.data?.find((value) => value.subContractId === roundId);
     if (!round || detail[roundId]?.data || detail[roundId]?.loading) return;
+    if (runtimeConfig.dataSource !== 'api') {
+      setDetail((current) => ({ ...current, [roundId]: { loading: false, data: mockRoundItems[roundId] ?? [] } }));
+      return;
+    }
     setDetail((current) => ({ ...current, [roundId]: { loading: true } }));
     try {
       const response = await readJson<{ items: RoundItem[] }>(`/delivery-rounds/${roundId}/items?businessId=${round.businessId}`);
@@ -125,11 +134,11 @@ export function DeliveryRoundMasterPage() {
           <ToggleButton value="rotary">회전익</ToggleButton>
         </ToggleButtonGroup>
         <Chip size="small" variant="outlined" label="기종 분류 UI 시안 · 실제 필터 미적용" />
-        <Typography color="text.secondary" sx={{ fontSize: 12 }}>부대·납품 차수는 실제 Sub_Contract 정보를 기준으로 구분합니다.</Typography>
+        <Typography color="text.secondary" sx={{ fontSize: 12 }}>부대·납품 차수는 API 모드에서 Sub_Contract를 기준으로 구분합니다.</Typography>
         <Box sx={{ flex: 1 }} />
         <Button size="small" startIcon={<RefreshOutlined />} onClick={() => { setRounds({ loading: true }); setExpanded(null); setDetail({}); setReload((v) => v + 1); }}>새로고침</Button>
       </Paper>
-      {runtimeConfig.dataSource !== 'api' && <Alert severity="info" sx={{ mb: 2 }}>납품 차수별 실데이터 화면입니다. API 모드에서 SQL Server에 연결하면 표시됩니다.</Alert>}
+      {runtimeConfig.dataSource !== 'api' && <Alert severity="info" sx={{ mb: 2 }}>목데이터 시연 모드입니다. 사업·차수·품목은 가상 예시이며 실제 DB와 무관합니다.</Alert>}
       {rounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 목록 조회 실패: {rounds.error}</Alert>}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto' }}>
         <Table aria-label="납품 차수별 지원장비 통합현황" size="small" sx={{ minWidth: 860 }}>
