@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test('통합현황과 장비 검색 사이드바는 정확히 하나만 선택된다', async ({ page }) => {
-  await page.goto('/equipment-master');
+  await page.goto('/equipment-master-rounds');
   const navigation = page.getByRole('navigation', { name: '주요 메뉴' });
-  const master = navigation.getByRole('button', { name: '지원장비 통합현황' });
+  const master = navigation.getByRole('button', { name: '지원장비 통합현황', exact: true });
+  await expect(navigation.getByRole('button', { name: '지원장비 통합현황(구)' })).toHaveAttribute('aria-disabled', 'true');
   const search = navigation.getByRole('button', { name: '장비 검색' });
   await expect(master).toHaveAttribute('aria-current', 'page');
   await expect(search).not.toHaveAttribute('aria-current', 'page');
