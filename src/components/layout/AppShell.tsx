@@ -34,7 +34,8 @@ const sidebarWidth = 216;
 
 const navItems = [
   { label: '대시보드', icon: DashboardOutlined, path: '/', available: true },
-  { label: '지원장비 통합현황', icon: TableChartOutlined, path: '/equipment-master', available: true },
+  { label: '지원장비 통합현황', icon: TableChartOutlined, path: '/equipment-master-rounds', available: true },
+  { label: '지원장비 통합현황(구)', icon: TableChartOutlined, path: '/equipment-master', available: false },
   { label: '장비 검색', icon: Search, path: '/equipment', available: true },
   { label: '납품 일정', icon: CalendarMonthOutlined, path: '/deliveries', available: true },
   { label: '변경 이력', icon: History, path: '/history', available: true },
@@ -95,11 +96,12 @@ export function AppShell({ children }: AppShellProps) {
             return (
               <Tooltip
                 key={item.label}
-                title={item.available ? '' : '후속 프로토타입에서 제공할 예정입니다.'}
+                title={item.available ? '' : '이전 통합현황 화면입니다.'}
                 placement="right"
               >
                 <ListItemButton
                   selected={selected}
+                  aria-disabled={!item.available}
                   aria-current={selected ? 'page' : undefined}
                   onClick={() => {
                     if (item.available) navigate(item.path);
@@ -111,6 +113,7 @@ export function AppShell({ children }: AppShellProps) {
                     px: 1.25,
                     borderRadius: 1,
                     color: '#FFFFFF',
+                    opacity: item.available ? 1 : 0.48,
                     '&.Mui-selected': {
                       bgcolor: 'rgba(255,255,255,0.14)',
                       boxShadow: 'inset 3px 0 0 rgba(255,255,255,0.78)',
