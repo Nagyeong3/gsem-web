@@ -9,11 +9,11 @@ export const mockBusinesses = [
 ];
 
 export const mockRounds = [
-  { subContractId: 1001, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 1', subContractName: '1차', deliveryDate: '2026-08-15', itemCount: 2, lineCount: 3 },
-  { subContractId: 1002, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 2', subContractName: '2차', deliveryDate: '2026-12-15', itemCount: 2, lineCount: 2 },
-  { subContractId: 1003, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 3', subContractName: '1차', deliveryDate: '2026-09-30', itemCount: 2, lineCount: 2 },
-  { subContractId: 1004, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 4', subContractName: '2차', deliveryDate: '2027-03-31', itemCount: 1, lineCount: 1 },
-  { subContractId: 1005, businessId: 103, businessName: '회전익 시연사업 C', destination: '시연 납품부대 5', subContractName: '1차', deliveryDate: '2027-05-31', itemCount: 2, lineCount: 2 },
+  { subContractId: 1001, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 1', subContractName: '1차', deliveryDate: '2026-08-15', itemCount: 2, lineCount: 3, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
+  { subContractId: 1002, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 2', subContractName: '2차', deliveryDate: '2026-12-15', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
+  { subContractId: 1003, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 3', subContractName: '1차', deliveryDate: '2026-09-30', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
+  { subContractId: 1004, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 4', subContractName: '2차', deliveryDate: '2027-03-31', itemCount: 1, lineCount: 1, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
+  { subContractId: 1005, businessId: 103, businessName: '회전익 시연사업 C', destination: '시연 납품부대 5', subContractName: '1차', deliveryDate: '2027-05-31', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
 ];
 
 type MockItem = {
@@ -34,3 +34,10 @@ export const mockRoundItems: Record<number, MockItem[]> = {
   1004: [item(8, 7, 'DEMO-B03', '견인 연결장치', 1, null, null)],
   1005: [item(9, 8, 'DEMO-C01', '휴대형 계측기', 2, null, null), item(10, 9, 'DEMO-C02', '정비 지그', 1, null, null)],
 };
+
+// Keep mock status aggregates consistent with the underlying synthetic item rows.
+for (const round of mockRounds) {
+  const lines = mockRoundItems[round.subContractId] ?? [];
+  round.receivedCount = lines.filter((entry) => entry.receivedAt != null).length;
+  round.deliveredCount = lines.filter((entry) => entry.deliveredAt != null).length;
+}

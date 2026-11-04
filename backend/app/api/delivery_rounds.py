@@ -28,7 +28,9 @@ def rounds(
 SELECT sc.sub_contract_id, b.business_id, b.biz_name, sc.delivery_dest_name,
        sc.sub_contract_name, sc.delivery_date_contract,
        COUNT(DISTINCT m.item_id) AS item_count,
-       COUNT(m.match_id) AS line_count
+       COUNT(m.match_id) AS line_count,
+       COUNT(CASE WHEN m.date_receiving IS NOT NULL THEN 1 END) AS received_count,
+       COUNT(CASE WHEN m.date_deliver IS NOT NULL THEN 1 END) AS delivered_count
 FROM Sub_Contract AS sc
 JOIN Contract AS c ON sc.contract_id = c.contract_id
 JOIN Business AS b ON b.business_id = c.business_id
@@ -47,6 +49,11 @@ ORDER BY sc.delivery_date_contract, sc.sub_contract_id
             "deliveryDate": _date(row["delivery_date_contract"]),
             "itemCount": int(row["item_count"]),
             "lineCount": int(row["line_count"]),
+            "receivedCount": int(row["received_count"]),
+            "deliveredCount": int(row["delivered_count"]),
+            "prCount": None,
+            "poCount": None,
+            "deliveryAmount": None,
         } for row in records], "readOnly": True}
     finally:
         conn.close()

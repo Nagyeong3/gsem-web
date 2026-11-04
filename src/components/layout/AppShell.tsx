@@ -36,7 +36,7 @@ const collapsedWidth = 64;
 const navItems = [
   { label: '대시보드', icon: DashboardOutlined, path: '/', available: true },
   { label: '지원장비 통합현황', icon: TableChartOutlined, path: '/equipment-master-rounds', available: true },
-  { label: '지원장비 통합현황(구)', icon: TableChartOutlined, path: '/equipment-master', available: false },
+  { label: '지원장비 통합현황(구)', icon: TableChartOutlined, path: '/equipment-master', available: true },
   { label: '장비 검색', icon: Search, path: '/equipment', available: true },
   { label: '납품 일정', icon: CalendarMonthOutlined, path: '/deliveries', available: true },
   { label: '변경 이력', icon: History, path: '/history', available: true },

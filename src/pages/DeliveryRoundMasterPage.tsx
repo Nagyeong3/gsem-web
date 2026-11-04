@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Box, Chip, CircularProgress, Collapse, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button, Autocomplete, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp, RefreshOutlined } from '@mui/icons-material';
+import { Box, Chip, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button, Autocomplete, TextField, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { RefreshOutlined } from '@mui/icons-material';
 import { PageHeader } from '../components/common/PageHeader';
 import { runtimeConfig } from '../config/runtime';
 import { fetchBusinessOptions, type DbBusiness } from '../features/equipment-master/model';
@@ -15,6 +15,11 @@ type Round = {
   deliveryDate: string | null;
   itemCount: number;
   lineCount: number;
+  receivedCount: number | null;
+  deliveredCount: number | null;
+  prCount: number | null;
+  poCount: number | null;
+  deliveryAmount: number | null;
 };
 type RoundItem = {
   matchId: number;
@@ -27,9 +32,12 @@ type RoundItem = {
   deliveredAt: string | null;
   vendorName: string | null;
   buyerName: string | null;
+  contractPrice?: number | null;
 };
 type LoadState<T> = { loading: boolean; data?: T; error?: string };
 const date = (value: string | null) => value?.slice(0, 10) || '-';
+const count = (value: number | null | undefined) => value == null ? '-' : value.toLocaleString('ko-KR');
+const currency = (value: number | null | undefined) => value == null ? '-' : value.toLocaleString('ko-KR');
 
 async function readJson<T>(path: string): Promise<T> {
   const response = await fetch(`${runtimeConfig.apiBaseUrl}${path}`);
@@ -141,35 +149,52 @@ export function DeliveryRoundMasterPage() {
       {runtimeConfig.dataSource !== 'api' && <Alert severity="info" sx={{ mb: 2 }}>목데이터 시연 모드입니다. 사업·차수·품목은 가상 예시이며 실제 DB와 무관합니다.</Alert>}
       {rounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 목록 조회 실패: {rounds.error}</Alert>}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto' }}>
-        <Table aria-label="납품 차수별 지원장비 통합현황" size="small" sx={{ minWidth: 860 }}>
+        <Table aria-label="납품 차수별 지원장비 통합현황" size="small" sx={{ minWidth: 1240 }}>
           <TableHead>
             <TableRow sx={{ '& th': { fontWeight: 800, bgcolor: 'action.hover', whiteSpace: 'nowrap' } }}>
-              <TableCell width={48} />
               <TableCell>사업명</TableCell>
               <TableCell>납품 부대</TableCell>
               <TableCell>납품 차수</TableCell>
               <TableCell>계약상 납기</TableCell>
-              <TableCell align="right">품목 종류</TableCell>
-              <TableCell align="right">계약 품목 행</TableCell>
+              <TableCell align="right" title="서로 다른 item_id 수">종</TableCell>
+              <TableCell align="right" title="계약 품목 match_id 행 수 (평의 실제 업무 기준 확인 필요)">평</TableCell>
+              <TableCell align="right">PR</TableCell>
+              <TableCell align="right">PO</TableCell>
+              <TableCell align="right" title="입고일이 등록된 계약 품목 행 수 (잠정)">입고</TableCell>
+              <TableCell align="right" title="납품 집계 기준 미확정">납품</TableCell>
+              <TableCell align="right" title="납품일이 등록된 계약 품목 행 수 (잠정)">납품완료</TableCell>
+              <TableCell align="right" title="계약 단가/총액 구분 미확정">납품금액</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rounds.loading && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
-            {!rounds.loading && !rounds.error && rounds.data?.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
-            {rounds.data?.map((round) => (
+            {rounds.loading && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
+            {!rounds.loading && rounds.error && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회 오류가 발생했습니다.</TableCell></TableRow>}
+            {!rounds.loading && !rounds.error && rounds.data?.length === 0 && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
+            {!rounds.loading && !rounds.error && rounds.data?.map((round) => (
               <Fragment key={round.subContractId}>
-                <TableRow hover onClick={() => void openRound(round.subContractId)} sx={{ cursor: 'pointer', '& td': { borderBottom: expanded === round.subContractId ? 0 : undefined } }}>
-                  <TableCell><IconButton size="small" aria-label={`${round.subContractName ?? '납품 차수'} ${expanded === round.subContractId ? '접기' : '펼치기'}`}>{expanded === round.subContractId ? <KeyboardArrowUp /> : <KeyboardArrowDown />}</IconButton></TableCell>
+                <TableRow hover selected={expanded === round.subContractId}
+                  aria-expanded={expanded === round.subContractId}
+                  aria-label={`${round.businessName} ${round.subContractName || '납품 차수'} 품목 ${expanded === round.subContractId ? '접기' : '보기'}`}
+                  tabIndex={0}
+                  onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openRound(round.subContractId); } }}
+                  onClick={() => void openRound(round.subContractId)}
+                  sx={{ cursor: 'pointer', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
                   <TableCell>{round.businessName}</TableCell>
                   <TableCell>{round.destination || '-'}</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>{round.subContractName || '-'}</TableCell>
                   <TableCell>{date(round.deliveryDate)}</TableCell>
-                  <TableCell align="right">{round.itemCount.toLocaleString('ko-KR')}</TableCell>
-                  <TableCell align="right">{round.lineCount.toLocaleString('ko-KR')}</TableCell>
+                  <TableCell align="right">{count(round.itemCount)}</TableCell>
+                  <TableCell align="right">{count(round.lineCount)}</TableCell>
+                  <TableCell align="right">{count(round.prCount)}</TableCell>
+                  <TableCell align="right">{count(round.poCount)}</TableCell>
+                  <TableCell align="right">{count(round.receivedCount)}</TableCell>
+                  <TableCell align="right">-</TableCell>
+                  <TableCell align="right">{count(round.deliveredCount)}</TableCell>
+                  <TableCell align="right">{currency(round.deliveryAmount)}</TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell colSpan={7} sx={{ p: 0 }}>
-                    <Collapse in={expanded === round.subContractId} timeout="auto" unmountOnExit>
+                {expanded === round.subContractId && (
+                  <TableRow>
+                    <TableCell colSpan={12} sx={{ p: 0, borderBottom: '2px solid', borderColor: 'primary.main' }}>
                       <Box sx={{ p: 2, bgcolor: 'action.hover' }}>
                         <Typography sx={{ fontWeight: 800, mb: 1.5, fontSize: 13 }}>{round.subContractName || '납품 차수'} · 납품 품목</Typography>
                         {detail[round.subContractId]?.loading && <CircularProgress size={22} />}
@@ -177,26 +202,26 @@ export function DeliveryRoundMasterPage() {
                         {detail[round.subContractId]?.data && (
                           <TableContainer sx={{ maxHeight: 420, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                             <Table stickyHeader size="small" aria-label={`${round.subContractName ?? round.subContractId} 납품 품목`}>
-                              <TableHead><TableRow>{['품번', '품명', '수량', '조달원', '바이어', '입고 예정', '입고일', '납품일'].map((name) => <TableCell key={name} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</TableCell>)}</TableRow></TableHead>
+                              <TableHead><TableRow>{['품번', '품명', '수량', '조달원', '바이어', '입고 예정', '입고일', '납품일', '계약 가격'].map((name) => <TableCell key={name} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</TableCell>)}</TableRow></TableHead>
                               <TableBody>
                                 {detail[round.subContractId].data?.map((item) => <TableRow key={item.matchId}>
-                                  <TableCell>{item.itemNumber}</TableCell><TableCell>{item.itemName || '-'}</TableCell><TableCell>{item.quantity ?? '-'}</TableCell><TableCell>{item.vendorName || '-'}</TableCell><TableCell>{item.buyerName || '-'}</TableCell><TableCell>{date(item.receivingExpected)}</TableCell><TableCell>{date(item.receivedAt)}</TableCell><TableCell>{date(item.deliveredAt)}</TableCell>
+                                  <TableCell>{item.itemNumber}</TableCell><TableCell>{item.itemName || '-'}</TableCell><TableCell>{count(item.quantity)}</TableCell><TableCell>{item.vendorName || '-'}</TableCell><TableCell>{item.buyerName || '-'}</TableCell><TableCell>{date(item.receivingExpected)}</TableCell><TableCell>{date(item.receivedAt)}</TableCell><TableCell>{date(item.deliveredAt)}</TableCell><TableCell align="right">{currency(item.contractPrice)}</TableCell>
                                 </TableRow>)}
-                                {detail[round.subContractId].data?.length === 0 && <TableRow><TableCell colSpan={8} align="center">등록된 품목이 없습니다.</TableCell></TableRow>}
+                                {detail[round.subContractId].data?.length === 0 && <TableRow><TableCell colSpan={9} align="center">등록된 품목이 없습니다.</TableCell></TableRow>}
                               </TableBody>
                             </Table>
                           </TableContainer>
                         )}
                       </Box>
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                  </TableRow>
+                )}
               </Fragment>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>품목 종류는 서로 다른 item_id 수, 계약 품목 행은 match_id 건수입니다. 사업을 선택하지 않으면 전체 사업이 조회됩니다. 고정익/회전익은 DB 기종 분류 연동 전 UI만 제공합니다. PR·PO·완료 여부와 금액은 집계 규칙 확인 후 추가합니다.</Typography>
+      <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>집계 기준: 종 = 서로 다른 item_id 수. 평 = match_id 행 수(잠정). 입고 = 입고일 등록 행 수, 납품완료 = 납품일 등록 행 수(모두 잠정). PR·PO·납품·납품금액은 원천 테이블과 업무 산식 미확정으로 - 표시. 고정익/회전익은 분류 UI 시안이며 실제 사업 필터와 연동되지 않습니다.</Typography>
     </Box>
   );
 }
