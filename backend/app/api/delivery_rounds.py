@@ -1,5 +1,5 @@
 """Read-only SQL Server delivery rounds (sub-contract granularity)."""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 from backend.app.api.equipment_master import _connect, _date, _rows, _setting
 
 router = APIRouter()
@@ -44,7 +44,7 @@ ORDER BY sc.delivery_date_contract, sc.sub_contract_id
 
 @router.get("/delivery-rounds/{sub_contract_id}/items")
 def round_items(
-    sub_contract_id: int = Query(..., ge=1),
+    sub_contract_id: int = Path(..., ge=1),
     business_id: int = Query(..., alias="businessId", ge=1),
 ):
     _require_db()
