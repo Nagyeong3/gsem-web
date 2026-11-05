@@ -281,7 +281,7 @@ export function DeliveryRoundMasterPage() {
         </Box>
         <TextField select size="small" label="납품완료" value={statusFilter}
           onChange={(event) => changeFilters(() => setStatusFilter(event.target.value as StatusFilter))}
-          sx={{ minWidth: 180 }} SelectProps={{ renderValue: (selected) => {
+          sx={{ minWidth: 180 }} slotProps={{ select: { renderValue: (selected: unknown) => {
             const value = String(selected) as StatusFilter;
             return value === 'all' ? '전체' : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -289,7 +289,7 @@ export function DeliveryRoundMasterPage() {
                 {value === 'complete' ? '완료' : value === 'incomplete' ? '미완료' : '납기 임박/경과'}
               </Box>
             );
-          } }}>
+          } } }}>
           <MenuItem value="all">전체</MenuItem>
           {(['complete', 'incomplete', 'due-soon'] as const).map((value) => (
             <MenuItem key={value} value={value}>
