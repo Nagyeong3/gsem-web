@@ -1,43 +1,73 @@
-/**
- * Synthetic delivery-round records for local UI review only.
- * They are not copied from the company database and must never be used for actual reporting.
- */
-export const mockBusinesses = [
-  { businessId: 101, businessName: '고정익 시연사업 A' },
-  { businessId: 102, businessName: '회전익 시연사업 B' },
-  { businessId: 103, businessName: '회전익 시연사업 C' },
-];
-
-export const mockRounds = [
-  { subContractId: 1001, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 1', subContractName: '1차', deliveryDate: '2026-08-15', itemCount: 2, lineCount: 3, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
-  { subContractId: 1002, businessId: 101, businessName: '고정익 시연사업 A', destination: '시연 납품부대 2', subContractName: '2차', deliveryDate: '2026-12-15', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
-  { subContractId: 1003, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 3', subContractName: '1차', deliveryDate: '2026-09-30', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
-  { subContractId: 1004, businessId: 102, businessName: '회전익 시연사업 B', destination: '시연 납품부대 4', subContractName: '2차', deliveryDate: '2027-03-31', itemCount: 1, lineCount: 1, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
-  { subContractId: 1005, businessId: 103, businessName: '회전익 시연사업 C', destination: '시연 납품부대 5', subContractName: '1차', deliveryDate: '2027-05-31', itemCount: 2, lineCount: 2, receivedCount: 0, deliveredCount: 0, prCount: null, poCount: null, deliveryAmount: null },
-];
-
-type MockItem = {
+/** Synthetic fixtures; not extracted from a company SQL Server database. */
+export type DemoLine = {
   matchId: number; itemId: number; itemNumber: string; itemName: string;
   quantity: number; receivingExpected: string | null; receivedAt: string | null;
   deliveredAt: string | null; vendorName: string; buyerName: string;
+  contractPrice: number; purchaseRequestNumber: string | null; purchaseOrderNumber: string | null;
 };
-const item = (matchId: number, itemId: number, itemNumber: string, itemName: string,
-  quantity: number, receivedAt: string | null, deliveredAt: string | null): MockItem => ({
-  matchId, itemId, itemNumber, itemName, quantity,
-  receivingExpected: '2026-08-01', receivedAt, deliveredAt,
-  vendorName: '시연용 공급사', buyerName: '시연 담당자',
-});
-export const mockRoundItems: Record<number, MockItem[]> = {
-  1001: [item(1, 1, 'DEMO-A01', '점검 공구 세트', 2, '2026-08-01', '2026-08-12'), item(2, 2, 'DEMO-A02', '전원 시험장치', 1, '2026-08-02', '2026-08-12'), item(3, 1, 'DEMO-A01', '점검 공구 세트', 1, '2026-08-03', '2026-08-12')],
-  1002: [item(4, 3, 'DEMO-A03', '정비용 리프트', 1, null, null), item(5, 4, 'DEMO-A04', '케이블 점검장치', 3, null, null)],
-  1003: [item(6, 5, 'DEMO-B01', '유압 시험장치', 2, '2026-09-10', '2026-09-28'), item(7, 6, 'DEMO-B02', '회전익 공구함', 1, '2026-09-11', '2026-09-28')],
-  1004: [item(8, 7, 'DEMO-B03', '견인 연결장치', 1, null, null)],
-  1005: [item(9, 8, 'DEMO-C01', '휴대형 계측기', 2, null, null), item(10, 9, 'DEMO-C02', '정비 지그', 1, null, null)],
+export type DemoRound = {
+  subContractId: number; businessId: number; businessName: string;
+  destination: string; subContractName: string; deliveryDate: string;
+  itemCount: number; pointCount: number; prCount: number; poCount: number;
+  receivedCount: number; deliveredCount: number;
+  deliveryCompleted: boolean; deliveryAmount: number;
+};
+export const mockBusinesses = [
+  { businessId: 101, businessName: '가 사업' },
+  { businessId: 102, businessName: '나 사업' },
+  { businessId: 103, businessName: '다 사업' },
+];
+
+const sampleRounds = [
+  { subContractId: 1001, businessId: 101, businessName: '가 사업', destination: '가 부대', subContractName: '1차', deliveryDate: '2026-08-15' },
+  { subContractId: 1002, businessId: 101, businessName: '가 사업', destination: '나 부대', subContractName: '2차', deliveryDate: '2026-12-15' },
+  { subContractId: 1003, businessId: 102, businessName: '나 사업', destination: '다 부대', subContractName: '1차', deliveryDate: '2026-09-30' },
+  { subContractId: 1004, businessId: 102, businessName: '나 사업', destination: '라 부대', subContractName: '2차', deliveryDate: '2027-03-31' },
+  { subContractId: 1005, businessId: 103, businessName: '다 사업', destination: '가 부대', subContractName: '1차', deliveryDate: '2027-05-31' },
+];
+
+function line(id: number, itemId: number, quantity: number, vendor: string,
+  received: string | null, delivered: string | null,
+  pr: string | null, po: string | null, price: number): DemoLine {
+  return { matchId: id, itemId, itemNumber: `DEMO-${String(itemId).padStart(3, '0')}`,
+    itemName: `시연 품목 ${itemId}`, quantity, receivingExpected: '2026-08-01',
+    receivedAt: received, deliveredAt: delivered, vendorName: vendor, buyerName: '김책임',
+    contractPrice: price, purchaseRequestNumber: pr, purchaseOrderNumber: po };
+}
+export const mockRoundItems: Record<number, DemoLine[]> = {
+  1001: [
+    line(1, 1, 2, '가 조달원', '2026-08-01', '2026-08-12', 'PR-1', 'PO-1', 1000),
+    line(2, 2, 1, '나 조달원', '2026-08-02', '2026-08-12', 'PR-1', 'PO-1', 2500),
+    line(3, 1, 3, '가 조달원', '2026-08-03', '2026-08-12', 'PR-2', null, 1000),
+  ],
+  1002: [
+    line(4, 3, 1, '가 조달원', null, null, 'PR-3', null, 7000),
+    line(5, 4, 3, '나 조달원', null, null, null, null, 4500),
+  ],
+  1003: [
+    line(6, 5, 2, '가 조달원', '2026-09-10', '2026-09-28', 'PR-4', 'PO-4', 5500),
+    line(7, 6, 1, '나 조달원', '2026-09-11', '2026-09-28', 'PR-5', 'PO-5', 2200),
+  ],
+  1004: [line(8, 7, 1, '나 조달원', null, null, null, null, 2000)],
+  1005: [
+    line(9, 8, 2, '가 조달원', null, null, 'PR-6', null, 990),
+    line(10, 9, 1, '나 조달원', null, null, null, null, 1800),
+  ],
 };
 
-// Keep mock status aggregates consistent with the underlying synthetic item rows.
-for (const round of mockRounds) {
-  const lines = mockRoundItems[round.subContractId] ?? [];
-  round.receivedCount = lines.filter((entry) => entry.receivedAt != null).length;
-  round.deliveredCount = lines.filter((entry) => entry.deliveredAt != null).length;
+export function aggregateDemoLines(lines: DemoLine[]) {
+  return {
+    itemCount: new Set(lines.map((item) => item.itemId)).size,
+    pointCount: lines.reduce((sum, item) => sum + item.quantity, 0),
+    prCount: lines.filter((item) => item.purchaseRequestNumber !== null).length,
+    poCount: lines.filter((item) => item.purchaseOrderNumber !== null).length,
+    receivedCount: lines.filter((item) => item.receivedAt !== null).length,
+    deliveredCount: lines.filter((item) => item.deliveredAt !== null).length,
+    // Reproduce the SQL expression COUNT(item_id) = COUNT(date_deliver), including empty groups.
+    deliveryCompleted: lines.length === lines.filter((item) => item.deliveredAt !== null).length,
+    deliveryAmount: lines.reduce((sum, item) => sum + item.quantity * item.contractPrice, 0),
+  };
 }
+export const mockRounds: DemoRound[] = sampleRounds.map((round) => ({
+  ...round, ...aggregateDemoLines(mockRoundItems[round.subContractId] ?? []),
+}));
