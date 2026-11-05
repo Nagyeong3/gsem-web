@@ -37,20 +37,20 @@ def filter_options(
     try:
         cursor = conn.cursor()
         destinations = _rows(cursor.execute(
-            "SELECT DISTINCT sc.delivery_dest_name AS name "
+            "SELECT DISTINCT LTRIM(RTRIM(sc.delivery_dest_name)) AS name "
             "FROM Sub_Contract sc JOIN Contract c ON c.contract_id = sc.contract_id "
             + where + (" AND " if where else " WHERE ")
             + "sc.delivery_dest_name IS NOT NULL AND LTRIM(RTRIM(sc.delivery_dest_name)) <> '' "
-            "ORDER BY sc.delivery_dest_name", *selected,
+            "ORDER BY name", *selected,
         ))
         vendors = _rows(cursor.execute(
-            "SELECT DISTINCT v.vendor_name AS name FROM Match_Sub_Contract_Item m "
+            "SELECT DISTINCT LTRIM(RTRIM(v.vendor_name)) AS name FROM Match_Sub_Contract_Item m "
             "JOIN Sub_Contract sc ON sc.sub_contract_id = m.sub_contract_id "
             "JOIN Contract c ON c.contract_id = sc.contract_id "
             "JOIN Vendor v ON v.vendor_id = m.vendor_id "
             + where + (" AND " if where else " WHERE ")
             + "v.vendor_name IS NOT NULL AND LTRIM(RTRIM(v.vendor_name)) <> '' "
-            "ORDER BY v.vendor_name", *selected,
+            "ORDER BY name", *selected,
         ))
         return {"vendors": [r["name"] for r in vendors],
                 "destinations": [r["name"] for r in destinations], "readOnly": True}
@@ -87,7 +87,7 @@ def rounds(
     # Keep all sub-contracts with zero matching lines when no vendor filter is selected.
     vendor_join = (
         " AND EXISTS (SELECT 1 FROM Vendor AS vf "
-        "WHERE vf.vendor_id = m.vendor_id AND vf.vendor_name IN ({vendor_placeholders}))"
+        "WHERE vf.vendor_id = m.vendor_id AND LTRIM(RTRIM(vf.vendor_name)) IN ({vendor_placeholders}))"
         if selected_vendors else ""
     )
     sql = """
@@ -120,7 +120,7 @@ ORDER BY sc.delivery_date_contract, sc.sub_contract_id
     sql = sql.replace("{vendor_placeholders}", ", ".join("?" for _ in selected_vendors))
     sql = sql.replace(
         "{destination_clause}",
-        "AND sc.delivery_dest_name IN (" + ", ".join("?" for _ in selected_destinations) + ")"
+        "AND LTRIM(RTRIM(sc.delivery_dest_name)) IN (" + ", ".join("?" for _ in selected_destinations) + ")"
         if selected_destinations else "",
     )
     params = selected_vendors + selected + selected_destinations + [date_from, date_from, date_to, date_to]
@@ -176,7 +176,7 @@ WHERE m.sub_contract_id = ? AND c.business_id = ?
 ORDER BY m.match_id
 """.replace(
     "{vendor_clause}",
-    "AND v.vendor_name IN (" + ", ".join("?" for _ in selected_vendors) + ")" if selected_vendors else "",
+    "AND LTRIM(RTRIM(v.vendor_name)) IN (" + ", ".join("?" for _ in selected_vendors) + ")" if selected_vendors else "",
 ), sub_contract_id, business_id, *selected_vendors))
         return {"items": [{
             "matchId": row["match_id"],

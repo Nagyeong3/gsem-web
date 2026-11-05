@@ -79,3 +79,52 @@ test('multiple vendors and destinations combine with OR within a filter', async 
   await page.getByRole('button', { name: '필터 초기화' }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
 });
+
+test('delivery status dropdown filters matching color categories in mock mode', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-12-10T12:00:00+09:00'));
+  await page.goto('/equipment-master-rounds');
+  const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
+  const status = page.getByRole('combobox', { name: '납품완료' });
+
+  await status.click();
+  await page.getByRole('option', { name: '완료', exact: true }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
+  await expect(overview.getByRole('img', { name: '납품완료' })).toHaveCount(2);
+
+  await status.click();
+  await page.getByRole('option', { name: '미완료', exact: true }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
+  await expect(overview.getByRole('img', { name: '납품미완료' })).toHaveCount(2);
+
+  await status.click();
+  await page.getByRole('option', { name: '납기 임박/경과' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
+  await expect(overview.getByRole('row', { name: /가 사업 2차 품목 보기/ })).toBeVisible();
+
+  await page.reload();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
+  await page.getByRole('button', { name: '필터 초기화' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
+});
+
+test('business filtering remains independent from vendor and destination filters', async ({ page }) => {
+  await page.goto('/equipment-master-rounds');
+  const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
+  const business = page.getByRole('combobox', { name: '사업 선택 (복수)' });
+  await business.click();
+  await page.getByRole('option', { name: '나 사업' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
+  await expect(overview.getByRole('row', { name: /가 사업/ })).toHaveCount(0);
+
+  const unit = page.getByRole('combobox', { name: '납품 부대 (복수)' });
+  await unit.click();
+  await page.getByRole('option', { name: '다 부대' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
+
+  const vendor = page.getByRole('combobox', { name: '조달원 (복수)' });
+  await vendor.click();
+  await page.getByRole('option', { name: '가 조달원' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
+  await overview.getByRole('row', { name: /나 사업 1차 품목 보기/ }).click();
+  await expect(page.getByRole('table', { name: '1차 납품 품목' }).getByRole('row')).toHaveCount(2);
+});

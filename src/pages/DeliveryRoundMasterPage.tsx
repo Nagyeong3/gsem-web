@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress, Paper, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography, MenuItem,
 } from '@mui/material';
 import { RefreshOutlined } from '@mui/icons-material';
 import { PageHeader } from '../components/common/PageHeader';
@@ -29,6 +29,7 @@ const date = (value: string | null) => value?.slice(0, 10) || '-';
 const number = (value: number | null | undefined) => value == null ? '-' : value.toLocaleString('ko-KR');
 
 type DeliveryIndicator = 'complete' | 'due-soon' | 'incomplete';
+type StatusFilter = DeliveryIndicator | 'all';
 
 /**
  * Only an incomplete delivery within 7 calendar days before its contractual due
@@ -100,9 +101,14 @@ export function DeliveryRoundMasterPage() {
   });
   const [vendors, setVendors] = useState<string[]>(() => loadStringList('gsem.deliveryRound.vendors.v2', 'gsem.deliveryRound.vendor.v1'));
   const [destinations, setDestinations] = useState<string[]>(() => loadStringList('gsem.deliveryRound.destinations.v2', 'gsem.deliveryRound.destination.v1'));
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    const saved = loadString('gsem.deliveryRound.status.v1');
+    return saved === 'complete' || saved === 'incomplete' || saved === 'due-soon' ? saved : 'all';
+  });
   const [dateFrom, setDateFrom] = useState(() => loadString('gsem.deliveryRound.dateFrom.v1'));
   const [dateTo, setDateTo] = useState(() => loadString('gsem.deliveryRound.dateTo.v1'));
   const [options, setOptions] = useState<FilterOptions>({ vendors: [], destinations: [] });
+  const [filterOptionsError, setFilterOptionsError] = useState('');
   const [rounds, setRounds] = useState<LoadState<Round[]>>({ loading: true });
   const [expanded, setExpanded] = useState<number[]>([]);
   const [detail, setDetail] = useState<Record<number, LoadState<RoundItem[]>>>({});
@@ -112,6 +118,7 @@ export function DeliveryRoundMasterPage() {
   useEffect(() => { save('gsem.deliveryRound.aircraftCategory.v1', aircraftCategory); }, [aircraftCategory]);
   useEffect(() => { save('gsem.deliveryRound.vendors.v2', JSON.stringify(vendors)); }, [vendors]);
   useEffect(() => { save('gsem.deliveryRound.destinations.v2', JSON.stringify(destinations)); }, [destinations]);
+  useEffect(() => { save('gsem.deliveryRound.status.v1', statusFilter); }, [statusFilter]);
   useEffect(() => { save('gsem.deliveryRound.dateFrom.v1', dateFrom); }, [dateFrom]);
   useEffect(() => { save('gsem.deliveryRound.dateTo.v1', dateTo); }, [dateTo]);
 
@@ -140,11 +147,11 @@ export function DeliveryRoundMasterPage() {
     const params = new URLSearchParams();
     selectedBusinessIds.forEach((id) => params.append('businessIds', String(id)));
     readJson<FilterOptions>(`/delivery-rounds/filter-options?${params}`, controller.signal)
-      .then(setOptions)
+      .then((data) => { if (!controller.signal.aborted) { setOptions(data); setFilterOptionsError(''); } })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           setOptions({ vendors: [], destinations: [] });
-          setRounds({ loading: false, error: error instanceof Error ? error.message : '필터 옵션 조회 실패' });
+          setFilterOptionsError(error instanceof Error ? error.message : '필터 옵션 조회 실패');
         }
       });
     return () => controller.abort();
@@ -186,7 +193,7 @@ export function DeliveryRoundMasterPage() {
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
     readJson<{ items: Round[] }>(`/delivery-rounds?${params}`, controller.signal)
-      .then((result) => setRounds({ loading: false, data: result.items }))
+      .then((result) => { if (!controller.signal.aborted) setRounds({ loading: false, data: result.items }); })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setRounds({ loading: false, error: error instanceof Error ? error.message : '차수 조회 실패' });
       });
@@ -196,6 +203,9 @@ export function DeliveryRoundMasterPage() {
   const displayedRounds: LoadState<Round[]> = dateError
     ? { loading: false, error: dateError }
     : runtimeConfig.dataSource === 'api' ? rounds : { loading: false, data: mockData };
+  const statusFilteredRounds: LoadState<Round[]> = displayedRounds.data && statusFilter !== 'all'
+    ? { ...displayedRounds, data: displayedRounds.data.filter((round) => getDeliveryIndicator(round) === statusFilter) }
+    : displayedRounds;
   const changeFilters = (apply: () => void) => {
     apply();
     setExpanded([]);
@@ -207,7 +217,7 @@ export function DeliveryRoundMasterPage() {
     const isOpen = expanded.includes(roundId);
     setExpanded((current) => isOpen ? current.filter((id) => id !== roundId) : [...current, roundId]);
     if (isOpen || detail[roundId]?.data || detail[roundId]?.loading) return;
-    const round = displayedRounds.data?.find((entry) => entry.subContractId === roundId);
+    const round = statusFilteredRounds.data?.find((entry) => entry.subContractId === roundId);
     if (!round) return;
     if (runtimeConfig.dataSource !== 'api') {
       const all = mockRoundItems[roundId] ?? [];
@@ -224,10 +234,10 @@ export function DeliveryRoundMasterPage() {
       .catch((error: unknown) => setDetail((current) => ({ ...current, [roundId]: {
         loading: false, error: error instanceof Error ? error.message : '품목 조회 실패',
       } })));
-  }, [expanded, detail, displayedRounds.data, vendors]);
+  }, [expanded, detail, statusFilteredRounds.data, vendors]);
 
   const resetFilters = () => changeFilters(() => {
-    setSelectedIds([]); setVendors([]); setDestinations([]); setDateFrom(''); setDateTo('');
+    setSelectedIds([]); setVendors([]); setDestinations([]); setStatusFilter('all'); setDateFrom(''); setDateTo('');
   });
 
   return (
@@ -246,7 +256,11 @@ export function DeliveryRoundMasterPage() {
             value={businesses.filter((entry) => selectedIds.includes(entry.businessId))}
             getOptionLabel={(entry) => entry.businessName}
             isOptionEqualToValue={(a, b) => a.businessId === b.businessId}
-            onChange={(_, values) => changeFilters(() => setSelectedIds(values.map((entry) => entry.businessId)))}
+            onChange={(_, values) => changeFilters(() => {
+              setSelectedIds(values.map((entry) => entry.businessId));
+              setVendors([]);
+              setDestinations([]);
+            })}
             renderInput={(params) => <TextField {...params} label="사업 선택 (복수)" placeholder={selectedIds.length ? '' : '전체 사업'} />}
             limitTags={2}
           />
@@ -265,6 +279,27 @@ export function DeliveryRoundMasterPage() {
             renderInput={(params) => <TextField {...params} label="납품 부대 (복수)" placeholder={destinations.length ? '' : '전체 부대'} />}
           />
         </Box>
+        <TextField select size="small" label="납품완료" value={statusFilter}
+          onChange={(event) => changeFilters(() => setStatusFilter(event.target.value as StatusFilter))}
+          sx={{ minWidth: 180 }} SelectProps={{ renderValue: (selected) => {
+            const value = String(selected) as StatusFilter;
+            return value === 'all' ? '전체' : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box component="span" sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: indicatorInfo[value].color }} />
+                {value === 'complete' ? '완료' : value === 'incomplete' ? '미완료' : '납기 임박/경과'}
+              </Box>
+            );
+          } }}>
+          <MenuItem value="all">전체</MenuItem>
+          {(['complete', 'incomplete', 'due-soon'] as const).map((value) => (
+            <MenuItem key={value} value={value}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box component="span" sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: indicatorInfo[value].color }} />
+                {value === 'complete' ? '완료' : value === 'incomplete' ? '미완료' : '납기 임박/경과'}
+              </Box>
+            </MenuItem>
+          ))}
+        </TextField>
         <TextField type="date" size="small" label="계약상 납기 시작" value={dateFrom}
           onChange={(event) => changeFilters(() => setDateFrom(event.target.value))}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ width: 165 }} />
@@ -276,7 +311,8 @@ export function DeliveryRoundMasterPage() {
         <Chip size="small" variant="outlined" label="고정익/회전익 선택은 UI 시안 · 실제 필터 미적용" />
       </Paper>
       {runtimeConfig.dataSource !== 'api' && <Alert severity="info" sx={{ mb: 2 }}>목데이터 시연 모드입니다. 사업·차수·품목은 가상 예시이며 실제 DB와 무관합니다.</Alert>}
-      {displayedRounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 조회 실패: {displayedRounds.error}</Alert>}
+      {filterOptionsError && <Alert severity="warning" sx={{ mb: 2 }}>조달원·납품 부대 선택지 조회 실패: {filterOptionsError}</Alert>}
+      {statusFilteredRounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 조회 실패: {statusFilteredRounds.error}</Alert>}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto' }}>
         <Table aria-label="납품 차수별 지원장비 통합현황" size="small" sx={{ minWidth: 1240 }}>
           <TableHead>
@@ -296,10 +332,10 @@ export function DeliveryRoundMasterPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayedRounds.loading && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
-            {!displayedRounds.loading && displayedRounds.error && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회 오류가 발생했습니다.</TableCell></TableRow>}
-            {!displayedRounds.loading && !displayedRounds.error && displayedRounds.data?.length === 0 && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
-            {!displayedRounds.loading && !displayedRounds.error && displayedRounds.data?.map((round) => (
+            {statusFilteredRounds.loading && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
+            {!statusFilteredRounds.loading && statusFilteredRounds.error && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회 오류가 발생했습니다.</TableCell></TableRow>}
+            {!statusFilteredRounds.loading && !statusFilteredRounds.error && statusFilteredRounds.data?.length === 0 && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
+            {!statusFilteredRounds.loading && !statusFilteredRounds.error && statusFilteredRounds.data?.map((round) => (
               <Fragment key={round.subContractId}>
                 <TableRow hover selected={expanded.includes(round.subContractId)}
                   aria-expanded={expanded.includes(round.subContractId)}

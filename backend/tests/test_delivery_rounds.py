@@ -103,8 +103,8 @@ def test_multiple_vendor_and_destination_filters(monkeypatch):
         ])
     assert response.status_code == 200, response.text
     sql, params = conn.cursor_instance.statements[0]
-    assert "vf.vendor_name IN (?, ?)" in sql
-    assert "sc.delivery_dest_name IN (?, ?)" in sql
+    assert "LTRIM(RTRIM(vf.vendor_name)) IN (?, ?)" in sql
+    assert "LTRIM(RTRIM(sc.delivery_dest_name)) IN (?, ?)" in sql
     assert params[:5] == ("가 조달원", "나 조달원", 1, "가 부대", "나 부대")
 
     with TestClient(create_app()) as client:
@@ -113,5 +113,21 @@ def test_multiple_vendor_and_destination_filters(monkeypatch):
         ])
     assert response.status_code == 200, response.text
     detail_sql, detail_params = conn.cursor_instance.statements[-1]
-    assert "v.vendor_name IN (?, ?)" in detail_sql
+    assert "LTRIM(RTRIM(v.vendor_name)) IN (?, ?)" in detail_sql
     assert detail_params == (41, 1, "가 조달원", "나 조달원")
+
+
+def test_filter_options_normalize_whitespace(monkeypatch):
+    conn = FakeConnection()
+    monkeypatch.setattr(module, "_connect", lambda: conn)
+    monkeypatch.setattr(module, "_setting", lambda *_args: "sqlserver")
+    monkeypatch.setattr(module, "_rows", lambda cursor: cursor.rows)
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/delivery-rounds/filter-options", params=[("businessIds", "1")])
+    assert response.status_code == 200, response.text
+    statements = conn.cursor_instance.statements
+    assert len(statements) == 2
+    assert "LTRIM(RTRIM(sc.delivery_dest_name)) AS name" in statements[0][0]
+    assert "LTRIM(RTRIM(v.vendor_name)) AS name" in statements[1][0]
+    assert "ORDER BY name" in statements[0][0]
+    assert conn.closed
