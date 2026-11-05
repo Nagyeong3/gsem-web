@@ -64,8 +64,8 @@ def rounds(
     business_ids: Annotated[list[int] | None, Query(alias="businessIds")] = None,
     vendor: str = Query("", max_length=200),
     destination: str = Query("", max_length=200),
-    date_from: date_type | None = Query(None, alias="dateFrom"),
-    date_to: date_type | None = Query(None, alias="dateTo"),
+    date_from: Annotated[date_type | None, Query(alias="dateFrom")] = None,
+    date_to: Annotated[date_type | None, Query(alias="dateTo")] = None,
 ):
     selected = _business_ids(business_id, business_ids)
     if date_from and date_to and date_from > date_to:
