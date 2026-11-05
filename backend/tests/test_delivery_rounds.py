@@ -69,7 +69,7 @@ def test_delivery_round_aggregates_and_vendor_params(monkeypatch):
     ):
         assert expr in sql
     assert params == (
-        "가 조달원", 1, 2, "가 부대", "가 부대",
+        "가 조달원", 1, 2, "가 부대",
         __import__("datetime").date(2026, 1, 1), __import__("datetime").date(2026, 1, 1),
         __import__("datetime").date(2026, 12, 31), __import__("datetime").date(2026, 12, 31),
     )
@@ -88,3 +88,30 @@ def test_delivery_round_requires_valid_business():
     with TestClient(create_app()) as client:
         response = client.get("/api/v1/delivery-rounds")
     assert response.status_code == 422
+
+def test_multiple_vendor_and_destination_filters(monkeypatch):
+    conn = FakeConnection()
+    monkeypatch.setattr(module, "_connect", lambda: conn)
+    monkeypatch.setattr(module, "_setting", lambda *_args: "sqlserver")
+    monkeypatch.setattr(module, "_rows", lambda cursor: cursor.rows)
+    monkeypatch.setattr(module, "_date", lambda value: value)
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/delivery-rounds", params=[
+            ("businessIds", "1"),
+            ("vendors", "가 조달원"), ("vendors", "나 조달원"),
+            ("destinations", "가 부대"), ("destinations", "나 부대"),
+        ])
+    assert response.status_code == 200, response.text
+    sql, params = conn.cursor_instance.statements[0]
+    assert "vf.vendor_name IN (?, ?)" in sql
+    assert "sc.delivery_dest_name IN (?, ?)" in sql
+    assert params[:5] == ("가 조달원", "나 조달원", 1, "가 부대", "나 부대")
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/delivery-rounds/41/items", params=[
+            ("businessId", "1"), ("vendors", "가 조달원"), ("vendors", "나 조달원"),
+        ])
+    assert response.status_code == 200, response.text
+    detail_sql, detail_params = conn.cursor_instance.statements[-1]
+    assert "v.vendor_name IN (?, ?)" in detail_sql
+    assert detail_params == (41, 1, "가 조달원", "나 조달원")

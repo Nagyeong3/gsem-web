@@ -64,19 +64,25 @@ def rounds(
     business_ids: Annotated[list[int] | None, Query(alias="businessIds")] = None,
     vendor: str = Query("", max_length=200),
     destination: str = Query("", max_length=200),
+    vendors: Annotated[list[str] | None, Query(alias="vendors")] = None,
+    destinations: Annotated[list[str] | None, Query(alias="destinations")] = None,
     date_from: Annotated[date_type | None, Query(alias="dateFrom")] = None,
     date_to: Annotated[date_type | None, Query(alias="dateTo")] = None,
 ):
     selected = _business_ids(business_id, business_ids)
     if date_from and date_to and date_from > date_to:
         raise HTTPException(422, "계약상 납기 시작일이 종료일보다 늦습니다.")
+    selected_vendors = list(dict.fromkeys(v.strip() for v in (vendors or ([vendor] if vendor else [])) if v.strip()))
+    selected_destinations = list(dict.fromkeys(v.strip() for v in (destinations or ([destination] if destination else [])) if v.strip()))
+    if len(selected_vendors) > 100 or len(selected_destinations) > 100 or any(len(v) > 200 for v in selected_vendors + selected_destinations):
+        raise HTTPException(422, "필터 선택 개수 또는 길이가 제한을 초과했습니다.")
     _require_db()
     # Restrict the matched contract lines for vendor filtering, so totals reflect visible details.
     # Keep all sub-contracts with zero matching lines when no vendor filter is selected.
     vendor_join = (
         " AND EXISTS (SELECT 1 FROM Vendor AS vf "
-        "WHERE vf.vendor_id = m.vendor_id AND vf.vendor_name = ?)"
-        if vendor.strip() else ""
+        "WHERE vf.vendor_id = m.vendor_id AND vf.vendor_name IN ({vendor_placeholders}))"
+        if selected_vendors else ""
     )
     sql = """
 SELECT sc.sub_contract_id, b.business_id, b.biz_name, sc.delivery_dest_name,
@@ -96,19 +102,22 @@ JOIN Business AS b ON b.business_id = c.business_id
 LEFT JOIN Match_Sub_Contract_Item AS m
   ON m.sub_contract_id = sc.sub_contract_id""" + vendor_join + """
 WHERE c.business_id IN ({placeholders})
-  AND (? = '' OR sc.delivery_dest_name = ?)
+  {destination_clause}
   AND (? IS NULL OR sc.delivery_date_contract >= ?)
   AND (? IS NULL OR sc.delivery_date_contract <= ?)
 GROUP BY sc.sub_contract_id, b.business_id, b.biz_name, sc.delivery_dest_name,
          sc.sub_contract_name, sc.delivery_date_contract
-""" + ("HAVING COUNT(m.match_id) > 0\n" if vendor.strip() else "") + """
+""" + ("HAVING COUNT(m.match_id) > 0\n" if selected_vendors else "") + """
 ORDER BY sc.delivery_date_contract, sc.sub_contract_id
 """
     sql = sql.replace("{placeholders}", ", ".join("?" for _ in selected))
-    params = (
-        ([vendor.strip()] if vendor.strip() else [])
-        + selected + [destination.strip(), destination.strip(), date_from, date_from, date_to, date_to]
+    sql = sql.replace("{vendor_placeholders}", ", ".join("?" for _ in selected_vendors))
+    sql = sql.replace(
+        "{destination_clause}",
+        "AND sc.delivery_dest_name IN (" + ", ".join("?" for _ in selected_destinations) + ")"
+        if selected_destinations else "",
     )
+    params = selected_vendors + selected + selected_destinations + [date_from, date_from, date_to, date_to]
     conn = _connect()
     try:
         records = _rows(conn.cursor().execute(sql, *params))
@@ -137,7 +146,11 @@ def round_items(
     sub_contract_id: int = Path(..., ge=1),
     business_id: int = Query(..., alias="businessId", ge=1),
     vendor: str = Query("", max_length=200),
+    vendors: Annotated[list[str] | None, Query(alias="vendors")] = None,
 ):
+    selected_vendors = list(dict.fromkeys(v.strip() for v in (vendors or ([vendor] if vendor else [])) if v.strip()))
+    if len(selected_vendors) > 100 or any(len(v) > 200 for v in selected_vendors):
+        raise HTTPException(422, "조달원 선택 개수 또는 길이가 제한을 초과했습니다.")
     _require_db()
     conn = _connect()
     try:
@@ -153,9 +166,12 @@ JOIN Item AS i ON i.item_id = m.item_id
 LEFT JOIN Vendor AS v ON v.vendor_id = m.vendor_id
 LEFT JOIN Users AS buyer ON buyer.user_id = m.buyer
 WHERE m.sub_contract_id = ? AND c.business_id = ?
-  AND (? = '' OR v.vendor_name = ?)
+  {vendor_clause}
 ORDER BY m.match_id
-""", sub_contract_id, business_id, vendor.strip(), vendor.strip()))
+""".replace(
+    "{vendor_clause}",
+    "AND v.vendor_name IN (" + ", ".join("?" for _ in selected_vendors) + ")" if selected_vendors else "",
+), sub_contract_id, business_id, *selected_vendors))
         return {"items": [{
             "matchId": row["match_id"],
             "itemId": row["item_id"],

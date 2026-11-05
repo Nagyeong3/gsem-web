@@ -71,6 +71,17 @@ function loadIds(): number[] {
     return Array.isArray(value) ? value.filter((id): id is number => Number.isSafeInteger(id) && id > 0) : [];
   } catch { return []; }
 }
+function loadStringList(key: string, legacyKey: string): string[] {
+  const raw = loadString(key);
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    } catch { /* Ignore an invalid saved value. */ }
+  }
+  const previous = loadString(legacyKey);
+  return previous ? [previous] : [];
+}
 function save(key: string, value: string) {
   try { localStorage.setItem(key, value); } catch { /* Storage can be disabled. */ }
 }
@@ -87,8 +98,8 @@ export function DeliveryRoundMasterPage() {
     const value = loadString('gsem.deliveryRound.aircraftCategory.v1');
     return value === 'fixed' || value === 'rotary' ? value : 'all';
   });
-  const [vendor, setVendor] = useState(() => loadString('gsem.deliveryRound.vendor.v1'));
-  const [destination, setDestination] = useState(() => loadString('gsem.deliveryRound.destination.v1'));
+  const [vendors, setVendors] = useState<string[]>(() => loadStringList('gsem.deliveryRound.vendors.v2', 'gsem.deliveryRound.vendor.v1'));
+  const [destinations, setDestinations] = useState<string[]>(() => loadStringList('gsem.deliveryRound.destinations.v2', 'gsem.deliveryRound.destination.v1'));
   const [dateFrom, setDateFrom] = useState(() => loadString('gsem.deliveryRound.dateFrom.v1'));
   const [dateTo, setDateTo] = useState(() => loadString('gsem.deliveryRound.dateTo.v1'));
   const [options, setOptions] = useState<FilterOptions>({ vendors: [], destinations: [] });
@@ -99,8 +110,8 @@ export function DeliveryRoundMasterPage() {
 
   useEffect(() => { save('gsem.deliveryRound.businessIds.v1', JSON.stringify(selectedIds)); }, [selectedIds]);
   useEffect(() => { save('gsem.deliveryRound.aircraftCategory.v1', aircraftCategory); }, [aircraftCategory]);
-  useEffect(() => { save('gsem.deliveryRound.vendor.v1', vendor); }, [vendor]);
-  useEffect(() => { save('gsem.deliveryRound.destination.v1', destination); }, [destination]);
+  useEffect(() => { save('gsem.deliveryRound.vendors.v2', JSON.stringify(vendors)); }, [vendors]);
+  useEffect(() => { save('gsem.deliveryRound.destinations.v2', JSON.stringify(destinations)); }, [destinations]);
   useEffect(() => { save('gsem.deliveryRound.dateFrom.v1', dateFrom); }, [dateFrom]);
   useEffect(() => { save('gsem.deliveryRound.dateTo.v1', dateTo); }, [dateTo]);
 
@@ -154,24 +165,24 @@ export function DeliveryRoundMasterPage() {
 
   const mockData = useMemo<Round[]>(() => mockRounds
     .filter((round) => selectedBusinessIds.includes(round.businessId))
-    .filter((round) => !destination || round.destination === destination)
+    .filter((round) => destinations.length === 0 || destinations.includes(round.destination))
     .filter((round) => !dateFrom || round.deliveryDate >= dateFrom)
     .filter((round) => !dateTo || round.deliveryDate <= dateTo)
     .map((round) => {
       const lines = mockRoundItems[round.subContractId] ?? [];
-      const matching = vendor ? lines.filter((line) => line.vendorName === vendor) : lines;
+      const matching = vendors.length > 0 ? lines.filter((line) => vendors.includes(line.vendorName)) : lines;
       return { ...round, ...aggregateDemoLines(matching), hasMatchingItems: matching.length > 0 };
     })
-    .filter((round) => !vendor || round.hasMatchingItems),
-  [selectedBusinessIds, vendor, destination, dateFrom, dateTo]);
+    .filter((round) => vendors.length === 0 || round.hasMatchingItems),
+  [selectedBusinessIds, vendors, destinations, dateFrom, dateTo]);
 
   useEffect(() => {
     if (runtimeConfig.dataSource !== 'api' || businesses.length === 0 || dateError) return;
     const controller = new AbortController();
     const params = new URLSearchParams();
     selectedBusinessIds.forEach((id) => params.append('businessIds', String(id)));
-    if (vendor) params.set('vendor', vendor);
-    if (destination) params.set('destination', destination);
+    vendors.forEach((value) => params.append('vendors', value));
+    destinations.forEach((value) => params.append('destinations', value));
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
     readJson<{ items: Round[] }>(`/delivery-rounds?${params}`, controller.signal)
@@ -180,7 +191,7 @@ export function DeliveryRoundMasterPage() {
         if (!controller.signal.aborted) setRounds({ loading: false, error: error instanceof Error ? error.message : '차수 조회 실패' });
       });
     return () => controller.abort();
-  }, [businesses, selectedBusinessIds, vendor, destination, dateFrom, dateTo, dateError, reload]);
+  }, [businesses, selectedBusinessIds, vendors, destinations, dateFrom, dateTo, dateError, reload]);
 
   const displayedRounds: LoadState<Round[]> = dateError
     ? { loading: false, error: dateError }
@@ -201,22 +212,22 @@ export function DeliveryRoundMasterPage() {
     if (runtimeConfig.dataSource !== 'api') {
       const all = mockRoundItems[roundId] ?? [];
       setDetail((current) => ({ ...current, [roundId]: {
-        loading: false, data: vendor ? all.filter((item) => item.vendorName === vendor) : all,
+        loading: false, data: vendors.length > 0 ? all.filter((item) => vendors.includes(item.vendorName)) : all,
       } }));
       return;
     }
     setDetail((current) => ({ ...current, [roundId]: { loading: true } }));
     const params = new URLSearchParams({ businessId: String(round.businessId) });
-    if (vendor) params.set('vendor', vendor);
+    vendors.forEach((value) => params.append('vendors', value));
     void readJson<{ items: RoundItem[] }>(`/delivery-rounds/${roundId}/items?${params}`)
       .then((result) => setDetail((current) => ({ ...current, [roundId]: { loading: false, data: result.items } })))
       .catch((error: unknown) => setDetail((current) => ({ ...current, [roundId]: {
         loading: false, error: error instanceof Error ? error.message : '품목 조회 실패',
       } })));
-  }, [expanded, detail, displayedRounds.data, vendor]);
+  }, [expanded, detail, displayedRounds.data, vendors]);
 
   const resetFilters = () => changeFilters(() => {
-    setSelectedIds([]); setVendor(''); setDestination(''); setDateFrom(''); setDateTo('');
+    setSelectedIds([]); setVendors([]); setDestinations([]); setDateFrom(''); setDateTo('');
   });
 
   return (
@@ -241,15 +252,17 @@ export function DeliveryRoundMasterPage() {
           />
         </Box>
         <Box sx={{ minWidth: 155, width: 180 }}>
-          <Autocomplete size="small" options={displayOptions.vendors} value={vendor || null}
-            onChange={(_, value) => changeFilters(() => setVendor(value ?? ''))}
-            renderInput={(params) => <TextField {...params} label="조달원" placeholder="전체 조달원" />}
+          <Autocomplete multiple size="small" options={displayOptions.vendors}
+            value={vendors} filterSelectedOptions limitTags={1}
+            onChange={(_, values) => changeFilters(() => setVendors(values))}
+            renderInput={(params) => <TextField {...params} label="조달원 (복수)" placeholder={vendors.length ? '' : '전체 조달원'} />}
           />
         </Box>
         <Box sx={{ minWidth: 155, width: 180 }}>
-          <Autocomplete size="small" options={displayOptions.destinations} value={destination || null}
-            onChange={(_, value) => changeFilters(() => setDestination(value ?? ''))}
-            renderInput={(params) => <TextField {...params} label="납품 부대" placeholder="전체 부대" />}
+          <Autocomplete multiple size="small" options={displayOptions.destinations}
+            value={destinations} filterSelectedOptions limitTags={1}
+            onChange={(_, values) => changeFilters(() => setDestinations(values))}
+            renderInput={(params) => <TextField {...params} label="납품 부대 (복수)" placeholder={destinations.length ? '' : '전체 부대'} />}
           />
         </Box>
         <TextField type="date" size="small" label="계약상 납기 시작" value={dateFrom}

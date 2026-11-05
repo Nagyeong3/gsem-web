@@ -21,12 +21,12 @@ test('delivery round filters, independent details and saved state work in mock m
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(6);
   await expect(page.getByRole('table', { name: '2차 납품 품목' })).toBeVisible();
 
-  await page.getByRole('combobox', { name: '조달원' }).click();
+  await page.getByRole('combobox', { name: '조달원 (복수)' }).click();
   await page.getByRole('option', { name: '가 조달원' }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(4);
   await expect(overview.getByRole('row', { name: /가 사업 1차 품목 보기/ })).toContainText('5');
   await page.reload();
-  await expect(page.getByRole('combobox', { name: '조달원' })).toHaveValue('가 조달원');
+  await expect(page.getByText('가 조달원', { exact: true }).first()).toBeVisible();
 
   await page.getByRole('button', { name: '필터 초기화' }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
@@ -55,4 +55,27 @@ test('delivery indicator colors reflect completion and upcoming contractual dead
   await expect(done.getByRole('img', { name: '납품완료' })).toBeVisible();
   await expect(dueSoon.getByRole('img', { name: /납품미완료 · 납기 7일 이내/ })).toBeVisible();
   await expect(notDueSoon.getByRole('img', { name: '납품미완료' })).toBeVisible();
+});
+
+test('multiple vendors and destinations combine with OR within a filter', async ({ page }) => {
+  await page.goto('/equipment-master-rounds');
+  const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
+  const vendor = page.getByRole('combobox', { name: '조달원 (복수)' });
+  await vendor.click();
+  await page.getByRole('option', { name: '가 조달원' }).click();
+  await vendor.click();
+  await page.getByRole('option', { name: '나 조달원' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
+
+  const destination = page.getByRole('combobox', { name: '납품 부대 (복수)' });
+  await destination.click();
+  await page.getByRole('option', { name: '가 부대' }).click();
+  await destination.click();
+  await page.getByRole('option', { name: '나 부대' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(3);
+  await page.reload();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(3);
+
+  await page.getByRole('button', { name: '필터 초기화' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
 });
