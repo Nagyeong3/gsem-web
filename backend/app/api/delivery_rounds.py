@@ -73,8 +73,14 @@ def rounds(
     if date_from and date_to and date_from > date_to:
         raise HTTPException(422, "계약상 납기 시작일이 종료일보다 늦습니다.")
     selected_vendors = list(dict.fromkeys(v.strip() for v in (vendors or ([vendor] if vendor else [])) if v.strip()))
-    selected_destinations = list(dict.fromkeys(v.strip() for v in (destinations or ([destination] if destination else [])) if v.strip()))
-    if len(selected_vendors) > 100 or len(selected_destinations) > 100 or any(len(v) > 200 for v in selected_vendors + selected_destinations):
+    selected_destinations = list(dict.fromkeys(
+        v.strip() for v in (destinations or ([destination] if destination else [])) if v.strip()
+    ))
+    if (
+        len(selected_vendors) > 100
+        or len(selected_destinations) > 100
+        or any(len(v) > 200 for v in selected_vendors + selected_destinations)
+    ):
         raise HTTPException(422, "필터 선택 개수 또는 길이가 제한을 초과했습니다.")
     _require_db()
     # Restrict the matched contract lines for vendor filtering, so totals reflect visible details.
