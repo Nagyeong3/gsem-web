@@ -47,7 +47,7 @@ async function readJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 export function DeliveryRoundMasterPage() {
-  const [businesses, setBusinesses] = useState<DbBusiness[]>([]);
+  const [businesses, setBusinesses] = useState<DbBusiness[]>(() => runtimeConfig.dataSource === 'api' ? [] : mockBusinesses);
   const [selectedIds, setSelectedIds] = useState<number[]>(loadIds);
   const [aircraftCategory, setAircraftCategory] = useState<AircraftCategory>(() => {
     const value = loadString('gsem.deliveryRound.aircraftCategory.v1');
@@ -71,19 +71,15 @@ export function DeliveryRoundMasterPage() {
   useEffect(() => { save('gsem.deliveryRound.dateTo.v1', dateTo); }, [dateTo]);
 
   useEffect(() => {
-    if (runtimeConfig.dataSource !== 'api') {
-      setBusinesses(mockBusinesses);
-      return;
-    }
-    const controller = new AbortController();
+    if (runtimeConfig.dataSource !== 'api') return;
     // fetchBusinessOptions has its own request; guard against late completion.
     let active = true;
     fetchBusinessOptions()
-      .then((values) => { if (active) setBusinesses(values); })
+      .then((values) => { if (active) { setBusinesses(values); if (values.length === 0) setRounds({ loading: false, data: [] }); } })
       .catch((error: unknown) => {
         if (active) setRounds({ loading: false, error: error instanceof Error ? error.message : '사업 목록 조회 실패' });
       });
-    return () => { active = false; controller.abort(); };
+    return () => { active = false; };
   }, [reload]);
 
   const selectedBusinessIds = useMemo(() => {
@@ -94,13 +90,7 @@ export function DeliveryRoundMasterPage() {
 
   useEffect(() => {
     if (businesses.length === 0) return;
-    if (runtimeConfig.dataSource !== 'api') {
-      setOptions({
-        vendors: [...new Set(Object.values(mockRoundItems).flatMap((items) => items.map((item) => item.vendorName)))].sort(),
-        destinations: [...new Set(mockRounds.filter((round) => selectedBusinessIds.includes(round.businessId)).map((round) => round.destination))].sort(),
-      });
-      return;
-    }
+    if (runtimeConfig.dataSource !== 'api') return;
     const controller = new AbortController();
     const params = new URLSearchParams();
     selectedBusinessIds.forEach((id) => params.append('businessIds', String(id)));
@@ -115,32 +105,35 @@ export function DeliveryRoundMasterPage() {
     return () => controller.abort();
   }, [businesses, selectedBusinessIds, reload]);
 
+  const mockOptions = useMemo<FilterOptions>(() => ({
+    vendors: [...new Set(
+      mockRounds.filter((round) => selectedBusinessIds.includes(round.businessId))
+        .flatMap((round) => (mockRoundItems[round.subContractId] ?? []).map((item) => item.vendorName)),
+    )].sort(),
+    destinations: [...new Set(
+      mockRounds.filter((round) => selectedBusinessIds.includes(round.businessId)).map((round) => round.destination),
+    )].sort(),
+  }), [selectedBusinessIds]);
+  const displayOptions = runtimeConfig.dataSource === 'api' ? options : mockOptions;
+  const dateError = dateFrom && dateTo && dateFrom > dateTo
+    ? '계약상 납기 시작일이 종료일보다 늦습니다.' : '';
+
+  const mockData = useMemo<Round[]>(() => mockRounds
+    .filter((round) => selectedBusinessIds.includes(round.businessId))
+    .filter((round) => !destination || round.destination === destination)
+    .filter((round) => !dateFrom || round.deliveryDate >= dateFrom)
+    .filter((round) => !dateTo || round.deliveryDate <= dateTo)
+    .map((round) => {
+      const lines = mockRoundItems[round.subContractId] ?? [];
+      const matching = vendor ? lines.filter((line) => line.vendorName === vendor) : lines;
+      return { ...round, ...aggregateDemoLines(matching), hasMatchingItems: matching.length > 0 };
+    })
+    .filter((round) => !vendor || round.hasMatchingItems),
+  [selectedBusinessIds, vendor, destination, dateFrom, dateTo]);
+
   useEffect(() => {
-    if (businesses.length === 0) {
-      if (runtimeConfig.dataSource !== 'api') setRounds({ loading: false, data: [] });
-      return;
-    }
-    if (dateFrom && dateTo && dateFrom > dateTo) {
-      setRounds({ loading: false, error: '계약상 납기 시작일이 종료일보다 늦습니다.' });
-      return;
-    }
-    if (runtimeConfig.dataSource !== 'api') {
-      const selected = mockRounds
-        .filter((round) => selectedBusinessIds.includes(round.businessId))
-        .filter((round) => !destination || round.destination === destination)
-        .filter((round) => !dateFrom || round.deliveryDate >= dateFrom)
-        .filter((round) => !dateTo || round.deliveryDate <= dateTo)
-        .map((round) => {
-          const lines = mockRoundItems[round.subContractId] ?? [];
-          const matching = vendor ? lines.filter((line) => line.vendorName === vendor) : lines;
-          return { ...round, ...aggregateDemoLines(matching), hasMatchingItems: matching.length > 0 };
-        })
-        .filter((round) => !vendor || round.hasMatchingItems);
-      setRounds({ loading: false, data: selected });
-      return;
-    }
+    if (runtimeConfig.dataSource !== 'api' || businesses.length === 0 || dateError) return;
     const controller = new AbortController();
-    setRounds({ loading: true });
     const params = new URLSearchParams();
     selectedBusinessIds.forEach((id) => params.append('businessIds', String(id)));
     if (vendor) params.set('vendor', vendor);
@@ -153,18 +146,23 @@ export function DeliveryRoundMasterPage() {
         if (!controller.signal.aborted) setRounds({ loading: false, error: error instanceof Error ? error.message : '차수 조회 실패' });
       });
     return () => controller.abort();
-  }, [businesses, selectedBusinessIds, vendor, destination, dateFrom, dateTo, reload]);
+  }, [businesses, selectedBusinessIds, vendor, destination, dateFrom, dateTo, dateError, reload]);
 
-  useEffect(() => {
+  const displayedRounds: LoadState<Round[]> = dateError
+    ? { loading: false, error: dateError }
+    : runtimeConfig.dataSource === 'api' ? rounds : { loading: false, data: mockData };
+  const changeFilters = (apply: () => void) => {
+    apply();
     setExpanded([]);
     setDetail({});
-  }, [selectedBusinessIds, vendor, destination, dateFrom, dateTo, reload]);
+    if (runtimeConfig.dataSource === 'api') setRounds({ loading: true });
+  };
 
   const openRound = useCallback((roundId: number) => {
     const isOpen = expanded.includes(roundId);
     setExpanded((current) => isOpen ? current.filter((id) => id !== roundId) : [...current, roundId]);
     if (isOpen || detail[roundId]?.data || detail[roundId]?.loading) return;
-    const round = rounds.data?.find((entry) => entry.subContractId === roundId);
+    const round = displayedRounds.data?.find((entry) => entry.subContractId === roundId);
     if (!round) return;
     if (runtimeConfig.dataSource !== 'api') {
       const all = mockRoundItems[roundId] ?? [];
@@ -181,11 +179,11 @@ export function DeliveryRoundMasterPage() {
       .catch((error: unknown) => setDetail((current) => ({ ...current, [roundId]: {
         loading: false, error: error instanceof Error ? error.message : '품목 조회 실패',
       } })));
-  }, [expanded, detail, rounds.data, vendor]);
+  }, [expanded, detail, displayedRounds.data, vendor]);
 
-  const resetFilters = () => {
+  const resetFilters = () => changeFilters(() => {
     setSelectedIds([]); setVendor(''); setDestination(''); setDateFrom(''); setDateTo('');
-  };
+  });
 
   return (
     <Box sx={{ minWidth: 0, p: { xs: 1.5, md: 3 }, bgcolor: 'background.default' }}>
@@ -203,35 +201,35 @@ export function DeliveryRoundMasterPage() {
             value={businesses.filter((entry) => selectedIds.includes(entry.businessId))}
             getOptionLabel={(entry) => entry.businessName}
             isOptionEqualToValue={(a, b) => a.businessId === b.businessId}
-            onChange={(_, values) => setSelectedIds(values.map((entry) => entry.businessId))}
+            onChange={(_, values) => changeFilters(() => setSelectedIds(values.map((entry) => entry.businessId)))}
             renderInput={(params) => <TextField {...params} label="사업 선택 (복수)" placeholder={selectedIds.length ? '' : '전체 사업'} />}
             limitTags={2}
           />
         </Box>
         <Box sx={{ minWidth: 155, width: 180 }}>
-          <Autocomplete size="small" options={options.vendors} value={vendor || null}
-            onChange={(_, value) => setVendor(value ?? '')}
+          <Autocomplete size="small" options={displayOptions.vendors} value={vendor || null}
+            onChange={(_, value) => changeFilters(() => setVendor(value ?? ''))}
             renderInput={(params) => <TextField {...params} label="조달원" placeholder="전체 조달원" />}
           />
         </Box>
         <Box sx={{ minWidth: 155, width: 180 }}>
-          <Autocomplete size="small" options={options.destinations} value={destination || null}
-            onChange={(_, value) => setDestination(value ?? '')}
+          <Autocomplete size="small" options={displayOptions.destinations} value={destination || null}
+            onChange={(_, value) => changeFilters(() => setDestination(value ?? ''))}
             renderInput={(params) => <TextField {...params} label="납품 부대" placeholder="전체 부대" />}
           />
         </Box>
         <TextField type="date" size="small" label="계약상 납기 시작" value={dateFrom}
-          onChange={(event) => setDateFrom(event.target.value)}
+          onChange={(event) => changeFilters(() => setDateFrom(event.target.value))}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ width: 165 }} />
         <TextField type="date" size="small" label="계약상 납기 종료" value={dateTo}
-          onChange={(event) => setDateTo(event.target.value)}
+          onChange={(event) => changeFilters(() => setDateTo(event.target.value))}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ width: 165 }} />
         <Button size="small" onClick={resetFilters}>필터 초기화</Button>
-        <Button size="small" startIcon={<RefreshOutlined />} onClick={() => setReload((value) => value + 1)}>새로고침</Button>
+        <Button size="small" startIcon={<RefreshOutlined />} onClick={() => changeFilters(() => setReload((value) => value + 1))}>새로고침</Button>
         <Chip size="small" variant="outlined" label="고정익/회전익 선택은 UI 시안 · 실제 필터 미적용" />
       </Paper>
       {runtimeConfig.dataSource !== 'api' && <Alert severity="info" sx={{ mb: 2 }}>목데이터 시연 모드입니다. 사업·차수·품목은 가상 예시이며 실제 DB와 무관합니다.</Alert>}
-      {rounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 조회 실패: {rounds.error}</Alert>}
+      {displayedRounds.error && <Alert severity="error" sx={{ mb: 2 }}>납품 차수 조회 실패: {displayedRounds.error}</Alert>}
       <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: 'auto' }}>
         <Table aria-label="납품 차수별 지원장비 통합현황" size="small" sx={{ minWidth: 1240 }}>
           <TableHead>
@@ -251,10 +249,10 @@ export function DeliveryRoundMasterPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {rounds.loading && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
-            {!rounds.loading && rounds.error && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회 오류가 발생했습니다.</TableCell></TableRow>}
-            {!rounds.loading && !rounds.error && rounds.data?.length === 0 && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
-            {!rounds.loading && !rounds.error && rounds.data?.map((round) => (
+            {displayedRounds.loading && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5 }}><CircularProgress size={24} /></TableCell></TableRow>}
+            {!displayedRounds.loading && displayedRounds.error && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회 오류가 발생했습니다.</TableCell></TableRow>}
+            {!displayedRounds.loading && !displayedRounds.error && displayedRounds.data?.length === 0 && <TableRow><TableCell colSpan={12} align="center" sx={{ py: 4 }}>조회할 납품 차수가 없습니다.</TableCell></TableRow>}
+            {!displayedRounds.loading && !displayedRounds.error && displayedRounds.data?.map((round) => (
               <Fragment key={round.subContractId}>
                 <TableRow hover selected={expanded.includes(round.subContractId)}
                   aria-expanded={expanded.includes(round.subContractId)}
