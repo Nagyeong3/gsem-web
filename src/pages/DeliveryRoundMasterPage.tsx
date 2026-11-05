@@ -28,6 +28,40 @@ type AircraftCategory = 'all' | 'fixed' | 'rotary';
 const date = (value: string | null) => value?.slice(0, 10) || '-';
 const number = (value: number | null | undefined) => value == null ? '-' : value.toLocaleString('ko-KR');
 
+type DeliveryIndicator = 'complete' | 'due-soon' | 'incomplete';
+
+/**
+ * Only an incomplete delivery within 7 calendar days before its contractual due
+ * date (or already overdue) is critical. Compare calendar days, not timestamps.
+ */
+function getDeliveryIndicator(round: Pick<Round, 'deliveryCompleted' | 'deliveryDate'>, today = new Date()): DeliveryIndicator {
+  if (round.deliveryCompleted) return 'complete';
+  if (!round.deliveryDate) return 'incomplete';
+  const datePart = round.deliveryDate.slice(0, 10);
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return 'incomplete';
+  const [year, month, day] = datePart.split('-').map(Number);
+  const due = Date.UTC(year, month - 1, day);
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysRemaining = Math.round((due - todayUtc) / 86_400_000);
+  return daysRemaining <= 7 ? 'due-soon' : 'incomplete';
+}
+
+const indicatorInfo: Record<DeliveryIndicator, { label: string; color: string }> = {
+  complete: { label: '납품완료', color: '#16A34A' },
+  incomplete: { label: '납품미완료', color: '#EAB308' },
+  'due-soon': { label: '납품미완료 · 납기 7일 이내 또는 경과', color: '#DC2626' },
+};
+
+function DeliveryStatusDot({ round }: { round: Round }) {
+  const status = indicatorInfo[getDeliveryIndicator(round)];
+  return (
+    <Box component="span" role="img" aria-label={status.label} title={status.label}
+      sx={{ display: 'inline-block', width: 13, height: 13, borderRadius: '50%',
+        bgcolor: status.color, verticalAlign: 'middle', boxShadow: '0 0 0 1px rgba(0,0,0,0.12)' }} />
+  );
+}
+
+
 function loadString(key: string) {
   try { return localStorage.getItem(key) ?? ''; } catch { return ''; }
 }
@@ -245,7 +279,7 @@ export function DeliveryRoundMasterPage() {
               <TableCell align="right">입고</TableCell>
               <TableCell align="right">납품</TableCell>
               <TableCell align="center" title="모든 품목의 납품일 등록 여부">납품완료</TableCell>
-              <TableCell align="right">납품금액</TableCell>
+              <TableCell align="right">납품금액 (원)</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -273,7 +307,7 @@ export function DeliveryRoundMasterPage() {
                   <TableCell align="right">{number(round.poCount)}</TableCell>
                   <TableCell align="right">{number(round.receivedCount)}</TableCell>
                   <TableCell align="right">{number(round.deliveredCount)}</TableCell>
-                  <TableCell align="center">{round.deliveryCompleted ? 'TRUE' : 'FALSE'}</TableCell>
+                  <TableCell align="center"><DeliveryStatusDot round={round} /></TableCell>
                   <TableCell align="right">{number(round.deliveryAmount)}</TableCell>
                 </TableRow>
                 {expanded.includes(round.subContractId) && (
@@ -314,7 +348,7 @@ export function DeliveryRoundMasterPage() {
       </TableContainer>
       <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>
         종=품목 종류 수, 점=수량 합계, PR·PO=번호 등록 행 수, 입고·납품=날짜 등록 행 수,
-        납품완료=품목 행 수와 납품일 등록 행 수가 동일한 경우 TRUE, 납품금액=계약가격×수량 합계.
+        납품완료 표시: 초록=완료, 노랑=미완료, 빨강=미완료이면서 납기 7일 이내 또는 경과. 납품금액=계약가격×수량 합계.
         조달원 선택 시 해당 조달원 품목 기준으로 집계합니다. 고정익/회전익은 실제 분류에 아직 적용되지 않습니다.
       </Typography>
     </Box>

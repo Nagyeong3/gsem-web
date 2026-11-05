@@ -4,7 +4,7 @@ test('delivery round filters, independent details and saved state work in mock m
   await page.goto('/equipment-master-rounds');
   await expect(page.getByText('목데이터 시연 모드입니다.')).toBeVisible();
   const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
-  for (const label of ['종', '점', 'PR', 'PO', '입고', '납품', '납품완료', '납품금액']) {
+  for (const label of ['종', '점', 'PR', 'PO', '입고', '납품', '납품완료', '납품금액 (원)']) {
     await expect(overview.getByRole('columnheader', { name: label, exact: true })).toBeVisible();
   }
   const first = overview.getByRole('row', { name: /가 사업 1차 품목 보기/ });
@@ -43,4 +43,16 @@ test('delivery round UI-only aircraft choice and collapsed sidebar persist', asy
   await expect(page.getByRole('button', { name: '메뉴 펼치기' })).toBeVisible();
   await expect(page.getByRole('button', { name: '회전익', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('row', { name: /가 사업 1차 품목 보기/ })).toBeVisible();
+});
+
+test('delivery indicator colors reflect completion and upcoming contractual deadline', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-12-10T12:00:00+09:00'));
+  await page.goto('/equipment-master-rounds');
+  const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
+  const done = overview.getByRole('row', { name: /가 사업 1차 품목 보기/ });
+  const dueSoon = overview.getByRole('row', { name: /가 사업 2차 품목 보기/ });
+  const notDueSoon = overview.getByRole('row', { name: /나 사업 2차 품목 보기/ });
+  await expect(done.getByRole('img', { name: '납품완료' })).toBeVisible();
+  await expect(dueSoon.getByRole('img', { name: /납품미완료 · 납기 7일 이내/ })).toBeVisible();
+  await expect(notDueSoon.getByRole('img', { name: '납품미완료' })).toBeVisible();
 });
