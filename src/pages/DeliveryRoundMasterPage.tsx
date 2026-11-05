@@ -38,7 +38,7 @@ function getDeliveryIndicator(round: Pick<Round, 'deliveryCompleted' | 'delivery
   if (round.deliveryCompleted) return 'complete';
   if (!round.deliveryDate) return 'incomplete';
   const datePart = round.deliveryDate.slice(0, 10);
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) return 'incomplete';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return 'incomplete';
   const [year, month, day] = datePart.split('-').map(Number);
   const due = Date.UTC(year, month - 1, day);
   const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
