@@ -13,6 +13,9 @@ EXPECTED_PATHS = {
     "/api/v1/equipment-master/filter-options",
     "/api/v1/equipment-master/export",
     "/api/v1/equipment-master/image/{item_id}",
+    "/api/v1/delivery-rounds",
+    "/api/v1/delivery-rounds/filter-options",
+    "/api/v1/delivery-rounds/{sub_contract_id}/items",
 }
 
 

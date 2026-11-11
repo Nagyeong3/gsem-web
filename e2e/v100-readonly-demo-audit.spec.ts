@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 
 const pages = [
   ['/', '지원장비 관리 현황'],
-  ['/equipment-master', '지원장비 통합현황'],
+  ['/equipment-master', '지원장비 통합현황(구)'],
+  ['/equipment-master-rounds', '지원장비 통합현황'],
   ['/equipment', '장비 검색'],
   ['/equipment/1', '장비 통합 상세'],
   ['/deliveries', '납품 일정 관리'],

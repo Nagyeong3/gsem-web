@@ -22,7 +22,7 @@ concurrency:
 jobs:
   verify:
     name: 타입·코드·계약·빌드 검사
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:

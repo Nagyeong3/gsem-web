@@ -126,7 +126,7 @@ export function EquipmentMasterPage() {
   return (
     <Box sx={{ display: 'flex', minWidth: 0, bgcolor: 'background.paper' }}>
       <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, md: 3 }, bgcolor: 'background.default' }}>
-        <PageHeader title="지원장비 통합현황" description={realDataMode ? "SQL Server 실데이터 · 읽기 전용 (미등록 항목은 대시로 표시)" : "엑셀 마스터 파일의 업무 구조를 기준으로 지원장비 조달·계약·납품 현황을 Mock 데이터로 확인합니다."} />
+        <PageHeader title="지원장비 통합현황(구)" description={realDataMode ? "SQL Server 실데이터 · 읽기 전용 (미등록 항목은 대시로 표시)" : "엑셀 마스터 파일의 업무 구조를 기준으로 지원장비 조달·계약·납품 현황을 Mock 데이터로 확인합니다."} />
 
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: 1.5, mb: 2 }}>
           <SummaryCard label="전체 품목" value={`${totalRows}건`} helper={realDataMode ? "SQL Server 전체 등록 건수 (사업별)" : "Mock 마스터 기준"} />

@@ -11,6 +11,9 @@ const EquipmentMasterPage = lazy(() =>
     default: module.EquipmentMasterPage,
   })),
 );
+const DeliveryRoundMasterPage = lazy(() =>
+  import('../pages/DeliveryRoundMasterPage').then((module) => ({ default: module.DeliveryRoundMasterPage })),
+);
 const EquipmentSearchPage = lazy(() =>
   import('../pages/EquipmentSearchPage').then((module) => ({
     default: module.EquipmentSearchPage,
@@ -43,6 +46,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/equipment-master" element={<EquipmentMasterPage />} />
+          <Route path="/equipment-master-rounds" element={<DeliveryRoundMasterPage />} />
           <Route path="/equipment" element={<EquipmentSearchPage />} />
           <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
           <Route path="/deliveries" element={<DeliverySchedulePage />} />

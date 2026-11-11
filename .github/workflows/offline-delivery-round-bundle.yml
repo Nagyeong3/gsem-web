@@ -1,0 +1,41 @@
+name: Offline delivery-round Git bundle
+
+on:
+  push:
+    branches:
+      - feature/delivery-round-master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pack-incremental-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch release baseline and create bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/release/v1.0.1-demo-readonly:refs/remotes/origin/release/v1.0.1-demo-readonly
+          git merge-base --is-ancestor origin/release/v1.0.1-demo-readonly HEAD
+          git update-ref refs/heads/delivery-round-transfer HEAD
+          git bundle create gsem-delivery-round-incremental.bundle \
+            refs/heads/delivery-round-transfer \
+            ^refs/remotes/origin/release/v1.0.1-demo-readonly
+          git bundle verify gsem-delivery-round-incremental.bundle
+          git bundle list-heads gsem-delivery-round-incremental.bundle
+          sha256sum gsem-delivery-round-incremental.bundle > gsem-delivery-round-incremental.sha256
+      - name: Upload incremental bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: gsem-delivery-round-incremental
+          path: |
+            gsem-delivery-round-incremental.bundle
+            gsem-delivery-round-incremental.sha256
+          retention-days: 30
