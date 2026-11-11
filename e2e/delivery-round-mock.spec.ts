@@ -119,6 +119,7 @@ test('equipment thumbnail shows hover preview and click zoom without closing exp
   const dialog = page.getByRole('dialog', { name: /DEMO-001/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('img')).toBeVisible();
+  await page.screenshot({ path: 'docs/prototype-screenshots/delivery-round-image-preview.png', fullPage: true });
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('table', { name: '1차 납품 품목' })).toBeVisible();
