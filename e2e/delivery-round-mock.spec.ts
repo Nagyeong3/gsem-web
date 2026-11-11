@@ -80,31 +80,48 @@ test('multiple vendors and destinations combine with OR within a filter', async 
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
 });
 
-test('delivery status dropdown filters matching color categories in mock mode', async ({ page }) => {
+test('delivery status multi-select shows only selected categories in mock mode', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-12-10T12:00:00+09:00'));
   await page.goto('/equipment-master-rounds');
   const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
-  const status = page.getByRole('combobox', { name: '납품완료' });
+  const status = page.getByRole('combobox', { name: '납품완료 (복수)' });
 
   await status.click();
   await page.getByRole('option', { name: '완료', exact: true }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
-  await expect(overview.getByRole('img', { name: '납품완료' })).toHaveCount(2);
 
   await status.click();
   await page.getByRole('option', { name: '미완료', exact: true }).click();
-  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
-  await expect(overview.getByRole('img', { name: '납품미완료' })).toHaveCount(2);
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(4);
+
+  await page.reload();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(4);
+
+  await page.getByRole('button', { name: '필터 초기화' }).click();
+  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
 
   await status.click();
   await page.getByRole('option', { name: '납기 임박/경과' }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
   await expect(overview.getByRole('row', { name: /가 사업 2차 품목 보기/ })).toBeVisible();
+});
 
-  await page.reload();
-  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
-  await page.getByRole('button', { name: '필터 초기화' }).click();
-  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(5);
+test('equipment thumbnail shows hover preview and click zoom without closing expanded rows', async ({ page }) => {
+  await page.goto('/equipment-master-rounds');
+  const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
+  await overview.getByRole('row', { name: /가 사업 1차 품목 보기/ }).click();
+  const thumbnail = page.getByRole('button', { name: 'DEMO-001 이미지 확대' }).first();
+  await expect(thumbnail).toBeVisible();
+  await expect(thumbnail.getByRole('img', { name: 'DEMO-001 장비 이미지' })).toBeVisible();
+  await thumbnail.hover();
+  await expect(page.getByRole('tooltip')).toBeVisible();
+  await thumbnail.click();
+  const dialog = page.getByRole('dialog', { name: /DEMO-001/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('img')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('table', { name: '1차 납품 품목' })).toBeVisible();
 });
 
 test('business filtering remains independent from vendor and destination filters', async ({ page }) => {

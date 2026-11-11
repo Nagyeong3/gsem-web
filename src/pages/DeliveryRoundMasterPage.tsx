@@ -1,9 +1,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert, Autocomplete, Box, Button, Chip, CircularProgress, Paper, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography, MenuItem,
+  TableCell, TableContainer, TableHead, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography, Tooltip, Dialog, DialogTitle, DialogContent, IconButton,
 } from '@mui/material';
-import { RefreshOutlined } from '@mui/icons-material';
+import { RefreshOutlined, ImageNotSupportedOutlined, CloseOutlined, ZoomInOutlined } from '@mui/icons-material';
 import { PageHeader } from '../components/common/PageHeader';
 import { runtimeConfig } from '../config/runtime';
 import { fetchBusinessOptions, type DbBusiness } from '../features/equipment-master/model';
@@ -29,7 +29,12 @@ const date = (value: string | null) => value?.slice(0, 10) || '-';
 const number = (value: number | null | undefined) => value == null ? '-' : value.toLocaleString('ko-KR');
 
 type DeliveryIndicator = 'complete' | 'due-soon' | 'incomplete';
-type StatusFilter = DeliveryIndicator | 'all';
+type StatusFilter = DeliveryIndicator;
+const statusChoices: Array<{ value: StatusFilter; label: string; color: string }> = [
+  { value: 'complete', label: '완료', color: '#16A34A' },
+  { value: 'incomplete', label: '미완료', color: '#EAB308' },
+  { value: 'due-soon', label: '납기 임박/경과', color: '#DC2626' },
+];
 
 /**
  * Only an incomplete delivery within 7 calendar days before its contractual due
@@ -62,6 +67,54 @@ function DeliveryStatusDot({ round }: { round: Round }) {
   );
 }
 
+
+
+function demoImageUrl(itemId: number): string {
+  const hue = (itemId * 41 + 160) % 360;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="320" viewBox="0 0 400 320">
+    <rect width="400" height="320" rx="18" fill="#eef2f6"/>
+    <rect x="82" y="75" width="236" height="162" rx="16" fill="hsl(${hue},22%,35%)"/>
+    <rect x="103" y="97" width="194" height="92" rx="7" fill="#dce8ed"/>
+    <rect x="115" y="109" width="168" height="66" rx="5" fill="#a1bcc8"/>
+    <circle cx="132" cy="209" r="9" fill="#8ee0ac"/>
+    <circle cx="163" cy="209" r="9" fill="#f4bb75"/>
+    <rect x="222" y="201" width="59" height="15" rx="5" fill="#748899"/>
+    <path d="M150 74 V53 Q150 43 160 43 H240 Q250 43 250 53 V74" stroke="#647789" stroke-width="13" fill="none"/>
+    <rect x="112" y="238" width="30" height="16" rx="4" fill="#3f5365"/>
+    <rect x="259" y="238" width="30" height="16" rx="4" fill="#3f5365"/>
+    <text x="200" y="289" text-anchor="middle" font-family="Arial" font-size="16" fill="#475569">DEMO-${String(itemId).padStart(3, '0')}</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function EquipmentImageThumbnail({
+  item, onExpand,
+}: { item: RoundItem; onExpand: (item: RoundItem, url: string) => void }) {
+  const url = runtimeConfig.dataSource === 'api'
+    ? `${runtimeConfig.apiBaseUrl}/equipment-master/image/${item.itemId}`
+    : demoImageUrl(item.itemId);
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <Box aria-label={`${item.itemNumber} 이미지 없음`} sx={{ width: 52, height: 52,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover',
+      borderRadius: 1, color: 'text.disabled' }}><ImageNotSupportedOutlined fontSize="small" /></Box>;
+  }
+  return (
+    <Tooltip placement="right" arrow enterDelay={250} enterTouchDelay={0}
+      title={<Box component="img" src={url} alt={item.itemName || item.itemNumber}
+        sx={{ display: 'block', width: 270, maxHeight: 240, objectFit: 'contain', bgcolor: 'background.paper' }} />}>
+      <IconButton aria-label={`${item.itemNumber} 이미지 확대`} onClick={() => onExpand(item, url)}
+        sx={{ p: 0.25, borderRadius: 1, border: '1px solid', borderColor: 'divider',
+          position: 'relative', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
+        <Box component="img" src={url} loading="lazy" onError={() => setFailed(true)}
+          alt={`${item.itemNumber} 장비 이미지`}
+          sx={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 0.5 }} />
+        <ZoomInOutlined sx={{ position: 'absolute', right: 1, bottom: 1, fontSize: 16,
+          bgcolor: 'background.paper', borderRadius: 0.5 }} />
+      </IconButton>
+    </Tooltip>
+  );
+}
 
 function loadString(key: string) {
   try { return localStorage.getItem(key) ?? ''; } catch { return ''; }
@@ -101,9 +154,10 @@ export function DeliveryRoundMasterPage() {
   });
   const [vendors, setVendors] = useState<string[]>(() => loadStringList('gsem.deliveryRound.vendors.v2', 'gsem.deliveryRound.vendor.v1'));
   const [destinations, setDestinations] = useState<string[]>(() => loadStringList('gsem.deliveryRound.destinations.v2', 'gsem.deliveryRound.destination.v1'));
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
-    const saved = loadString('gsem.deliveryRound.status.v1');
-    return saved === 'complete' || saved === 'incomplete' || saved === 'due-soon' ? saved : 'all';
+  const [statusFilters, setStatusFilters] = useState<StatusFilter[]>(() => {
+    const saved = loadStringList('gsem.deliveryRound.statuses.v2', 'gsem.deliveryRound.status.v1');
+    return saved.filter((value): value is StatusFilter =>
+      value === 'complete' || value === 'incomplete' || value === 'due-soon');
   });
   const [dateFrom, setDateFrom] = useState(() => loadString('gsem.deliveryRound.dateFrom.v1'));
   const [dateTo, setDateTo] = useState(() => loadString('gsem.deliveryRound.dateTo.v1'));
@@ -113,12 +167,13 @@ export function DeliveryRoundMasterPage() {
   const [expanded, setExpanded] = useState<number[]>([]);
   const [detail, setDetail] = useState<Record<number, LoadState<RoundItem[]>>>({});
   const [reload, setReload] = useState(0);
+  const [preview, setPreview] = useState<{ url: string; item: RoundItem } | null>(null);
 
   useEffect(() => { save('gsem.deliveryRound.businessIds.v1', JSON.stringify(selectedIds)); }, [selectedIds]);
   useEffect(() => { save('gsem.deliveryRound.aircraftCategory.v1', aircraftCategory); }, [aircraftCategory]);
   useEffect(() => { save('gsem.deliveryRound.vendors.v2', JSON.stringify(vendors)); }, [vendors]);
   useEffect(() => { save('gsem.deliveryRound.destinations.v2', JSON.stringify(destinations)); }, [destinations]);
-  useEffect(() => { save('gsem.deliveryRound.status.v1', statusFilter); }, [statusFilter]);
+  useEffect(() => { save('gsem.deliveryRound.statuses.v2', JSON.stringify(statusFilters)); }, [statusFilters]);
   useEffect(() => { save('gsem.deliveryRound.dateFrom.v1', dateFrom); }, [dateFrom]);
   useEffect(() => { save('gsem.deliveryRound.dateTo.v1', dateTo); }, [dateTo]);
 
@@ -203,8 +258,8 @@ export function DeliveryRoundMasterPage() {
   const displayedRounds: LoadState<Round[]> = dateError
     ? { loading: false, error: dateError }
     : runtimeConfig.dataSource === 'api' ? rounds : { loading: false, data: mockData };
-  const statusFilteredRounds: LoadState<Round[]> = displayedRounds.data && statusFilter !== 'all'
-    ? { ...displayedRounds, data: displayedRounds.data.filter((round) => getDeliveryIndicator(round) === statusFilter) }
+  const statusFilteredRounds: LoadState<Round[]> = displayedRounds.data && statusFilters.length > 0
+    ? { ...displayedRounds, data: displayedRounds.data.filter((round) => statusFilters.includes(getDeliveryIndicator(round))) }
     : displayedRounds;
   const changeFilters = (apply: () => void) => {
     apply();
@@ -237,7 +292,7 @@ export function DeliveryRoundMasterPage() {
   }, [expanded, detail, statusFilteredRounds.data, vendors]);
 
   const resetFilters = () => changeFilters(() => {
-    setSelectedIds([]); setVendors([]); setDestinations([]); setStatusFilter('all'); setDateFrom(''); setDateTo('');
+    setSelectedIds([]); setVendors([]); setDestinations([]); setStatusFilters([]); setDateFrom(''); setDateTo('');
   });
 
   return (
@@ -279,27 +334,21 @@ export function DeliveryRoundMasterPage() {
             renderInput={(params) => <TextField {...params} label="납품 부대 (복수)" placeholder={destinations.length ? '' : '전체 부대'} />}
           />
         </Box>
-        <TextField select size="small" label="납품완료" value={statusFilter}
-          onChange={(event) => changeFilters(() => setStatusFilter(event.target.value as StatusFilter))}
-          sx={{ minWidth: 180 }} slotProps={{ select: { renderValue: (selected: unknown) => {
-            const value = String(selected) as StatusFilter;
-            return value === 'all' ? '전체' : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: indicatorInfo[value].color }} />
-                {value === 'complete' ? '완료' : value === 'incomplete' ? '미완료' : '납기 임박/경과'}
+        <Box sx={{ minWidth: 190, width: 210 }}>
+          <Autocomplete multiple size="small" disableCloseOnSelect
+            options={statusChoices} value={statusChoices.filter((choice) => statusFilters.includes(choice.value))}
+            isOptionEqualToValue={(a, b) => a.value === b.value}
+            getOptionLabel={(choice) => choice.label} limitTags={1}
+            onChange={(_, values) => changeFilters(() => setStatusFilters(values.map((value) => value.value)))}
+            renderOption={(props, choice) => (
+              <Box component="li" {...props} key={choice.value} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box component="span" sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: choice.color, flexShrink: 0 }} />
+                {choice.label}
               </Box>
-            );
-          } } }}>
-          <MenuItem value="all">전체</MenuItem>
-          {(['complete', 'incomplete', 'due-soon'] as const).map((value) => (
-            <MenuItem key={value} value={value}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: indicatorInfo[value].color }} />
-                {value === 'complete' ? '완료' : value === 'incomplete' ? '미완료' : '납기 임박/경과'}
-              </Box>
-            </MenuItem>
-          ))}
-        </TextField>
+            )}
+            renderInput={(params) => <TextField {...params} label="납품완료 (복수)" placeholder={statusFilters.length ? '' : '전체 상태'} />}
+          />
+        </Box>
         <TextField type="date" size="small" label="계약상 납기 시작" value={dateFrom}
           onChange={(event) => changeFilters(() => setDateFrom(event.target.value))}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ width: 165 }} />
@@ -368,9 +417,11 @@ export function DeliveryRoundMasterPage() {
                         {detail[round.subContractId]?.data && (
                           <TableContainer sx={{ maxHeight: 420, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                             <Table stickyHeader size="small" aria-label={`${round.subContractName ?? round.subContractId} 납품 품목`}>
-                              <TableHead><TableRow>{['품번', '품명', '수량', '조달원', '바이어', '입고 예정', '입고일', '납품일', '계약 가격'].map((name) => <TableCell key={name} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</TableCell>)}</TableRow></TableHead>
+                              <TableHead><TableRow>{['이미지', '품번', '품명', '수량', '조달원', '바이어', '입고 예정', '입고일', '납품일', '계약 가격'].map((name) => <TableCell key={name} sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</TableCell>)}</TableRow></TableHead>
                               <TableBody>
                                 {detail[round.subContractId].data?.map((item) => <TableRow key={item.matchId}>
+                                  <TableCell sx={{ width: 72 }}><EquipmentImageThumbnail item={item}
+                                    onExpand={(selected, url) => setPreview({ item: selected, url })} /></TableCell>
                                   <TableCell>{item.itemNumber}</TableCell>
                                   <TableCell>{item.itemName || '-'}</TableCell>
                                   <TableCell>{number(item.quantity)}</TableCell>
@@ -381,7 +432,7 @@ export function DeliveryRoundMasterPage() {
                                   <TableCell>{date(item.deliveredAt)}</TableCell>
                                   <TableCell align="right">{number(item.contractPrice)}</TableCell>
                                 </TableRow>)}
-                                {detail[round.subContractId].data?.length === 0 && <TableRow><TableCell colSpan={9} align="center">등록된 품목이 없습니다.</TableCell></TableRow>}
+                                {detail[round.subContractId].data?.length === 0 && <TableRow><TableCell colSpan={10} align="center">등록된 품목이 없습니다.</TableCell></TableRow>}
                               </TableBody>
                             </Table>
                           </TableContainer>
@@ -395,6 +446,21 @@ export function DeliveryRoundMasterPage() {
           </TableBody>
         </Table>
       </TableContainer>
+      <Dialog open={preview !== null} onClose={() => setPreview(null)} maxWidth="md" fullWidth
+        aria-labelledby="equipment-image-title">
+        <DialogTitle id="equipment-image-title" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {preview?.item.itemNumber} — {preview?.item.itemName || '장비 이미지'}
+          </Box>
+          <IconButton aria-label="이미지 미리보기 닫기" onClick={() => setPreview(null)}>
+            <CloseOutlined />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', justifyContent: 'center', bgcolor: 'background.default' }}>
+          {preview && <Box component="img" src={preview.url} alt={preview.item.itemName || preview.item.itemNumber}
+            sx={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />}
+        </DialogContent>
+      </Dialog>
       <Typography sx={{ mt: 1.5, color: 'text.secondary', fontSize: 12 }}>
         종=품목 종류 수, 점=수량 합계, PR·PO=번호 등록 행 수, 입고·납품=날짜 등록 행 수,
         납품완료 표시: 초록=완료, 노랑=미완료, 빨강=미완료이면서 납기 7일 이내 또는 경과. 납품금액=계약가격×수량 합계.

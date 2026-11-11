@@ -192,7 +192,9 @@ def equipment_master_image(item_id: int):
     root_value = _setting("GSEM_IMAGE_DIR")
     if not root_value:
         raise HTTPException(404, "이미지 저장소가 설정되지 않았습니다.")
-    root = Path(root_value).resolve()
+    # Resolve configured relative image directories from the repository root, not the process CWD.
+    image_root = Path(root_value)
+    root = (image_root if image_root.is_absolute() else Path(__file__).resolve().parents[3] / image_root).resolve()
     conn = _connect()
     try:
         row = conn.cursor().execute("SELECT item_image_path FROM Item WHERE item_id = ?", item_id).fetchone()
@@ -211,7 +213,7 @@ def equipment_master_image(item_id: int):
         or candidate.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp", ".gif")
     ):
         raise HTTPException(404, "이미지를 찾을 수 없습니다.")
-    return FileResponse(candidate)
+    return FileResponse(candidate, headers={"Cache-Control": "private, max-age=3600"})
 
 
 @router.get("/equipment-master/export")
