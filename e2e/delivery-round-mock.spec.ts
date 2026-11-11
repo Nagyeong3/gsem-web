@@ -91,7 +91,8 @@ test('delivery status multi-select shows only selected categories in mock mode',
   await page.getByRole('option', { name: '완료', exact: true }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
 
-  await status.click();
+  // disableCloseOnSelect keeps the status menu open after the first selection.
+  await expect(page.getByRole('option', { name: '미완료', exact: true })).toBeVisible();
   await page.getByRole('option', { name: '미완료', exact: true }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(4);
 
@@ -122,6 +123,8 @@ test('equipment thumbnail shows hover preview and click zoom without closing exp
   const dialog = page.getByRole('dialog', { name: /DEMO-001/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('img')).toBeVisible();
+  // Capture the settled dialog, not an intermediate frame of the MUI fade animation.
+  await page.waitForTimeout(350);
   await page.screenshot({ path: 'docs/prototype-screenshots/delivery-round-image-preview.png', fullPage: true });
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);

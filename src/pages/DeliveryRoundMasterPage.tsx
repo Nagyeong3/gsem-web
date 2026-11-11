@@ -103,6 +103,12 @@ function EquipmentImageThumbnail({
   return (
     <Tooltip placement="right" arrow enterDelay={250} enterTouchDelay={0}
       open={hoverOpen} onOpen={() => setHoverOpen(true)} onClose={() => setHoverOpen(false)}
+      slotProps={{
+        tooltip: { sx: { bgcolor: 'background.paper', color: 'text.primary', p: 1,
+          border: '1px solid', borderColor: 'divider', boxShadow: 3, maxWidth: 296 } },
+        arrow: { sx: { color: 'background.paper' } },
+        transition: { timeout: 0 },
+      }}
       title={<Box component="img" src={url} alt={item.itemName || item.itemNumber}
         sx={{ display: 'block', width: 270, maxHeight: 240, objectFit: 'contain', bgcolor: 'background.paper' }} />}>
       <IconButton aria-label={`${item.itemNumber} 이미지 확대`} onClick={() => { setHoverOpen(false); onExpand(item, url); }}
