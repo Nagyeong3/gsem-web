@@ -336,6 +336,7 @@ export function DeliveryRoundMasterPage() {
         </Box>
         <Box sx={{ minWidth: 190, width: 210 }}>
           <Autocomplete multiple size="small" disableCloseOnSelect
+            filterOptions={(choices) => choices}
             options={statusChoices} value={statusChoices.filter((choice) => statusFilters.includes(choice.value))}
             isOptionEqualToValue={(a, b) => a.value === b.value}
             getOptionLabel={(choice) => choice.label} limitTags={1}
