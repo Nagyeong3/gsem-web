@@ -87,6 +87,7 @@ test('delivery status multi-select shows only selected categories in mock mode',
   const status = page.getByRole('combobox', { name: '납품완료 (복수)' });
 
   await status.click();
+  await page.screenshot({ path: 'docs/prototype-screenshots/delivery-round-status-menu.png', fullPage: true });
   await page.getByRole('option', { name: '완료', exact: true }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(2);
 
@@ -115,7 +116,9 @@ test('equipment thumbnail shows hover preview and click zoom without closing exp
   await expect(thumbnail.getByRole('img', { name: 'DEMO-001 장비 이미지' })).toBeVisible();
   await thumbnail.hover();
   await expect(page.getByRole('tooltip')).toBeVisible();
+  await page.screenshot({ path: 'docs/prototype-screenshots/delivery-round-image-hover.png', fullPage: true });
   await thumbnail.click();
+  await expect(page.getByRole('tooltip')).toBeHidden();
   const dialog = page.getByRole('dialog', { name: /DEMO-001/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('img')).toBeVisible();
