@@ -94,6 +94,7 @@ function EquipmentImageThumbnail({
     ? `${runtimeConfig.apiBaseUrl}/equipment-master/image/${item.itemId}`
     : demoImageUrl(item.itemId);
   const [failed, setFailed] = useState(false);
+  const [hoverOpen, setHoverOpen] = useState(false);
   if (failed) {
     return <Box aria-label={`${item.itemNumber} 이미지 없음`} sx={{ width: 52, height: 52,
       display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover',
@@ -101,9 +102,10 @@ function EquipmentImageThumbnail({
   }
   return (
     <Tooltip placement="right" arrow enterDelay={250} enterTouchDelay={0}
+      open={hoverOpen} onOpen={() => setHoverOpen(true)} onClose={() => setHoverOpen(false)}
       title={<Box component="img" src={url} alt={item.itemName || item.itemNumber}
         sx={{ display: 'block', width: 270, maxHeight: 240, objectFit: 'contain', bgcolor: 'background.paper' }} />}>
-      <IconButton aria-label={`${item.itemNumber} 이미지 확대`} onClick={() => onExpand(item, url)}
+      <IconButton aria-label={`${item.itemNumber} 이미지 확대`} onClick={() => { setHoverOpen(false); onExpand(item, url); }}
         sx={{ p: 0.25, borderRadius: 1, border: '1px solid', borderColor: 'divider',
           position: 'relative', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
         <Box component="img" src={url} loading="lazy" onError={() => setFailed(true)}
