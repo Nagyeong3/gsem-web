@@ -1,0 +1,107 @@
+--- a/src/pages/EquipmentSearchPage.tsx
++++ b/src/pages/EquipmentSearchPage.tsx
+@@ -31,7 +31,7 @@
+   Tooltip,
+   Typography,
+ } from '@mui/material';
+-import { useCallback, useMemo } from 'react';
++import { useCallback, useMemo, useState } from 'react';
+ import { useNavigate, useSearchParams } from 'react-router-dom';
+ import { PageHeader } from '../components/common/PageHeader';
+ import { QueryStatePanel } from '../components/common/QueryStatePanel';
+@@ -372,12 +372,13 @@
+   const pageSize = pageSizeOptions.includes(requestedPageSize)
+     ? requestedPageSize
+     : defaultPageSize;
+-  const selectedParam = searchParams.get('selected');
+-  const requestedSelectedId = selectedParam === 'none'
+-    ? null
+-    : Number.isInteger(Number(selectedParam)) && Number(selectedParam) > 0
+-      ? Number(selectedParam)
+-      : 1;
++  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '');
++  const [selectedId, setSelectedId] = useState<number | null>(() => {
++    const selectedParam = searchParams.get('selected');
++    if (selectedParam === 'none') return null;
++    const parsed = Number(selectedParam);
++    return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
++  });
+ 
+   const updateParams = (updates: Record<string, string | number | null>) => {
+     const next = new URLSearchParams(searchParams);
+@@ -405,11 +406,6 @@
+ 
+   const safePage = Math.min(page, totalPages);
+   const visibleEquipment = equipment;
+-  const selectedId = requestedSelectedId === null
+-    ? null
+-    : equipment.some((item) => item.itemId === requestedSelectedId)
+-      ? requestedSelectedId
+-      : (equipment[0]?.itemId ?? null);
+ 
+   const loadSelectedEquipment = useCallback(
+     () => equipmentService.getById(selectedId ?? 0),
+@@ -433,10 +429,15 @@
+     updateParams({ [key === 'query' ? 'q' : key]: value, page: null });
+   };
+ 
++  const applySearch = () => {
++    updateFilter('query', searchInput);
++  };
++
+   const resetFilters = () => {
+     const next = new URLSearchParams();
+     const dataSource = searchParams.get('__gsemDataSource');
+     if (dataSource) next.set('__gsemDataSource', dataSource);
++    setSearchInput('');
+     setSearchParams(next, { replace: true });
+   };
+ 
+@@ -470,10 +471,6 @@
+     });
+   };
+ 
+-  const setSelectedId = (itemId: number | null) => {
+-    updateParams({ selected: itemId === null ? 'none' : itemId });
+-  };
+-
+   return (
+     <Box sx={{ display: 'flex', minWidth: 1080, bgcolor: 'background.paper' }}>
+       <Box sx={{ flex: 1, minWidth: 0, p: 3, bgcolor: 'background.default' }}>
+@@ -485,8 +482,13 @@
+         <Box sx={{ display: 'flex', gap: 1, mb: 1.5, maxWidth: 790 }}>
+           <TextField
+             fullWidth
+-            value={filters.query}
+-            onChange={(event) => updateFilter('query', event.target.value)}
++            value={searchInput}
++            onChange={(event) => setSearchInput(event.target.value)}
++            onKeyDown={(event) => {
++              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
++                applySearch();
++              }
++            }}
+             placeholder="품번, 품명, 용도 검색"
+             slotProps={{
+               htmlInput: {
+@@ -504,7 +506,7 @@
+           <Button
+             variant="contained"
+             sx={{ minWidth: 74 }}
+-            onClick={equipmentQuery.refetch}
++            onClick={applySearch}
+           >
+             검색
+           </Button>
+@@ -599,7 +601,10 @@
+                   <Chip
+                     key={key}
+                     label={`${filterLabels[key]}: ${value}`}
+-                    onDelete={() => updateFilter(key, '')}
++                    onDelete={() => {
++                      if (key === 'query') setSearchInput('');
++                      updateFilter(key, '');
++                    }}
+                     variant="outlined"
+                   />
+                 ))

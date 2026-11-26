@@ -1,6 +1,14 @@
 node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
 dist/
 test-results/
 playwright-report/
 *.local
 .DS_Store
+
+# 실장비 이미지 파일은 소스/번들과 분리하여 관리
+/Images/

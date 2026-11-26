@@ -1,0 +1,1824 @@
+{
+  "itemDetails": [
+    {
+      "itemId": 1,
+      "itemNumber": "XXXXXX-01",
+      "itemNameKor": "A장비",
+      "itemNameEng": "Equipment A",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0001",
+        "name": "시험장비"
+      },
+      "vendor": {
+        "vendorId": 1,
+        "name": "A업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        },
+        {
+          "code": "AT002",
+          "name": "B기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        },
+        {
+          "businessId": 2,
+          "name": "나 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0001",
+          "name": "구동계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0001",
+          "name": "부대"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 1,
+          "name": "A납지"
+        },
+        {
+          "destinationId": 2,
+          "name": "B납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-29",
+      "itemUsageKor": "A장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment A support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 101,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 1001,
+              "destination": {
+                "code": "1",
+                "name": "A납지"
+              },
+              "quantity": 5,
+              "deliveryDate": "2026-08-02",
+              "status": "PLANNED"
+            }
+          ]
+        },
+        {
+          "integratedInfoId": 102,
+          "business": {
+            "businessId": 2,
+            "name": "나 사업"
+          },
+          "aircraftType": {
+            "code": "AT002",
+            "name": "B기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 1002,
+              "destination": {
+                "code": "2",
+                "name": "B납지"
+              },
+              "quantity": 6,
+              "deliveryDate": "2026-08-03",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 0,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 2,
+      "itemNumber": "XXXXXX-02",
+      "itemNameKor": "B장비",
+      "itemNameEng": "Equipment B",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0002",
+        "name": "일반공구"
+      },
+      "vendor": {
+        "vendorId": 2,
+        "name": "B업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0002",
+          "name": "동력계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0002",
+          "name": "야전"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 3,
+          "name": "박책임",
+          "role": "PURCHASING_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 2,
+          "name": "B납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-28",
+      "itemUsageKor": "B장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment B support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 201,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 2001,
+              "destination": {
+                "code": "2",
+                "name": "B납지"
+              },
+              "quantity": 6,
+              "deliveryDate": "2026-08-03",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 3,
+      "itemNumber": "XXXXXX-03",
+      "itemNameKor": "C장비",
+      "itemNameEng": "Equipment C",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0003",
+        "name": "특수공구"
+      },
+      "vendor": {
+        "vendorId": 3,
+        "name": "C업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT002",
+          "name": "B기종"
+        },
+        {
+          "code": "AT003",
+          "name": "C기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 2,
+          "name": "나 사업"
+        },
+        {
+          "businessId": 3,
+          "name": "다 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0003",
+          "name": "항전계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0003",
+          "name": "창"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 3,
+          "name": "C납지"
+        },
+        {
+          "destinationId": 1,
+          "name": "A납지"
+        }
+      ],
+      "status": "REPLACEMENT_REVIEW",
+      "recentChangeDate": "2026-07-27",
+      "itemUsageKor": "C장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment C support",
+      "calibration": {
+        "required": true
+      },
+      "applications": [
+        {
+          "integratedInfoId": 301,
+          "business": {
+            "businessId": 2,
+            "name": "나 사업"
+          },
+          "aircraftType": {
+            "code": "AT002",
+            "name": "B기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 3001,
+              "destination": {
+                "code": "3",
+                "name": "C납지"
+              },
+              "quantity": 7,
+              "deliveryDate": "2026-08-04",
+              "receiptDate": "2026-07-13",
+              "status": "COMPLETED"
+            }
+          ]
+        },
+        {
+          "integratedInfoId": 302,
+          "business": {
+            "businessId": 3,
+            "name": "다 사업"
+          },
+          "aircraftType": {
+            "code": "AT003",
+            "name": "C기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 3002,
+              "destination": {
+                "code": "1",
+                "name": "A납지"
+              },
+              "quantity": 8,
+              "deliveryDate": "2026-08-05",
+              "status": "PLANNED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 2,
+        "hasBranch": true
+      }
+    },
+    {
+      "itemId": 4,
+      "itemNumber": "XXXXXX-04",
+      "itemNameKor": "D장비",
+      "itemNameEng": "Equipment D",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0001",
+        "name": "시험장비"
+      },
+      "vendor": {
+        "vendorId": 1,
+        "name": "D업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0001",
+          "name": "구동계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0001",
+          "name": "부대"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 1,
+          "name": "A납지"
+        }
+      ],
+      "status": "ON_HOLD",
+      "recentChangeDate": "2026-07-26",
+      "itemUsageKor": "D장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment D support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 401,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 4001,
+              "destination": {
+                "code": "1",
+                "name": "A납지"
+              },
+              "quantity": 8,
+              "deliveryDate": "2026-08-05",
+              "status": "PLANNED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 5,
+      "itemNumber": "XXXXXX-05",
+      "itemNameKor": "E장비",
+      "itemNameEng": "Equipment E",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0002",
+        "name": "일반공구"
+      },
+      "vendor": {
+        "vendorId": 2,
+        "name": "E업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT003",
+          "name": "C기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 3,
+          "name": "다 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0002",
+          "name": "동력계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0002",
+          "name": "야전"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 3,
+          "name": "박책임",
+          "role": "PURCHASING_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 3,
+          "name": "C납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-25",
+      "itemUsageKor": "E장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment E support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 501,
+          "business": {
+            "businessId": 3,
+            "name": "다 사업"
+          },
+          "aircraftType": {
+            "code": "AT003",
+            "name": "C기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 5001,
+              "destination": {
+                "code": "3",
+                "name": "C납지"
+              },
+              "quantity": 9,
+              "deliveryDate": "2026-08-06",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 6,
+      "itemNumber": "XXXXXX-06",
+      "itemNameKor": "F장비",
+      "itemNameEng": "Equipment F",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0003",
+        "name": "특수공구"
+      },
+      "vendor": {
+        "vendorId": 3,
+        "name": "F업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT002",
+          "name": "B기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 2,
+          "name": "나 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0003",
+          "name": "항전계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0003",
+          "name": "창"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 2,
+          "name": "B납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-24",
+      "itemUsageKor": "F장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment F support",
+      "calibration": {
+        "required": true
+      },
+      "applications": [
+        {
+          "integratedInfoId": 601,
+          "business": {
+            "businessId": 2,
+            "name": "나 사업"
+          },
+          "aircraftType": {
+            "code": "AT002",
+            "name": "B기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 6001,
+              "destination": {
+                "code": "2",
+                "name": "B납지"
+              },
+              "quantity": 10,
+              "deliveryDate": "2026-08-07",
+              "receiptDate": "2026-07-16",
+              "status": "COMPLETED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 2,
+        "hasBranch": true
+      }
+    },
+    {
+      "itemId": 7,
+      "itemNumber": "XXXXXX-07",
+      "itemNameKor": "G장비",
+      "itemNameEng": "Equipment G",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0001",
+        "name": "시험장비"
+      },
+      "vendor": {
+        "vendorId": 1,
+        "name": "G업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        },
+        {
+          "code": "AT003",
+          "name": "C기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        },
+        {
+          "businessId": 3,
+          "name": "다 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0001",
+          "name": "구동계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0001",
+          "name": "부대"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 1,
+          "name": "A납지"
+        },
+        {
+          "destinationId": 3,
+          "name": "C납지"
+        }
+      ],
+      "status": "REPLACEMENT_REVIEW",
+      "recentChangeDate": "2026-07-23",
+      "itemUsageKor": "G장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment G support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 701,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 7001,
+              "destination": {
+                "code": "1",
+                "name": "A납지"
+              },
+              "quantity": 11,
+              "deliveryDate": "2026-08-08",
+              "status": "PLANNED"
+            }
+          ]
+        },
+        {
+          "integratedInfoId": 702,
+          "business": {
+            "businessId": 3,
+            "name": "다 사업"
+          },
+          "aircraftType": {
+            "code": "AT003",
+            "name": "C기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 7002,
+              "destination": {
+                "code": "3",
+                "name": "C납지"
+              },
+              "quantity": 12,
+              "deliveryDate": "2026-08-09",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 8,
+      "itemNumber": "XXXXXX-08",
+      "itemNameKor": "H장비",
+      "itemNameEng": "Equipment H",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0002",
+        "name": "일반공구"
+      },
+      "vendor": {
+        "vendorId": 2,
+        "name": "H업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0002",
+          "name": "동력계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0002",
+          "name": "야전"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 3,
+          "name": "박책임",
+          "role": "PURCHASING_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 2,
+          "name": "B납지"
+        }
+      ],
+      "status": "ON_HOLD",
+      "recentChangeDate": "2026-07-22",
+      "itemUsageKor": "H장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment H support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 801,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 8001,
+              "destination": {
+                "code": "2",
+                "name": "B납지"
+              },
+              "quantity": 12,
+              "deliveryDate": "2026-08-09",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 9,
+      "itemNumber": "XXXXXX-09",
+      "itemNameKor": "I장비",
+      "itemNameEng": "Equipment I",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0003",
+        "name": "특수공구"
+      },
+      "vendor": {
+        "vendorId": 3,
+        "name": "I업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT003",
+          "name": "C기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 3,
+          "name": "다 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0003",
+          "name": "항전계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0003",
+          "name": "창"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 3,
+          "name": "C납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-21",
+      "itemUsageKor": "I장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment I support",
+      "calibration": {
+        "required": true
+      },
+      "applications": [
+        {
+          "integratedInfoId": 901,
+          "business": {
+            "businessId": 3,
+            "name": "다 사업"
+          },
+          "aircraftType": {
+            "code": "AT003",
+            "name": "C기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 9001,
+              "destination": {
+                "code": "3",
+                "name": "C납지"
+              },
+              "quantity": 13,
+              "deliveryDate": "2026-08-10",
+              "receiptDate": "2026-07-19",
+              "status": "COMPLETED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 2,
+        "hasBranch": true
+      }
+    },
+    {
+      "itemId": 10,
+      "itemNumber": "XXXXXX-10",
+      "itemNameKor": "J장비",
+      "itemNameEng": "Equipment J",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0001",
+        "name": "시험장비"
+      },
+      "vendor": {
+        "vendorId": 1,
+        "name": "J업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT002",
+          "name": "B기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 2,
+          "name": "나 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0001",
+          "name": "구동계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0001",
+          "name": "부대"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 1,
+          "name": "A납지"
+        }
+      ],
+      "status": "IN_USE",
+      "recentChangeDate": "2026-07-20",
+      "itemUsageKor": "J장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment J support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 1001,
+          "business": {
+            "businessId": 2,
+            "name": "나 사업"
+          },
+          "aircraftType": {
+            "code": "AT002",
+            "name": "B기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 10001,
+              "destination": {
+                "code": "1",
+                "name": "A납지"
+              },
+              "quantity": 14,
+              "deliveryDate": "2026-08-11",
+              "status": "PLANNED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 11,
+      "itemNumber": "XXXXXX-11",
+      "itemNameKor": "K장비",
+      "itemNameEng": "Equipment K",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0002",
+        "name": "일반공구"
+      },
+      "vendor": {
+        "vendorId": 2,
+        "name": "K업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT001",
+          "name": "A기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 1,
+          "name": "가 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0002",
+          "name": "동력계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0002",
+          "name": "야전"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 3,
+          "name": "박책임",
+          "role": "PURCHASING_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 2,
+          "name": "B납지"
+        }
+      ],
+      "status": "REPLACEMENT_REVIEW",
+      "recentChangeDate": "2026-07-19",
+      "itemUsageKor": "K장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment K support",
+      "calibration": {
+        "required": false
+      },
+      "applications": [
+        {
+          "integratedInfoId": 1101,
+          "business": {
+            "businessId": 1,
+            "name": "가 사업"
+          },
+          "aircraftType": {
+            "code": "AT001",
+            "name": "A기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 11001,
+              "destination": {
+                "code": "2",
+                "name": "B납지"
+              },
+              "quantity": 15,
+              "deliveryDate": "2026-08-12",
+              "status": "IN_PROGRESS"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 1,
+        "hasBranch": false
+      }
+    },
+    {
+      "itemId": 12,
+      "itemNumber": "XXXXXX-12",
+      "itemNameKor": "L장비",
+      "itemNameEng": "Equipment L",
+      "itemType": "SUPPORT_EQUIPMENT",
+      "category": {
+        "code": "CA0003",
+        "name": "특수공구"
+      },
+      "vendor": {
+        "vendorId": 3,
+        "name": "L업체"
+      },
+      "aircraftTypes": [
+        {
+          "code": "AT003",
+          "name": "C기종"
+        }
+      ],
+      "businesses": [
+        {
+          "businessId": 3,
+          "name": "다 사업"
+        }
+      ],
+      "subsystems": [
+        {
+          "code": "SS0003",
+          "name": "항전계통"
+        },
+        {
+          "code": "SS0004",
+          "name": "전기계통"
+        }
+      ],
+      "maintenanceLevels": [
+        {
+          "code": "LO0003",
+          "name": "창"
+        }
+      ],
+      "managers": [
+        {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      ],
+      "destinations": [
+        {
+          "destinationId": 3,
+          "name": "C납지"
+        }
+      ],
+      "status": "ON_HOLD",
+      "recentChangeDate": "2026-07-18",
+      "itemUsageKor": "L장비 점검과 정비 지원에 사용하는 품목",
+      "itemUsageEng": "For equipment L support",
+      "calibration": {
+        "required": true
+      },
+      "applications": [
+        {
+          "integratedInfoId": 1201,
+          "business": {
+            "businessId": 3,
+            "name": "다 사업"
+          },
+          "aircraftType": {
+            "code": "AT003",
+            "name": "C기종"
+          },
+          "deliveries": [
+            {
+              "deliveryId": 12001,
+              "destination": {
+                "code": "3",
+                "name": "C납지"
+              },
+              "quantity": 16,
+              "deliveryDate": "2026-08-13",
+              "receiptDate": "2026-07-22",
+              "status": "COMPLETED"
+            }
+          ]
+        }
+      ],
+      "replacementSummary": {
+        "predecessors": 1,
+        "successors": 2,
+        "hasBranch": true
+      }
+    }
+  ],
+  "filterOptions": {
+    "itemTypes": [
+      {
+        "value": "SUPPORT_EQUIPMENT",
+        "label": "지원장비"
+      },
+      {
+        "value": "BASIC_ISSUE_ITEM",
+        "label": "기본불출품목"
+      },
+      {
+        "value": "FLIGHT_GEAR_INSPECTION_EQUIPMENT",
+        "label": "조종장구류 점검장비"
+      },
+      {
+        "value": "STANDARD",
+        "label": "표준기"
+      }
+    ],
+    "aircraftTypes": [
+      {
+        "code": "AT001",
+        "name": "A기종"
+      },
+      {
+        "code": "AT002",
+        "name": "B기종"
+      },
+      {
+        "code": "AT003",
+        "name": "C기종"
+      }
+    ],
+    "businesses": [
+      {
+        "businessId": 1,
+        "name": "가 사업"
+      },
+      {
+        "businessId": 2,
+        "name": "나 사업"
+      },
+      {
+        "businessId": 3,
+        "name": "다 사업"
+      }
+    ],
+    "subsystems": [
+      {
+        "code": "SS0001",
+        "name": "구동계통"
+      },
+      {
+        "code": "SS0002",
+        "name": "동력계통"
+      },
+      {
+        "code": "SS0003",
+        "name": "항전계통"
+      },
+      {
+        "code": "SS0004",
+        "name": "전기계통"
+      }
+    ],
+    "categories": [
+      {
+        "code": "CA0001",
+        "name": "시험장비"
+      },
+      {
+        "code": "CA0002",
+        "name": "일반공구"
+      },
+      {
+        "code": "CA0003",
+        "name": "특수공구"
+      }
+    ],
+    "managers": [
+      {
+        "userId": 1,
+        "name": "김책임"
+      },
+      {
+        "userId": 2,
+        "name": "이선임"
+      },
+      {
+        "userId": 3,
+        "name": "박책임"
+      }
+    ],
+    "destinations": [
+      {
+        "destinationId": 1,
+        "name": "A납지"
+      },
+      {
+        "destinationId": 2,
+        "name": "B납지"
+      },
+      {
+        "destinationId": 3,
+        "name": "C납지"
+      }
+    ],
+    "statuses": [
+      {
+        "value": "IN_USE",
+        "label": "사용 중"
+      },
+      {
+        "value": "REPLACEMENT_REVIEW",
+        "label": "대체 검토"
+      },
+      {
+        "value": "ON_HOLD",
+        "label": "보류"
+      }
+    ]
+  },
+  "changeEvents": [
+    {
+      "changeId": "CHG-XXXXX-01",
+      "item": {
+        "itemId": 1,
+        "itemNumber": "XXXXXX-01",
+        "itemName": "A장비"
+      },
+      "changeType": "담당자 변경",
+      "requestedBy": {
+        "userId": 1,
+        "name": "김책임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "requestedAt": "2026-07-29T09:20:00+09:00",
+      "processedBy": {
+        "userId": 2,
+        "name": "이선임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "processedAt": "2026-07-30T14:10:00+09:00",
+      "status": "PROCESSED",
+      "reason": "담당 업무 조정",
+      "basis": "담당자 확인",
+      "differences": [
+        {
+          "field": "manager",
+          "label": "지원장비 담당자",
+          "before": "이선임",
+          "after": "김책임"
+        }
+      ]
+    },
+    {
+      "changeId": "CHG-XXXXX-02",
+      "item": {
+        "itemId": 2,
+        "itemNumber": "XXXXXX-02",
+        "itemName": "B장비"
+      },
+      "changeType": "품목 정보 변경",
+      "requestedBy": {
+        "userId": 3,
+        "name": "박책임",
+        "role": "PURCHASING_MANAGER"
+      },
+      "requestedAt": "2026-07-28T10:05:00+09:00",
+      "processedBy": {
+        "userId": 2,
+        "name": "이선임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "status": "IN_REVIEW",
+      "reason": "품목 용도 정보 보완",
+      "basis": "검토 자료 확인",
+      "differences": [
+        {
+          "field": "usage",
+          "label": "국문 용도",
+          "before": "변경 전 용도",
+          "after": "변경 후 용도"
+        }
+      ]
+    },
+    {
+      "changeId": "CHG-XXXXX-03",
+      "item": {
+        "itemId": 3,
+        "itemNumber": "XXXXXX-03",
+        "itemName": "C장비"
+      },
+      "changeType": "대체품 검토",
+      "requestedBy": {
+        "userId": 2,
+        "name": "이선임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "requestedAt": "2026-07-27T15:30:00+09:00",
+      "status": "RECEIVED",
+      "reason": "단종 여부 확인 후 대체품 검토 필요",
+      "basis": "단종 확인",
+      "differences": [
+        {
+          "field": "replacement",
+          "label": "대체품",
+          "before": "미지정",
+          "after": "검토 중"
+        }
+      ]
+    },
+    {
+      "changeId": "CHG-XXXXX-04",
+      "item": {
+        "itemId": 4,
+        "itemNumber": "XXXXXX-04",
+        "itemName": "D장비"
+      },
+      "changeType": "장비 구분 변경",
+      "requestedBy": {
+        "userId": 1,
+        "name": "김책임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "requestedAt": "2026-07-25T11:00:00+09:00",
+      "processedBy": {
+        "userId": 2,
+        "name": "이선임",
+        "role": "SUPPORT_EQUIPMENT_MANAGER"
+      },
+      "processedAt": "2026-07-26T16:20:00+09:00",
+      "status": "PROCESSED",
+      "reason": "분류 기준 확인",
+      "basis": "분류 정보 확인",
+      "differences": [
+        {
+          "field": "category",
+          "label": "장비 구분",
+          "before": "일반공구",
+          "after": "특수공구"
+        }
+      ]
+    }
+  ],
+  "replacementGraph": {
+    "rootItemId": 1,
+    "nodes": [
+      {
+        "itemId": 1,
+        "itemNumber": "XXXXXX-01",
+        "itemName": "A장비",
+        "businesses": [
+          "가 사업",
+          "나 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 2,
+        "itemNumber": "XXXXXX-02",
+        "itemName": "B장비",
+        "businesses": [
+          "가 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 6,
+        "itemNumber": "XXXXXX-06",
+        "itemName": "F장비",
+        "businesses": [
+          "나 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 3,
+        "itemNumber": "XXXXXX-03",
+        "itemName": "C장비",
+        "businesses": [
+          "나 사업",
+          "다 사업"
+        ],
+        "status": "IN_USE"
+      },
+      {
+        "itemId": 7,
+        "itemNumber": "XXXXXX-07",
+        "itemName": "G장비",
+        "businesses": [
+          "가 사업",
+          "다 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 4,
+        "itemNumber": "XXXXXX-04",
+        "itemName": "D장비",
+        "businesses": [
+          "가 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 8,
+        "itemNumber": "XXXXXX-08",
+        "itemName": "H장비",
+        "businesses": [
+          "가 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 9,
+        "itemNumber": "XXXXXX-09",
+        "itemName": "I장비",
+        "businesses": [
+          "다 사업"
+        ],
+        "status": "DISCONTINUED"
+      },
+      {
+        "itemId": 5,
+        "itemNumber": "XXXXXX-05",
+        "itemName": "E장비",
+        "businesses": [
+          "다 사업"
+        ],
+        "status": "IN_USE"
+      },
+      {
+        "itemId": 10,
+        "itemNumber": "XXXXXX-10",
+        "itemName": "J장비",
+        "businesses": [
+          "나 사업"
+        ],
+        "status": "REPLACEMENT_PLANNED"
+      },
+      {
+        "itemId": 11,
+        "itemNumber": "XXXXXX-11",
+        "itemName": "K장비",
+        "businesses": [
+          "가 사업"
+        ],
+        "status": "IN_USE"
+      },
+      {
+        "itemId": 12,
+        "itemNumber": "XXXXXX-12",
+        "itemName": "L장비",
+        "businesses": [
+          "다 사업"
+        ],
+        "status": "DISCONTINUED"
+      }
+    ],
+    "edges": [
+      {
+        "relationId": "r1",
+        "sourceItemId": 1,
+        "targetItemId": 2,
+        "changeId": "CHG-00001",
+        "changedAt": "2026-01-15",
+        "changeType": "단종 대체",
+        "reason": "A장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r2",
+        "sourceItemId": 1,
+        "targetItemId": 6,
+        "changeId": "CHG-00002",
+        "changedAt": "2026-02-15",
+        "changeType": "단종 대체",
+        "reason": "A장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r3",
+        "sourceItemId": 2,
+        "targetItemId": 3,
+        "changeId": "CHG-00003",
+        "changedAt": "2026-03-15",
+        "changeType": "단종 대체",
+        "reason": "B장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r4",
+        "sourceItemId": 2,
+        "targetItemId": 7,
+        "changeId": "CHG-00004",
+        "changedAt": "2026-04-15",
+        "changeType": "단종 대체",
+        "reason": "B장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r5",
+        "sourceItemId": 6,
+        "targetItemId": 7,
+        "changeId": "CHG-00005",
+        "changedAt": "2026-05-15",
+        "changeType": "단종 대체",
+        "reason": "F장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r6",
+        "sourceItemId": 3,
+        "targetItemId": 4,
+        "changeId": "CHG-00006",
+        "changedAt": "2026-06-15",
+        "changeType": "단종 대체",
+        "reason": "C장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r7",
+        "sourceItemId": 3,
+        "targetItemId": 8,
+        "changeId": "CHG-00007",
+        "changedAt": "2026-07-15",
+        "changeType": "단종 대체",
+        "reason": "C장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r8",
+        "sourceItemId": 7,
+        "targetItemId": 9,
+        "changeId": "CHG-00008",
+        "changedAt": "2026-08-15",
+        "changeType": "단종 대체",
+        "reason": "G장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r9",
+        "sourceItemId": 4,
+        "targetItemId": 5,
+        "changeId": "CHG-00009",
+        "changedAt": "2026-09-15",
+        "changeType": "단종 대체",
+        "reason": "D장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r10",
+        "sourceItemId": 4,
+        "targetItemId": 10,
+        "changeId": "CHG-00010",
+        "changedAt": "2026-09-15",
+        "changeType": "단종 대체",
+        "reason": "D장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r11",
+        "sourceItemId": 8,
+        "targetItemId": 11,
+        "changeId": "CHG-00011",
+        "changedAt": "2026-09-15",
+        "changeType": "단종 대체",
+        "reason": "H장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      },
+      {
+        "relationId": "r12",
+        "sourceItemId": 9,
+        "targetItemId": 12,
+        "changeId": "CHG-00012",
+        "changedAt": "2026-09-15",
+        "changeType": "단종 대체",
+        "reason": "I장비 단종에 따른 대체품 적용",
+        "requestedBy": {
+          "userId": 1,
+          "name": "김책임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        },
+        "processedBy": {
+          "userId": 2,
+          "name": "이선임",
+          "role": "SUPPORT_EQUIPMENT_MANAGER"
+        }
+      }
+    ]
+  }
+}

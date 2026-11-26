@@ -1,4 +1,4 @@
-export type EquipmentStatus = '사용 중' | '대체 검토' | '보류';
+export type EquipmentStatus = '사용 중' | '대체 검토' | '보류' | '미확인';
 export type DeliveryStatus = '예정' | '진행' | '완료';
 export type ManagerRole = '지원장비 담당자' | '구매 담당자';
 export type AssignmentType = '정' | '부';
@@ -11,8 +11,8 @@ export interface CodeLabel {
 export interface Manager {
   id: number;
   name: string;
-  role: ManagerRole;
-  assignmentType: AssignmentType;
+  role?: ManagerRole;
+  assignmentType?: AssignmentType;
 }
 
 export interface Delivery {
@@ -34,6 +34,9 @@ export interface BusinessApplication {
 export interface Equipment {
   itemId: number;
   itemNum: string;
+  itemNsn?: string;
+  kaiPartNumber?: string;
+  commonName?: string;
   itemNameKor: string;
   itemNameEng: string;
   itemUsageKor: string;
@@ -46,9 +49,61 @@ export interface Equipment {
   managers: Manager[];
   status: EquipmentStatus;
   recentChangeDate: string;
+  imageUrl?: string;
+  databaseDetails?: {
+    diminishing: boolean;
+    applications: Array<{ integratedId: number; businessId: number; businessName: string; aircraftTypeCode: string | null }>;
+    deliveries: Array<{
+      matchId: number; subContractId: number; subContractName: string | null;
+      destination: string | null; contractDate: string | null; quantity: number;
+      receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null;
+      contractPrice: number | null; purchaseRequestNumber: string | null;
+      purchaseOrderNumber: string | null; vendorName: string | null; buyerName: string | null;
+      receivingWarrantyDate?: string | null; deliveryWarrantyDate?: string | null;
+    }>;
+  };
+  itemType?: string;
+  serd?: {
+    serdNumber?: string;
+    lengthCm?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    weightKg?: number | null;
+    size?: string;
+    weight?: string;
+    primaryUsage?: string;
+  };
+  qualityAssuranceType?: CodeLabel;
+  calibration?: {
+    required: boolean;
+    cycleMonths?: number;
+    method?: '사내' | '사외';
+    provider?: string;
+  };
+  replacementSummary?: {
+    predecessors: number;
+    successors: number;
+    hasBranch: boolean;
+  };
+}
+
+export interface EquipmentAdvancedFilters {
+  kaiPartNumber?: string;
+  serdNumber?: string;
+  itemNum?: string;
+  itemNameKor?: string;
+  itemNameEng?: string;
+  itemUsageKor?: string;
+  itemUsageEng?: string;
+  itemNsn?: string;
+  subsystems?: string[];
+  maintenanceLevels?: string[];
+  categories?: string[];
 }
 
 export interface EquipmentFilters {
+  advanced?: EquipmentAdvancedFilters;
+  partNumbers?: string[];
   query: string;
   aircraftType: string;
   business: string;
@@ -57,6 +112,33 @@ export interface EquipmentFilters {
   manager: string;
   destination: string;
   status: string;
+}
+
+export interface EquipmentFilterOptions {
+  aircraftTypes: string[];
+  businesses: string[];
+  advanced?: { subsystems: CodeLabel[]; maintenanceLevels: CodeLabel[]; categories: CodeLabel[] };
+  systems: string[];
+  categories: string[];
+  managers: string[];
+  destinations: string[];
+  statuses: string[];
+}
+
+export interface EquipmentSearchRequest {
+  filters: EquipmentFilters;
+  sortKey: EquipmentSortKey;
+  sortDirection: SortDirection;
+  page: number;
+  size: number;
+}
+
+export interface EquipmentSearchResult {
+  items: Equipment[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export type EquipmentSortKey =
@@ -69,7 +151,11 @@ export type EquipmentSortKey =
   | 'manager'
   | 'destination'
   | 'status'
-  | 'recentChangeDate';
+  | 'recentChangeDate'
+  | 'kaiPartNumber'
+  | 'itemNsn'
+  | 'itemNameEng'
+  | 'manufacturer';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -112,4 +198,92 @@ export interface DashboardData {
   monthlyDeliveries: MonthlyDelivery[];
   changes: ChangeSummary[];
   upcomingDeliveries: UpcomingDelivery[];
+}
+
+export interface DeliverySchedule {
+  deliveryId: number;
+  itemId: number;
+  itemNum: string;
+  itemName: string;
+  business: string;
+  aircraftType: string;
+  destination: string;
+  plannedQuantity: number;
+  orderedQuantity?: number;
+  receivedQuantity?: number;
+  deliveredQuantity?: number;
+  deliveryDate: string;
+  receiptDate?: string;
+  status: DeliveryStatus;
+  delayed?: boolean;
+  managers: Manager[];
+}
+
+export interface DeliveryScheduleFilters {
+  query: string;
+  business: string;
+  aircraftType: string;
+  destination: string;
+  status: string;
+}
+
+export type ChangeRequestStatus = '접수' | '검토 중' | '처리 완료';
+
+export interface ChangeDifference {
+  field: string;
+  label: string;
+  before?: string;
+  after?: string;
+}
+
+export interface ChangeRequest {
+  changeId: string;
+  itemId: number;
+  itemNum: string;
+  itemName: string;
+  changeType: string;
+  requestedBy: Manager;
+  requestedAt: string;
+  processedBy?: Manager;
+  processedAt?: string;
+  status: ChangeRequestStatus;
+  reason?: string;
+  basis?: string;
+  differences: ChangeDifference[];
+}
+
+export interface ChangeRequestFilters {
+  query: string;
+  changeType: string;
+  status: string;
+  requester: string;
+}
+
+export type ReplacementStatus = '사용 중' | '단종' | '대체 예정';
+
+export interface ReplacementItem {
+  id: string;
+  itemNum: string;
+  itemName: string;
+  businesses: string[];
+  status: ReplacementStatus;
+  depth: number;
+  position: { x: number; y: number };
+}
+
+export interface ReplacementRelation {
+  id: string;
+  source: string;
+  target: string;
+  changeId: string;
+  changedAt: string;
+  changeType: string;
+  reason: string;
+  requester: Manager;
+  processor: Manager;
+}
+
+export interface ReplacementGraph {
+  items: ReplacementItem[];
+  relations: ReplacementRelation[];
 }

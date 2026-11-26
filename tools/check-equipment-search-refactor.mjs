@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const read=(p)=>readFileSync(resolve(root,p),'utf8');
+const page=read('src/pages/EquipmentSearchPage.tsx');
+const table=read('src/features/equipment-search/components/EquipmentSearchResults.tsx');
+const detail=read('src/features/equipment-search/components/EquipmentSearchDetail.tsx');
+const image=read('src/features/equipment-search/components/EquipmentSearchImage.tsx');
+const filters=read('src/features/equipment-search/components/EquipmentSearchFilters.tsx');
+const config=read('src/features/equipment-search/searchConfig.ts');
+const must=(txt,phrase)=>assert(txt.includes(phrase),`Missing expected behavior: ${phrase}`);
+must(page,"const [searchInput, setSearchInput] = useState");
+must(page,"onChange={(event) => setSearchInput(event.target.value)}");
+must(page,"const [selectedId, setSelectedId] = useState");
+must(page,"const applySearch = () =>");
+must(page,"onSelect={setSelectedId}");
+must(page,"size: nextPageSize === defaultPageSize ? null : nextPageSize");
+assert(!/const setSelectedId\s*=.*updateParams/.test(page));
+must(table,"onClick={() => onSelect(item.itemId)}");
+must(table,"<EquipmentImagePreview equipment={item} />");
+must(detail,"onOpenFullDetail");
+must(image,"equipment-thumbnail-trigger:hover");
+must(filters,"activeFilters.map");
+must(config,"[20, 50, 100]");
+for (const file of ['EquipmentSearchDetail','EquipmentSearchFilters','EquipmentSearchImage','EquipmentSearchResults']) {
+ assert(existsSync(resolve(root,`src/features/equipment-search/components/${file}.tsx`)));
+}
+console.log('PASS: EquipmentSearch refactor static regression guards (not a browser E2E test)');

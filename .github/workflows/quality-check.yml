@@ -1,0 +1,121 @@
+name: 품질 검사
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop/prototype
+      - feature/main-workflow-page
+  push:
+    branches:
+      - develop/prototype
+      - feature/main-workflow-page
+      - 'agent/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: 타입·코드·계약·빌드 검사
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: 저장소 확인
+        uses: actions/checkout@v4
+
+      - name: Node.js 준비
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Python 준비
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Python 의존성 설치
+        run: pip install -r requirements-dev.txt
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: TypeScript 검사
+        run: npm run typecheck
+
+      - name: ESLint 검사
+        run: npm run lint
+
+      - name: Python Ruff 검사
+        run: npm run lint:backend
+
+      - name: 프론트 단위·통합 테스트
+        run: npm run test
+
+      - name: OpenAPI 계약 테스트
+        run: npm run test:contract
+
+      - name: FastAPI 단위·통합 테스트
+        run: npm run test:backend
+
+      - name: 프로덕션 빌드
+        run: npm run build
+
+      - name: Chromium 준비
+        run: npx playwright install --with-deps chromium
+
+      - name: 1440×900 브라우저 시나리오 검사
+        run: npm run test:e2e
+
+      - name: FastAPI 브라우저 연동 검사
+        run: npm run test:e2e:api
+
+      - name: 전체 소스 패키징 (의존성 및 비밀환경 제외)
+        run: |
+          mkdir -p release-bundle
+          # git archive includes only tracked files, excluding ignored local deps and .env
+          git archive --format=zip --prefix=GSEM_v0.9.0/ HEAD > release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip
+          python - <<'PY'
+          import zipfile
+          path = 'release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip'
+          with zipfile.ZipFile(path) as z:
+              names = [x.filename for x in z.infolist()]
+              banned = ('node_modules', 'wheelhouse', '.venv', 'venv', '.git', '__pycache__', 'dist', 'build')
+              bad = []
+              for name in names:
+                  parts = name.split('/')
+                  filename = parts[-1]
+                  if any(p in banned for p in parts) or filename == '.env' or filename.endswith('.pyc'):
+                      bad.append(name)
+              needed = ('package.json', 'package-lock.json', 'src/', 'backend/', 'docs/', 'tools/', 'e2e/')
+              for p in needed:
+                  if not any(n.startswith('GSEM_v0.9.0/' + p) for n in names):
+                      raise SystemExit('Missing required path ' + p)
+              if bad:
+                  raise SystemExit('Sensitive or excluded files found: ' + str(bad[:20]))
+              print('Packaged', len(names), 'tracked files / paths')
+          PY
+
+      - name: 최종 전체 소스 ZIP 보관
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSEM_v0.9.0_FULL_SOURCE
+          path: release-bundle/GSEM_v0.9.0_FULL_SOURCE.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 실행 화면 캡처 보관
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prototype-screenshots-${{ github.run_number }}
+          path: docs/prototype-screenshots/**/*.png
+          if-no-files-found: error
+          retention-days: 7

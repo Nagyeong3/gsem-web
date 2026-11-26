@@ -40,13 +40,17 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByText('4건')).toBeVisible();
 
-  const searchInput = page.getByLabel('품번, 품명, 용도 검색');
+  const searchInput = page.getByLabel('품번, 품명 검색');
   await searchInput.fill('존재하지 않는 품목');
+  await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
   await expect(page.getByText('12건')).toBeVisible();
 
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
     path: `${screenshotDirectory}/equipment-search.png`,
     fullPage: false,
@@ -56,6 +60,94 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   expect(horizontalOverflow).toBe(false);
+});
+
+test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자를 확인한다', async ({ page }) => {
+  await page.goto('/equipment');
+  await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
+  await page.getByRole('button', { name: '전체 상세' }).click();
+
+  await expect(page).toHaveURL(/\/equipment\/1$/);
+  await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
+  await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('김책임', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('이선임', { exact: true })).toBeVisible();
+
+  const bodyText = await page.locator('body').innerText();
+  expect(bodyText).not.toContain('기준정보 관리');
+  expect(bodyText).not.toContain('사원');
+  expect(bodyText).not.toContain('대리');
+  expect(bodyText).not.toContain('과장');
+
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({
+    path: `${screenshotDirectory}/equipment-detail.png`,
+    fullPage: false,
+  });
+
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth,
+  );
+  expect(horizontalOverflow).toBe(false);
+});
+
+test('대시보드와 메뉴에서 납품 일정 미리보기로 이동한다', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
+  await expect(page).toHaveURL(/\/deliveries$/);
+  await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
+  await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
+  await page.goto('/');
+  await page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' }).click();
+  await expect(page).toHaveURL(/\/deliveries$/);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
+  await expect(page.getByRole('checkbox', { name: '납품완료된 차수 숨김' })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '입고 예정일', exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
+test('데모에서는 승인 신청 화면이 없고 변경 이력은 유지된다', async ({ page }) => {
+  await page.goto('/history');
+  await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
+  await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 신청' })).toHaveCount(0);
+  await expect(page.getByText('처리 과정')).toHaveCount(0);
+});
+
+test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없이 표시된다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '다크 모드로 전환' }).click();
+
+  const routes = [
+    ['/equipment/1', '장비 통합 상세', 'equipment-detail-dark.png'],
+    ['/deliveries', '납품 일정 관리', 'delivery-schedule-dark.png'],
+  ] as const;
+
+  for (const [route, heading, screenshot] of routes) {
+    await page.goto(route);
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+    if (route === '/deliveries') {
+      await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
+    }
+    await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+    await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+    await page.mouse.move(700, 700);
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: `${screenshotDirectory}/${screenshot}`, fullPage: false });
+  }
+
+  expect(errors).toEqual([]);
 });
 
 test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한다', async ({ page }) => {
@@ -98,4 +190,68 @@ test('GSEM 명칭과 반투명 선택 메뉴, 테마 전환 상태를 유지한�
     path: `${screenshotDirectory}/equipment-search-dark.png`,
     fullPage: false,
   });
+});
+
+test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 확인한다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/history');
+  await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();
+  await expect(page.getByText('5단계 (현재)')).toBeVisible();
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('complementary', { name: '변경 상세' })).toContainText('CHG-00009');
+  await expect(page.getByText('가 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('나 사업', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('다 사업', { exact: true }).first()).toBeVisible();
+
+  await page.getByLabel('변경 이력 검색').fill('A-4장비');
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+  await page.getByLabel('변경 이력 검색').fill('');
+  await page.waitForTimeout(600);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-history.png`, fullPage: false });
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  expect(errors).toEqual([]);
+
+  await page.getByRole('button', { name: '다크 모드로 전환' }).click();
+  await expect(page.getByRole('button', { name: '라이트 모드로 전환' })).toBeVisible();
+  await page.mouse.move(700, 700);
+  await page.waitForTimeout(200);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${screenshotDirectory}/change-history-dark.png`, fullPage: false });
+});
+
+test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async ({ page }) => {
+  await page.goto('/equipment?business=%EB%82%98+%EC%82%AC%EC%97%85&sort=recentChangeDate&direction=desc&page=1');
+  await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
+  await expect(page.getByLabel('사업')).toHaveText(/나 사업/);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
+  await expect(page).toHaveURL(/business=/);
+  await expect(page).toHaveURL(/sort=recentChangeDate/);
+
+  const firstRow = page.getByRole('table', { name: '장비 검색 결과' }).getByRole('row').nth(1);
+  await firstRow.focus();
+  await firstRow.press('Enter');
+  // Row selection is local UI state to preserve the list position; it no longer updates the URL.
+  await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+
+  await page.goto('/equipment/1');
+  await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
+  await expect(page).toHaveURL(/\/deliveries\?itemId=1/);
+  await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
+
+  await page.goto('/equipment/1');
+  await page.locator('main').getByRole('button', { name: '변경 이력' }).click();
+  await expect(page).toHaveURL(/\/history\?itemId=1/);
+  await expect(page.getByText('5단계 (현재)')).toBeVisible();
+  await expect(page.getByText('A-4장비', { exact: true }).first()).toBeVisible();
+
+  await page.goto('/equipment/not-a-number');
+  await expect(page.getByText('장비 정보를 찾을 수 없습니다.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });

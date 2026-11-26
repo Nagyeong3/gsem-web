@@ -62,7 +62,7 @@ export const createAppTheme = (mode: PaletteMode) => {
     },
     typography: {
       fontFamily:
-        '"Noto Sans KR Variable", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+        '"Noto Sans KR", "Noto Sans CJK KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR Variable", sans-serif',
       h1: { fontSize: 26, lineHeight: 1.38, fontWeight: 700, letterSpacing: '-0.02em' },
       h2: { fontSize: 16, lineHeight: 1.5, fontWeight: 700 },
       body1: { fontSize: 13, lineHeight: 1.55 },

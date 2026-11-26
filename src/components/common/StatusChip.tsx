@@ -1,18 +1,21 @@
 import { Chip } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import type { EquipmentStatus } from '../../types/domain';
+import type { DeliveryStatus, EquipmentStatus } from '../../types/domain';
 
 interface StatusChipProps {
-  status: EquipmentStatus | '완료' | '검토 중' | '임박';
+  status: EquipmentStatus | DeliveryStatus | '검토 중' | '임박';
 }
 
 const toneMap = {
   '사용 중': 'primary',
   '대체 검토': 'warning',
   보류: 'neutral',
+  미확인: 'neutral',
   완료: 'success',
   '검토 중': 'warning',
   임박: 'error',
+  예정: 'info',
+  진행: 'warning',
 } as const;
 
 export function StatusChip({ status }: StatusChipProps) {

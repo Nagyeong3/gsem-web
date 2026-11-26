@@ -5,6 +5,10 @@ import type {
   SortDirection,
 } from '../../types/domain';
 
+import { matchesQuickSearch, quickSearchFields } from './quickSearchFields';
+import { sortTableRows } from '../../utils/sortTableRows';
+import { matchesAdvancedFilters } from './advancedFilters';
+
 export const emptyEquipmentFilters: EquipmentFilters = {
   query: '',
   aircraftType: '',
@@ -51,20 +55,13 @@ export function summarizeManagers(item: Equipment) {
 
 export function filterEquipment(items: Equipment[], filters: EquipmentFilters) {
   const query = filters.query.trim().toLocaleLowerCase('ko-KR');
+  const partNumbers = new Set(filters.partNumbers?.map(value => value.toUpperCase()));
 
   return items.filter((item) => {
-    const searchableText = [
-      item.itemNum,
-      item.itemNameKor,
-      item.itemNameEng,
-      item.itemUsageKor,
-      item.itemUsageEng,
-    ]
-      .join(' ')
-      .toLocaleLowerCase('ko-KR');
-
     return (
-      (!query || searchableText.includes(query)) &&
+      (!partNumbers.size || partNumbers.has(item.itemNum.trim().toUpperCase())) &&
+      matchesAdvancedFilters(item, filters.advanced) &&
+      (!query || quickSearchFields.some(([field]) => matchesQuickSearch(item[field], query))) &&
       (!filters.aircraftType || getAircraftTypes(item).includes(filters.aircraftType)) &&
       (!filters.business || getBusinesses(item).includes(filters.business)) &&
       (!filters.system || item.systems.some((system) => system.name === filters.system)) &&
@@ -77,7 +74,11 @@ export function filterEquipment(items: Equipment[], filters: EquipmentFilters) {
 }
 
 function getSortValue(item: Equipment, key: EquipmentSortKey) {
-  const valueMap: Record<EquipmentSortKey, string> = {
+  const valueMap: Record<EquipmentSortKey, string | undefined> = {
+    kaiPartNumber: item.kaiPartNumber,
+    itemNsn: item.itemNsn,
+    itemNameEng: item.itemNameEng,
+    manufacturer: item.manufacturer,
     itemNum: item.itemNum,
     itemNameKor: item.itemNameKor,
     aircraftType: getAircraftTypes(item)[0] ?? '',
@@ -89,7 +90,8 @@ function getSortValue(item: Equipment, key: EquipmentSortKey) {
     status: item.status,
     recentChangeDate: item.recentChangeDate,
   };
-  return valueMap[key];
+  const value = valueMap[key]?.trim();
+  return value === '-' || value === '미연결' || value === '미확인' ? undefined : value;
 }
 
 export function sortEquipment(
@@ -97,8 +99,5 @@ export function sortEquipment(
   key: EquipmentSortKey,
   direction: SortDirection,
 ) {
-  return [...items].sort((left, right) => {
-    const comparison = getSortValue(left, key).localeCompare(getSortValue(right, key), 'ko');
-    return direction === 'asc' ? comparison : -comparison;
-  });
+  return sortTableRows(items, { column: key, direction }, item => getSortValue(item, key));
 }
