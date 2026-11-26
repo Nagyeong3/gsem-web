@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+import { equipmentFixtures } from '../src/mocks/equipment';
 
 const screenshotDirectory = 'docs/prototype-screenshots/flows';
 
@@ -7,7 +8,45 @@ test.beforeAll(async () => {
   await mkdir(screenshotDirectory, { recursive: true });
 });
 
-test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결된다', async ({ page }) => {
+async function routeEquipmentSqlApi(page: Page, searchMode = () => 'ready') {
+  const businesses = ['가 사업', '나 사업', '다 사업'].map((name, index) => ({ id: index + 1, name }));
+  const items = equipmentFixtures.map(item => ({
+    itemId: item.itemId,
+    itemNumber: item.itemNum,
+    kaiPartNumber: item.kaiPartNumber,
+    itemNameKor: item.itemNameKor,
+    itemNameEng: item.itemNameEng,
+    manufacturer: item.manufacturer,
+    imageAvailable: false,
+    managers: item.managers.map(manager => manager.name),
+    applications: item.applications.map(application => ({
+      integratedId: application.integratedId,
+      businessId: businesses.find(business => business.name === application.business)?.id,
+      businessName: application.business,
+      aircraftTypeCode: application.aircraftType,
+      deliveries: [],
+    })),
+  }));
+  await page.route('**/api/v1/equipment-search/filter-options', route =>
+    route.fulfill({ json: { businesses, aircraftTypes: [], managers: [], destinations: [] } }));
+  await page.route(/\/api\/v1\/equipment-search\/\d+$/, route => {
+    const id = Number(new URL(route.request().url()).pathname.split('/').at(-1));
+    const item = items.find(entry => entry.itemId === id);
+    return item ? route.fulfill({ json: item }) : route.fulfill({ status: 404 });
+  });
+  await page.route('**/api/v1/equipment-search?*', async route => {
+    const mode = searchMode();
+    if (mode === 'loading') await new Promise(resolve => setTimeout(resolve, 1200));
+    if (mode === 'error') return route.fulfill({ status: 500, json: { detail: '시각 검증용 오류' } });
+    const params = new URL(route.request().url()).searchParams;
+    const businessId = Number(params.get('businessId'));
+    const matched = businessId ? items.filter(item => item.applications.some(app => app.businessId === businessId)) : items;
+    return route.fulfill({ json: { items: matched, page: 1, size: 20, totalElements: matched.length, totalPages: 1 } });
+  });
+}
+
+test('HTTP API 모드에서 인메모리 조회와 SQL Server 장비 검색 응답을 처리한다', async ({ page }) => {
+  await routeEquipmentSqlApi(page);
   const errors: string[] = [];
   page.on('console', (message) => {
     const { url } = message.location();
@@ -39,6 +78,9 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
   await page.getByLabel('사업').click();
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
+  const sorting = page.waitForRequest(request => new URL(request.url()).searchParams.get('sort') === 'kaiPartNumber,asc');
+  await page.getByRole('table', { name: '장비 검색 결과' }).getByRole('button', { name: 'KAI 품번' }).click();
+  await sorting;
 
   await page.goto('/equipment/1');
   await expect(page.getByRole('heading', { name: '장비 통합 상세' })).toBeVisible();
@@ -47,7 +89,7 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
 
   // 월간 일정의 사업 목록은 SQL Server 전용이므로 이 시나리오에서는 사업이 없는 응답을 사용한다.
   await page.route('**/api/v1/equipment-master/businesses', (route) => route.fulfill({ json: [] }));
-  await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
+  await page.locator('main').getByRole('button', { name: '전체 납품 달력' }).click();
   await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
   await expect(page.getByText('선택한 조건에 해당하는 월간 일정이 없습니다.')).toBeVisible();
 
@@ -64,36 +106,19 @@ test('HTTP API 모드에서 전체 조회 화면이 인메모리 API와 연결�
 });
 
 test('HTTP API 지연·오류·재시도 상태를 화면으로 기록한다', async ({ page }) => {
-  const itemsRoute = '**/api/v1/items?*';
-  await page.route(itemsRoute, async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 1_200));
-    await route.continue();
-  });
+  let mode = 'loading';
+  await routeEquipmentSqlApi(page, () => mode);
 
   await page.goto('/equipment?__gsemDataSource=api');
   await expect(page.getByText('장비 정보를 불러오고 있습니다.')).toBeVisible();
   await page.screenshot({ path: `${screenshotDirectory}/17-equipment-api-loading.png`, fullPage: false });
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
-  await page.unroute(itemsRoute);
-
-  await page.route(itemsRoute, async (route) => {
-    await route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        error: {
-          code: 'PROTOTYPE_TEST_ERROR',
-          message: '시각 검증용 오류',
-          traceId: 'visual-state-001',
-        },
-      }),
-    });
-  });
+  mode = 'error';
   await page.reload();
   await expect(page.getByText('장비 정보를 불러오지 못했습니다.')).toBeVisible();
   await page.screenshot({ path: `${screenshotDirectory}/18-equipment-api-error.png`, fullPage: false });
 
-  await page.unroute(itemsRoute);
+  mode = 'ready';
   await page.getByRole('button', { name: '다시 불러오기' }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
   await page.screenshot({ path: `${screenshotDirectory}/19-equipment-api-recovered.png`, fullPage: false });
@@ -204,7 +229,7 @@ test('차수 선택 상태와 더보기 목록은 현재 달력 일정과 일치
   await expect(day).toBeVisible();
   await page.getByRole('button', { name: '상세 필터', exact: true }).click();
   await page.getByRole('combobox', { name: '사업 차수' }).click();
-  const option = page.getByRole('option', { name: '가 사업 · 1차 · 가 부대', exact: true });
+  const option = page.getByRole('option', { name: '1차', exact: true });
   await expect(option).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('option', { selected: true })).toHaveCount(8);
   await option.click();
@@ -215,7 +240,7 @@ test('차수 선택 상태와 더보기 목록은 현재 달력 일정과 일치
   await expect(page.getByRole('gridcell', { name: '2026-08-15 일정 7건' })).toBeVisible();
   await page.getByRole('button', { name: '필터 초기화' }).click();
   await expect(day).toBeVisible();
-  const more = day.getByRole('button', { name: /더보기/ });
+  const more = day.getByRole('button').filter({ hasText: '더보기' });
   await more.hover();
   await expect(page.getByRole('tooltip')).toContainText('숨겨진 일정');
   await testInfo.attach('calendar-overflow-hover', { body: await page.screenshot(), contentType: 'image/png' });
