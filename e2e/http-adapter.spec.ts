@@ -22,6 +22,7 @@ test('HTTP Adapter 모드에서 대시보드와 장비 검색 흐름이 동작�
 
   await page.getByRole('button', { name: '검색 조건 초기화' }).click();
   await expect(page.getByText('12건')).toBeVisible();
+  await page.getByRole('table', { name: '장비 검색 결과' }).getByRole('cell', { name: 'A장비', exact: true }).click();
   await expect(page.getByRole('complementary', { name: '선택 장비 상세' })).toBeVisible();
 });
 
