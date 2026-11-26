@@ -33,6 +33,7 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   await page.goto('/equipment');
   await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
   await expect(page.getByText('12건')).toBeVisible();
+  await page.getByRole('table', { name: '장비 검색 결과' }).getByRole('cell', { name: 'A장비', exact: true }).click();
   await expect(page.getByRole('complementary', { name: '선택 장비 상세' })).toBeVisible();
   await expect(page.getByText('A장비', { exact: true }).first()).toBeVisible();
 
@@ -65,6 +66,7 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
 test('장비 검색에서 통합 상세로 이동해 복수 사업과 담당자를 확인한다', async ({ page }) => {
   await page.goto('/equipment');
   await expect(page.getByRole('heading', { name: '장비 검색' })).toBeVisible();
+  await page.getByRole('table', { name: '장비 검색 결과' }).getByRole('cell', { name: 'A장비', exact: true }).click();
   await page.getByRole('button', { name: '전체 상세' }).click();
 
   await expect(page).toHaveURL(/\/equipment\/1$/);
@@ -227,7 +229,7 @@ test('5단계 장비 변경 이력 그래프를 탐색하고 상세 로그를 �
 test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async ({ page }) => {
   await page.goto('/equipment?business=%EB%82%98+%EC%82%AC%EC%97%85&sort=recentChangeDate&direction=desc&page=1');
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
-  await expect(page.getByLabel('사업')).toHaveText(/나 사업/);
+  await expect(page.getByLabel('사업')).toHaveValue('나 사업');
   await page.reload();
   await expect(page.getByRole('heading', { name: '검색 결과 4건' })).toBeVisible();
   await expect(page).toHaveURL(/business=/);

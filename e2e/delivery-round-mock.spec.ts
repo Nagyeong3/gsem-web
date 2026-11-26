@@ -26,7 +26,8 @@ test('delivery round filters, independent details and saved state work in mock m
 
   await page.getByRole('combobox', { name: '조달원 (복수)' }).click();
   await page.getByRole('option', { name: '가 조달원' }).click();
-  await expect(overview.locator(':scope > tbody > tr')).toHaveCount(6);
+  await expect(overview.locator('[data-round-id]')).toHaveCount(4);
+  await second.click();
   await expect(page.getByRole('table', { name: '2차 납품 품목' }).getByRole('row')).toHaveCount(2);
   await page.reload();
   await expect(page.getByText('가 조달원', { exact: true }).first()).toBeVisible();
@@ -163,6 +164,7 @@ test('item-level filters remove unmatched rounds and recalculate all rollups', a
   await page.goto('/equipment-master-rounds');
   const overview = page.getByRole('table', { name: '납품 차수별 지원장비 통합현황' });
   await page.getByRole('combobox', { name: '품번 검색' }).fill('DEMO-002');
+  await page.getByRole('option', { name: 'DEMO-002', exact: true }).click();
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1);
   const row = overview.getByRole('row', { name: /가 사업 1차 품목 보기/ });
   // The only matching line is item 2, quantity 1, with one PR and one PO.
@@ -175,7 +177,9 @@ test('item-level filters remove unmatched rounds and recalculate all rollups', a
   await expect(detail.getByRole('row')).toHaveCount(2);
   await expect(detail).toContainText('DEMO-002');
   await expect(detail).not.toContainText('DEMO-001');
-  await page.getByRole('combobox', { name: '품명 검색' }).fill('일치하지 않음');
+  const itemName = page.getByRole('combobox', { name: '품명 검색' });
+  await itemName.fill('일치하지 않음');
+  await itemName.press('Enter');
   await expect(overview.locator(':scope > tbody > tr')).toHaveCount(1); // empty-result indicator
   await expect(overview).toContainText('조회할 납품 차수가 없습니다.');
   await page.getByRole('button', { name: '필터 초기화' }).click();
@@ -349,7 +353,7 @@ test('item row toggles checkbox and processing buttons only appear for unfinishe
   await expect(detail.getByRole('region', { name: '아이템 테이블 상단 가로 스크롤' })).toHaveCount(0);
   await expect(page.getByRole('region', { name: '아이템 테이블 가로 및 세로 스크롤' })).toBeVisible();
   await expect(detail.getByRole('columnheader', { name: '입고일' }).getByRole('separator', { name: '입고일 열 너비 조절' })).toBeVisible();
-  const resize = overview.getByRole('separator', { name: '납품일 열 너비 조절' });
+  const resize = overview.locator(':scope > thead').getByRole('separator', { name: '납품일 열 너비 조절' });
   await expect(resize).toBeVisible();
   const previousWidth = Number(await resize.getAttribute('aria-valuenow'));
   await resize.focus();
