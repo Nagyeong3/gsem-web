@@ -3,7 +3,7 @@ import { preferenceKey } from '../preferences/pagePreferences';
 import { getAircraftTypes, getBusinesses, getDestinations, summarize } from './equipmentSearch';
 import { columns } from './searchConfig';
 
-export type ResultColumnKey = EquipmentSortKey | 'image' | 'kaiPartNumber' | 'itemNsn' | 'itemNameEng' | 'manufacturer';
+export type ResultColumnKey = EquipmentSortKey | 'image';
 export type ResultColumn = { key: ResultColumnKey; label: string; sortKey?: EquipmentSortKey };
 export type ColumnLayout = { key: ResultColumnKey; visible: boolean }[];
 export type LayoutPreset = { name: string; layout: ColumnLayout };
@@ -11,10 +11,10 @@ export type LayoutPreset = { name: string; layout: ColumnLayout };
 export const resultColumns: ResultColumn[] = [
   { key: 'image', label: '이미지' },
   ...columns.map(column => ({ ...column, sortKey: column.key })),
-  { key: 'kaiPartNumber', label: 'KAI 품번' },
-  { key: 'itemNsn', label: '재고번호 (NSN)' },
-  { key: 'itemNameEng', label: '영문 품명' },
-  { key: 'manufacturer', label: '제조사' },
+  { key: 'kaiPartNumber', sortKey: 'kaiPartNumber', label: 'KAI 품번' },
+  { key: 'itemNsn', sortKey: 'itemNsn', label: '재고번호 (NSN)' },
+  { key: 'itemNameEng', sortKey: 'itemNameEng', label: '영문 품명' },
+  { key: 'manufacturer', sortKey: 'manufacturer', label: '제조사' },
 ];
 
 export const defaultColumnLayout: ColumnLayout = resultColumns.map(({ key }) => ({

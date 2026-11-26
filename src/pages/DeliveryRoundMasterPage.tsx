@@ -7,6 +7,7 @@ import type { AutocompleteRenderValueGetItemProps } from '@mui/material/Autocomp
 import { RefreshOutlined, ImageNotSupportedOutlined, CloseOutlined, ZoomInOutlined, EditOutlined } from '@mui/icons-material';
 import { sortTableRows, toggleTableSort, type TableSort } from '../utils/sortTableRows';
 import { useLocation } from 'react-router-dom';
+import { tableSortLabelSx } from '../components/common/tableSortLabelStyle';
 import { PageHeader } from '../components/common/PageHeader';
 import { SearchableMultiTextFilter } from '../components/common/SearchableMultiTextFilter';
 import { appendTextSearchParams, isTextSearchTerms, matchesTextSearch, migrateTextSearchTerms, type TextSearchTerm } from '../utils/textSearchTerms';
@@ -32,6 +33,7 @@ type Round = {
 };
 type RoundItem = {
   matchId: number; itemId: number; itemNumber: string; itemName: string | null;
+  kaiPartNumber?: string | null; receivingWarrantyDate?: string | null; deliveryWarrantyDate?: string | null;
   quantity: number | null; receivingExpected: string | null; receivedAt: string | null;
   deliveredAt: string | null; vendorName: string | null; buyerName: string | null;
   contractPrice?: number | null; purchaseRequestNumber?: string | null; purchaseOrderNumber?: string | null;
@@ -259,7 +261,7 @@ function ResizeHeader({ label, width, setWidth, align = 'left', children, sticky
     borderRight: '1px solid', borderRightColor: 'divider' }}>
     <Box component="span" title={label}>{onSort
       ? <TableSortLabel active={!!sortDirection} direction={sortDirection ?? 'asc'} hideSortIcon={false} onClick={onSort}
-          sx={{ flexDirection: 'row', maxWidth: '100%', '& .MuiTableSortLabel-icon': { fontSize: 15, mx: 0.25, opacity: sortDirection ? 1 : 0.35 } }}>
+          sx={tableSortLabelSx(Boolean(sortDirection))}>
           <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</Box>
         </TableSortLabel>
       : children ?? label}</Box>
@@ -299,13 +301,15 @@ const masterColumns = [
 
 const detailColumns = [
   { key: null, label: '선택', width: 58 }, { key: null, label: '이미지', width: 68 }, { key: 'itemNumber', label: '품번', width: 98 },
-  { key: 'itemName', label: '품명', width: 150 }, { key: 'quantity', label: '수량', width: 58 }, { key: 'vendorName', label: '조달원', width: 90 },
+  { key: 'kaiPartNumber', label: 'KAI 품번', width: 130 }, { key: 'itemName', label: '품명', width: 150 }, { key: 'quantity', label: '수량', width: 58 }, { key: 'vendorName', label: '조달원', width: 90 },
   { key: 'purchaseRequestNumber', label: 'PR', width: 68 }, { key: 'purchaseOrderNumber', label: 'PO', width: 68 }, { key: 'buyerName', label: '바이어', width: 76 },
   { key: 'receivingExpected', label: '입고 예정', width: 120 }, { key: 'receivedAt', label: '입고일', width: 100 },
-  { key: 'deliveredAt', label: '납품일', width: 100 }, { key: 'contractPrice', label: '계약 가격', width: 100 },
+  { key: 'deliveredAt', label: '납품일', width: 100 },
+  { key: 'receivingWarrantyDate', label: '업체 보증기간', width: 135 },
+  { key: 'deliveryWarrantyDate', label: 'KAI 보증기간', width: 135 }, { key: 'contractPrice', label: '계약 가격', width: 100 },
 ] as const;
 const legacyDetailWidths = [62, 78, 138, 180, 80, 135, 130, 130, 110, 177, 125, 177, 140];
-const itemGrowWeights = [0, 0, 2, 4, 0, 2, 0, 0, 1, 1, 0, 0, 1];
+const itemGrowWeights = [0, 0, 2, 2, 4, 0, 2, 0, 0, 1, 1, 0, 0, 0, 0, 1];
 function layoutItemWidths(widths: number[], available: number): number[] {
   const current = widths.reduce((sum, width) => sum + width, 0);
   const free = Math.max(0, available - current);
@@ -398,12 +402,16 @@ export function DeliveryRoundMasterPage() {
     } catch { /* 이전 설정이 없거나 손상되면 기본 폭을 사용한다. */ }
     return masterColumns.map(column => column.width);
   }, (v): v is number[] => isWidths(v, masterColumns.length));
-  const [detailWidths, setDetailWidths] = usePagePreference<number[]>('equipment-overview', 'detailWidths', () => detailColumns.map((column) => column.width), (v): v is number[] => isWidths(v, detailColumns.length));
-  // Migrate only the old default (not widths personally resized by the user).
-  useEffect(() => {
-    setDetailWidths((current) => current.every((width, index) => width === legacyDetailWidths[index])
-      ? detailColumns.map((column) => column.width) : current);
-  }, [setDetailWidths]);
+  const [detailWidths, setDetailWidths] = usePagePreference<number[]>('equipment-overview', 'detailWidthsV2', () => {
+    const defaults = detailColumns.map(column => column.width);
+    try {
+      const saved: unknown = JSON.parse(loadString(preferenceKey('equipment-overview', 'detailWidths')) || 'null');
+      if (isWidths(saved, legacyDetailWidths.length) && !saved.every((width, index) => width === legacyDetailWidths[index])) {
+        return [...saved.slice(0, 3), defaults[3], ...saved.slice(3, 12), defaults[13], defaults[14], saved[12]];
+      }
+    } catch { /* 잘못된 이전 너비 설정은 기본값으로 복원한다. */ }
+    return defaults;
+  }, (v): v is number[] => isWidths(v, detailColumns.length));
   const baseMasterWidth = masterWidths.reduce((total, width) => total + width, 0);
   // Fill available desktop width when base columns are narrower than the window;
   // preserve horizontal overflow when the user narrows the window or widens columns.
@@ -911,6 +919,7 @@ export function DeliveryRoundMasterPage() {
                                   <TableCell onClick={(event) => event.stopPropagation()}><EquipmentImageThumbnail item={item}
                                     onExpand={showPreview} /></TableCell>
                                   <TableCell title={item.itemNumber || '-'}>{item.itemNumber}</TableCell>
+                                  <TableCell title={item.kaiPartNumber ?? undefined}>{item.kaiPartNumber ?? '-'}</TableCell>
                                   <TableCell title={item.itemName || '-'}>{item.itemName || '-'}</TableCell>
                                   <TableCell>{number(item.quantity)}</TableCell>
                                   <TableCell title={item.vendorName || '-'}>{item.vendorName || '-'}</TableCell>
@@ -962,9 +971,11 @@ export function DeliveryRoundMasterPage() {
                                     ) : <Button size="small" variant="outlined" aria-label={`${item.itemNumber} 납품 처리`}
                                       onClick={() => beginDelivery({ kind: 'item', item, round })}>납품</Button>}
                                   </TableCell>
+                                  <TableCell title="입고 보증 종료일">{date(item.receivingWarrantyDate ?? null)}</TableCell>
+                                  <TableCell title="납품 보증 종료일">{date(item.deliveryWarrantyDate ?? null)}</TableCell>
                                   <TableCell align="right">{number(item.contractPrice)}</TableCell>
                                 </TableRow>)}
-                                {detail[round.subContractId].data?.filter(itemMatches).length === 0 && <TableRow><TableCell colSpan={13} align="center">{activeItemFilters ? '아이템 필터에 맞는 품목이 없습니다.' : '등록된 품목이 없습니다.'}</TableCell></TableRow>}
+                                {detail[round.subContractId].data?.filter(itemMatches).length === 0 && <TableRow><TableCell colSpan={detailColumns.length} align="center">{activeItemFilters ? '아이템 필터에 맞는 품목이 없습니다.' : '등록된 품목이 없습니다.'}</TableCell></TableRow>}
                               </TableBody>
                             </Table>;
                             }}</ItemTableScroller>

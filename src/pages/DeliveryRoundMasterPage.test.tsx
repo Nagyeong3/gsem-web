@@ -32,6 +32,12 @@ it('상위와 각 하위 표를 독립적으로 정렬하고 빈 납품일에서
   fireEvent.click(incomplete);
   const first = await screen.findByRole('table', { name: '1차 납품 품목' });
   const second = await screen.findByRole('table', { name: '2차 납품 품목' });
+  for (const label of ['KAI 품번', '업체 보증기간', 'KAI 보증기간']) {
+    expect(within(first).getByRole('columnheader', { name: label })).toBeVisible();
+  }
+  for (const value of ['KAI-DEMO-01', '2027-08-01', '2027-08-12']) {
+    expect(within(first).getByRole('cell', { name: value })).toBeVisible();
+  }
   const firstPart = within(first).getByRole('columnheader', { name: '품번' });
   const secondPart = within(second).getByRole('columnheader', { name: '품번' });
   const sortPart = within(firstPart).getByRole('button');

@@ -1,6 +1,7 @@
 /** Synthetic fixtures; not extracted from a company SQL Server database. */
 export type DemoLine = {
   matchId: number; itemId: number; itemNumber: string; itemName: string;
+  kaiPartNumber?: string; receivingWarrantyDate?: string; deliveryWarrantyDate?: string;
   quantity: number; receivingExpected: string | null; receivedAt: string | null;
   deliveredAt: string | null; vendorName: string; buyerName: string;
   contractPrice: number; purchaseRequestNumber: string | null; purchaseOrderNumber: string | null;
@@ -37,7 +38,8 @@ function line(id: number, itemId: number, quantity: number, vendor: string,
 }
 export const mockRoundItems: Record<number, DemoLine[]> = {
   1001: [
-    line(1, 1, 2, '가 조달원', '2026-08-01', '2026-08-12', 'PR-1', 'PO-1', 1000),
+    { ...line(1, 1, 2, '가 조달원', '2026-08-01', '2026-08-12', 'PR-1', 'PO-1', 1000),
+      kaiPartNumber: 'KAI-DEMO-01', receivingWarrantyDate: '2027-08-01', deliveryWarrantyDate: '2027-08-12' },
     line(2, 2, 1, '나 조달원', '2026-08-02', '2026-08-12', 'PR-1', 'PO-1', 2500),
     line(3, 1, 3, '가 조달원', '2026-08-03', '2026-08-12', 'PR-2', null, 1000),
   ],

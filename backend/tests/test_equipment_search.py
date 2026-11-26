@@ -1,8 +1,10 @@
 """실DB 장비 검색: 연결 스키마 및 페이징·안전한 파라미터 검증."""
 from unittest.mock import MagicMock
+
 from fastapi.testclient import TestClient
-from backend.app.main import app
+
 from backend.app.api import equipment_search as api
+from backend.app.main import app
 
 client = TestClient(app)
 
@@ -28,12 +30,16 @@ def test_assemble_groups_duplicate_business_links_by_item_id():
     cursor = MagicMock()
     cursor.description = [('placeholder',)]
     item_rows = [
-        {'item_id': 5, 'item_num': 'P-5', 'item_nsn': '0000-00-000-0000', 'item_name_kor': '시험장비', 'item_name_eng': 'Test',
-         'item_usage_kor': '점검', 'item_usage_eng': 'Inspection', 'manufacture_name': '공급업체', 'item_image_path': './Images/a.png',
+        {'item_id': 5, 'item_num': 'P-5', 'item_nsn': '0000-00-000-0000', 'item_name_kor': '시험장비',
+         'item_name_eng': 'Test',
+         'item_usage_kor': '점검', 'item_usage_eng': 'Inspection', 'manufacture_name': '공급업체',
+         'item_image_path': './Images/a.png',
          'diminishing': 0, 'integrated_id': 11, 'business_id': 101, 'biz_name': '사업A',
          'code_ATYPE': 'KUH', 'manager_name': 'A'},
-        {'item_id': 5, 'item_num': 'P-5', 'item_nsn': '0000-00-000-0000', 'item_name_kor': '시험장비', 'item_name_eng': 'Test',
-         'item_usage_kor': '점검', 'item_usage_eng': 'Inspection', 'manufacture_name': '공급업체', 'item_image_path': './Images/a.png',
+        {'item_id': 5, 'item_num': 'P-5', 'item_nsn': '0000-00-000-0000', 'item_name_kor': '시험장비',
+         'item_name_eng': 'Test',
+         'item_usage_kor': '점검', 'item_usage_eng': 'Inspection', 'manufacture_name': '공급업체',
+         'item_image_path': './Images/a.png',
          'diminishing': 0, 'integrated_id': 12, 'business_id': 102, 'biz_name': '사업B',
          'code_ATYPE': 'LAH', 'manager_name': 'B'},
     ]
@@ -44,7 +50,9 @@ def test_assemble_groups_duplicate_business_links_by_item_id():
                       'price_contract': 100, 'purchase_request_Number': 'PR1',
                       'purchase_order_Number': 'PO1', 'vendor_name': '조달원', 'buyer_name': '바이어'}]
     manager_rows = [{'item_id': 5, 'user_name': 'A'}, {'item_id': 5, 'user_name': 'B'}]
-    responses = [item_rows, delivery_rows, manager_rows]
+    responses = [item_rows, delivery_rows, manager_rows, [
+        {'item_id': 5, 'field_name': 'system', 'code': 'S1', 'code_name': '시연 계통'},
+    ]]
     old_rows = api._rows
     try:
         api._rows = lambda _: responses.pop(0)
@@ -56,6 +64,7 @@ def test_assemble_groups_duplicate_business_links_by_item_id():
     assert items[0]['itemNsn'] == '0000-00-000-0000'
     assert items[0]['imageAvailable'] is True
     assert items[0]['managers'] == ['A', 'B']
+    assert items[0]['systems'] == [{'code': 'S1', 'name': '시연 계통'}]
     assert items[0]['applications'][0]['deliveries'][0]['purchaseOrderNumber'] == 'PO1'
 
 
@@ -125,6 +134,23 @@ def test_batch_search_uses_exact_deduplicated_part_numbers_with_filters(monkeypa
     for sql, *params in (count, page):
         assert 'AND i.item_num IN (?, ?)' in sql
         assert params[:3] == ['%시연%', '0001', 'X_%']
-    assert 'ORDER BY i.item_num DESC' in page[0]
+    assert 'CONVERT(nvarchar(4000), i.item_num)' in page[0]
+    assert 'sort_value DESC, item_id' in page[0]
     assert client.post('/api/v1/equipment-search/batch', json=['X'] * 501).status_code == 400
     assert client.post('/api/v1/equipment-search/batch', json=['   ']).status_code == 400
+
+
+def test_search_sorts_by_kai_part_number_before_paging(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.execute.return_value.fetchone.return_value = (0,)
+    monkeypatch.setattr(api, '_check_mode', lambda: None)
+    monkeypatch.setattr(api, '_connect', lambda: connection)
+    monkeypatch.setattr(api, '_rows', lambda cursor: [])
+
+    response = client.get('/api/v1/equipment-search', params={'sort': 'kaiPartNumber,desc', 'page': 2, 'size': 10})
+    assert response.status_code == 200, response.text
+    sql, offset, size = cursor.execute.call_args.args
+    assert 'si.KAI_PN FROM dbo.SERD_Info' in sql
+    assert 'CASE WHEN sort_value IS NULL THEN 1 ELSE 0 END, sort_value DESC, item_id' in sql
+    assert (offset, size) == (10, 10)

@@ -151,7 +151,11 @@ export type EquipmentSortKey =
   | 'manager'
   | 'destination'
   | 'status'
-  | 'recentChangeDate';
+  | 'recentChangeDate'
+  | 'kaiPartNumber'
+  | 'itemNsn'
+  | 'itemNameEng'
+  | 'manufacturer';
 
 export type SortDirection = 'asc' | 'desc';
 

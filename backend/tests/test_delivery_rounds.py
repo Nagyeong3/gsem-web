@@ -1,5 +1,6 @@
 """Contract tests for the read-only delivery-round SQL layer."""
 import importlib
+from datetime import date
 
 from fastapi.testclient import TestClient
 
@@ -24,13 +25,27 @@ class FakeCursor:
                 {"item_name": None, "item_number": "A-002"},
                 {"item_name": "", "item_number": None},
             ]
+        if "SELECT m.match_id, i.item_id" in sql:
+            item = {
+                "match_id": 2, "item_id": 3, "item_num": "A-001", "item_name_kor": "시연 품목",
+                "quantity": 1, "date_receiving_expect": None, "date_receiving": None,
+                "date_deliver": None, "price_contract": None, "purchase_request_Number": None,
+                "purchase_order_Number": None, "vendor_name": None, "buyer_name": None,
+            }
+            self.rows = [
+                {**item, "kai_part_number": " KAI-DEMO-01 ", "date_receiving_warranty": date(2027, 8, 1),
+                 "date_deliver_warranty": date(2027, 8, 12)},
+                {**item, "match_id": 3, "kai_part_number": None, "date_receiving_warranty": None,
+                 "date_deliver_warranty": None},
+            ]
         if "AS item_count" in sql:
             self.rows = [{
                 "sub_contract_id": 41, "business_id": 1, "biz_name": "가 사업",
                 "delivery_dest_name": "가 부대", "sub_contract_name": "1차",
                 "delivery_date_contract": None, "item_count": 2, "point_count": 8,
                 "pr_count": 3, "po_count": 2, "received_count": 2,
-                "delivered_count": 1, "delivered_quantity": 4, "latest_delivered_at": None, "delivery_completed": False, "delivery_amount": 16000,
+                "delivered_count": 1, "delivered_quantity": 4, "latest_delivered_at": None,
+                "delivery_completed": False, "delivery_amount": 16000,
             }]
         return self
 
@@ -125,6 +140,14 @@ def test_multiple_vendor_and_destination_filters(monkeypatch):
     detail_sql, detail_params = conn.cursor_instance.statements[-1]
     assert "LTRIM(RTRIM(v.vendor_name)) IN (?, ?)" in detail_sql
     assert detail_params == (41, 1, "가 조달원", "나 조달원")
+    assert "LEFT JOIN dbo.SERD_Info AS si ON si.serd_info_id = i.serd_info_id" in detail_sql
+    populated, missing = response.json()["items"]
+    assert (populated["kaiPartNumber"], populated["receivingWarrantyDate"], populated["deliveryWarrantyDate"]) == (
+        "KAI-DEMO-01", "2027-08-01", "2027-08-12",
+    )
+    assert (missing["kaiPartNumber"], missing["receivingWarrantyDate"], missing["deliveryWarrantyDate"]) == (
+        None, None, None,
+    )
 
 
 def test_filter_options_normalize_whitespace(monkeypatch):
@@ -173,6 +196,7 @@ def test_round_items_exposes_pr_po_values(monkeypatch):
                 "match_id": 100, "item_id": 7, "item_num": "DEMO-007", "item_name_kor": "시연 품목",
                 "quantity": 1, "date_receiving_expect": None, "date_receiving": None,
                 "date_deliver": None, "price_contract": 1500,
+                "kai_part_number": None, "date_receiving_warranty": None, "date_deliver_warranty": None,
                 "purchase_request_Number": "PR-42", "purchase_order_Number": "PO-42",
                 "vendor_name": "가 조달원", "buyer_name": "김책임",
             }]

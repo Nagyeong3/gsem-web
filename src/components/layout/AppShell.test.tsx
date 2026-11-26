@@ -34,7 +34,7 @@ it('사이드바의 버전 표시에서 패널을 열고 닫는다', async () =>
 it('운영 빌드에서도 현재 릴리스와 이전 버전의 변경사항을 제공한다', () => {
   const entries = getReleaseEntries('production');
   expect(entries[0].version).toBe(APP_VERSION);
-  expect(entries[0].changes.map(change => change.keyword)).toContain('검색어 강조');
+  expect(entries[0].changes.map(change => change.keyword)).toContain('하위 장비 표 KAI 품번');
   expect(entries.some(entry => entry.version === 'v0.25.0')).toBe(true);
   expect(entries.every(entry => !entry.verification)).toBe(true);
   expect(getReleaseEntries('development')[0].verification).toBeTruthy();

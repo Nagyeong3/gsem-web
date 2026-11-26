@@ -13,7 +13,7 @@ import type { EquipmentSearchRequest, EquipmentStatus } from '../../types/domain
 import type { EquipmentService } from '../equipmentService';
 import type { ApiClient } from './apiClient';
 
-const sortFieldMap: Record<EquipmentSearchRequest['sortKey'], ItemSortFieldDto> = {
+const sortFieldMap: Partial<Record<EquipmentSearchRequest['sortKey'], ItemSortFieldDto>> = {
   itemNum: 'itemNumber',
   itemNameKor: 'itemNameKor',
   aircraftType: 'aircraftType',
@@ -62,7 +62,7 @@ export function createHttpEquipmentService(apiClient: ApiClient): EquipmentServi
           (item) => item.name === request.filters.destination,
         )?.destinationId,
         status: statusCodeMap[request.filters.status as EquipmentStatus],
-        sort: `${sortFieldMap[request.sortKey]},${request.sortDirection}`,
+        sort: `${sortFieldMap[request.sortKey] ?? 'itemNumber'},${request.sortDirection}`,
         page: request.page,
         size: request.size,
       };

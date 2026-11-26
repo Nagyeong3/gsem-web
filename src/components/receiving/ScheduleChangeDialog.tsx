@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, List, ListItem, Paper, Radio, RadioGroup, FormControlLabel, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { isCalendarDate } from '../../features/delivery-calendar/calendarPreview';
 import { addCalendarMonths } from '../../features/delivery-calendar/warrantyDates';
@@ -8,7 +8,11 @@ export type ScheduleChangeDetails = { title: string; roundName: string; items: S
 type Props = { open: boolean; details: ScheduleChangeDetails | null; onClose: () => void; onPreview: (result: { itemIds: number[]; nextDate: string; reason: string; attachments: string[]; warrantyEnd?: string; warrantyBasis?: '12' | '24' | 'custom' }) => void };
 
 /** UI-only evidence collector. No uploads and no database writes are performed. */
-export function ScheduleChangeDialog({ open, details, onClose, onPreview }: Props) {
+export function ScheduleChangeDialog(props: Props) {
+  return props.open ? <ScheduleChangeForm {...props} /> : null;
+}
+
+function ScheduleChangeForm({ open, details, onClose, onPreview }: Props) {
   const [date, setDate] = useState('');
   const [warrantyMode, setWarrantyMode] = useState<'12' | '24' | 'custom'>('12');
   const [customWarrantyEnd, setCustomWarrantyEnd] = useState('');
@@ -18,7 +22,6 @@ export function ScheduleChangeDialog({ open, details, onClose, onPreview }: Prop
   const [search, setSearch] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  useEffect(() => { if (open) { setDate(''); setWarrantyMode('12'); setCustomWarrantyEnd(''); setReason(''); setFiles([]); setSearch(''); setConfirm(false); setShowAll(false); setTab(0); } }, [open, details]);
   const currentDates = useMemo(() => [...new Set(details?.items.map(item => item.previousDate?.slice(0, 10) || '미등록') ?? [])], [details]);
   const isDelivery = details?.kind === 'delivery';
   const warrantyEnd = warrantyMode === 'custom' ? customWarrantyEnd : addCalendarMonths(date, Number(warrantyMode));

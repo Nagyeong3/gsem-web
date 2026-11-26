@@ -7,8 +7,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.app.api.equipment_master import _connect, _date, _rows, _setting
 from backend.app.api.delivery_rounds import _business_ids
+from backend.app.api.equipment_master import _connect, _date, _rows, _setting
 
 router = APIRouter()
 
@@ -20,9 +20,9 @@ def _require_db():
 
 @router.get("/delivery-calendar/events")
 def calendar_events(
+    date_from: Annotated[date_type, Query(alias="dateFrom")],
+    date_to: Annotated[date_type, Query(alias="dateTo")],
     business_ids: Annotated[list[int] | None, Query(alias="businessIds")] = None,
-    date_from: date_type = Query(..., alias="dateFrom"),
-    date_to: date_type = Query(..., alias="dateTo"),
     include_details: bool = Query(False, alias="includeDetails"),
     include_received: bool = Query(False, alias="includeReceived"),
     round_only: bool = Query(False, alias="roundOnly"),

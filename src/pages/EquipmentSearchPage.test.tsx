@@ -87,3 +87,18 @@ it('숨겨진 열이 통합검색에 일치하면 일치 항목에 실제 값을
   expect(marked).toHaveTextContent('Equipment A');
   expect(marked?.parentElement).toHaveTextContent('영문 품명');
 }, 15_000);
+
+
+it('이미지 외 데이터 컬럼에 정렬을 제공하고 KAI 품번의 방향을 바꾼다', async () => {
+  render(<MemoryRouter initialEntries={['/equipment']}><EquipmentSearchPage /></MemoryRouter>);
+  const table = await screen.findByRole('table', { name: '장비 검색 결과' });
+  const headers = within(table).getAllByRole('columnheader');
+  expect(within(within(table).getByRole('columnheader', { name: '이미지' })).queryByRole('button')).toBeNull();
+  for (const header of headers.slice(2)) {
+    expect(within(header).getByRole('button')).toBeVisible();
+  }
+  fireEvent.click(within(table).getByRole('button', { name: 'KAI 품번' }));
+  await waitFor(() => expect(screen.getByRole('columnheader', { name: 'KAI 품번' })).toHaveAttribute('aria-sort', 'ascending'));
+  fireEvent.click(await screen.findByRole('button', { name: 'KAI 품번' }));
+  await waitFor(() => expect(screen.getByRole('columnheader', { name: 'KAI 품번' })).toHaveAttribute('aria-sort', 'descending'));
+});

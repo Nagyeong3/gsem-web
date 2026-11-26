@@ -8,6 +8,15 @@ type ReleaseEntry = {
 // 반입 번들에 포함된 릴리스만 기록한다. 운영 반영일은 확인된 경우에만 추가한다.
 const releases: readonly ReleaseEntry[] = [
   {
+    version: 'v0.25.3',
+    changes: [
+      { keyword: '장비 검색 열 정렬', description: '이미지를 제외한 검색 결과 데이터 열의 제목을 눌러 오름차순이나 내림차순으로 정렬할 수 있습니다.' },
+      { keyword: '하위 장비 표 KAI 품번', description: '지원장비 통합현황에서 사업 차수를 펼치면 품번 옆에서 KAI 품번을 확인할 수 있습니다.' },
+      { keyword: '업체·KAI 보증기간', description: '하위 장비 표에서 입고 기준과 납품 기준의 보증 종료일을 별도 열로 확인할 수 있습니다.' },
+    ],
+    verification: '사내 SQL Server에서 보증 날짜의 업무 기준 확인 대기.',
+  },
+  {
     version: 'v0.25.2',
     changes: [
       { keyword: '검색어 강조', description: '장비 통합검색은 품번, KAI 품번, 국문·영문 품명과 NSN을 조회합니다. 결과에서 일치한 글자를 강조하며, 원래 열을 숨긴 경우에도 일치 항목에서 확인할 수 있습니다. 용도는 상세 조건에서 검색할 수 있습니다.' },

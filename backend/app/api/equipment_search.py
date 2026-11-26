@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-
 from pydantic import StringConstraints
 
 from backend.app.api.equipment_master import _connect, _date, _rows, _setting
@@ -17,6 +16,40 @@ JOIN Integrated_Info AS ii ON ii.item_id = i.item_id
 JOIN Business AS b ON b.business_id = ii.business_id
 WHERE 1=1
 """
+
+SORT_VALUES = {
+    'itemNumber': 'i.item_num',
+    'itemNameKor': 'i.item_name_kor',
+    'itemNameEng': 'i.item_name_eng',
+    'itemNsn': 'i.item_nsn',
+    'manufacturer': 'i.manufacture_name',
+    'kaiPartNumber': '(SELECT si.KAI_PN FROM dbo.SERD_Info AS si WHERE si.serd_info_id = i.serd_info_id)',
+    'aircraftType': """(SELECT TOP (1) b1.code_ATYPE FROM Integrated_Info AS a
+        JOIN Business AS b1 ON b1.business_id = a.business_id
+        WHERE a.item_id = i.item_id ORDER BY a.integrated_id)""",
+    'business': """(SELECT TOP (1) b1.biz_name FROM Integrated_Info AS a
+        JOIN Business AS b1 ON b1.business_id = a.business_id
+        WHERE a.item_id = i.item_id ORDER BY a.integrated_id)""",
+    'category': """COALESCE((SELECT TOP (1) c.code_name FROM Common_Code_Detail AS c
+        WHERE c.group_code = 'CATEG' AND c.code = i.code_CATEG ORDER BY c.sort_order, c.code_name), i.code_CATEG)""",
+    'system': """(SELECT TOP (1) COALESCE(label.code_name, ss.code_SSYST)
+        FROM Match_Item_SubSystem AS ss
+        OUTER APPLY (SELECT TOP (1) c.code_name FROM Common_Code_Detail AS c
+            WHERE c.group_code = 'SSYST' AND c.code = ss.code_SSYST ORDER BY c.sort_order, c.code_name) AS label
+        WHERE ss.item_id = i.item_id AND NULLIF(LTRIM(RTRIM(ss.code_SSYST)), '') IS NOT NULL
+        ORDER BY ss.code_SSYST)""",
+    'manager': """(SELECT MIN(u.user_name) FROM Integrated_Info AS a
+        JOIN Match_Managing_Users AS mm ON mm.integrated_id = a.integrated_id
+        JOIN Users AS u ON u.user_id = mm.user_id WHERE a.item_id = i.item_id)""",
+    'destination': """(SELECT TOP (1) sc.delivery_dest_name FROM Integrated_Info AS a
+        JOIN Contract AS c ON c.business_id = a.business_id
+        JOIN Sub_Contract AS sc ON sc.contract_id = c.contract_id
+        JOIN Match_Sub_Contract_Item AS m ON m.sub_contract_id = sc.sub_contract_id AND m.item_id = a.item_id
+        WHERE a.item_id = i.item_id ORDER BY a.integrated_id, sc.sub_contract_id, m.match_id)""",
+    # 실DB에 연결된 장비 상태·최근 변경일 값이 없으므로 품목 ID로 순서를 유지한다.
+    'status': 'NULL',
+    'recentChangeDate': 'NULL',
+}
 
 DETAIL_SQL = """
 SELECT ii.integrated_id, ii.item_id, ii.business_id, b.biz_name, b.code_ATYPE,
@@ -162,6 +195,7 @@ def _assemble(cursor, ids: list[int]):
     rows = _rows(cursor.execute(DETAIL_SQL.format(placeholders=placeholders), *ids))
     linked = _rows(cursor.execute(DELIVERIES_SQL.format(placeholders=placeholders), *ids))
     manager_rows = _rows(cursor.execute(MANAGERS_SQL.format(placeholders=placeholders), *ids))
+    classifications = _classifications(cursor, ids)
     managers_by_item = defaultdict(list)
     for manager in manager_rows:
         managers_by_item[manager['item_id']].append(manager['user_name'])
@@ -190,12 +224,14 @@ def _assemble(cursor, ids: list[int]):
                 'kaiPartNumber': row.get('kai_part_number'), 'commonName': row.get('item_name_normal'),
                 'itemType': row.get('code_ICS'), 'categoryCode': row.get('code_CATEG'),
                 'serd': {'serdNumber': row.get('serd_number'), 'lengthCm': row.get('length_cm'),
-                         'widthCm': row.get('width_cm'), 'heightCm': row.get('height_cm'), 'weightKg': row.get('weight_kg')},
+                         'widthCm': row.get('width_cm'), 'heightCm': row.get('height_cm'),
+                         'weightKg': row.get('weight_kg')},
                 'itemNameKor': row['item_name_kor'], 'itemNameEng': row['item_name_eng'],
                 'itemUsageKor': row['item_usage_kor'],
                 'itemUsageEng': row['item_usage_eng'], 'manufacturer': row['manufacture_name'],
                 'imageAvailable': bool(row['item_image_path']), 'diminishing': bool(row['diminishing']),
                 'applications': [], 'managers': managers_by_item[item_id], 'source': 'sqlserver',
+                **classifications.get(item_id, {}),
             }
             items[item_id] = item
         item['applications'].append({
@@ -274,23 +310,25 @@ def _equipment_search_options(
     if advanced_sql:
         conditions += '\n' + advanced_sql
         params.extend(advanced_params)
-    allowed_sort = {'itemNumber': 'i.item_num', 'itemNameKor': 'i.item_name_kor'}
     sort_field, _, sort_direction = sort.partition(',')
-    order = allowed_sort.get(sort_field, 'i.item_num')
+    order = SORT_VALUES.get(sort_field, SORT_VALUES['itemNumber'])
     direction = 'DESC' if sort_direction.lower() == 'desc' else 'ASC'
     return page, size, conditions, params, order, direction
 
 
+EquipmentSearchOptions = Annotated[tuple, Depends(_equipment_search_options)]
+PartNumber = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
 @router.get('/equipment-search')
-def search_equipment(options=Depends(_equipment_search_options)):
+def search_equipment(options: EquipmentSearchOptions):
     return _search_equipment(options)
 
 
 @router.post('/equipment-search/batch')
 def search_equipment_batch(
-    part_numbers: Annotated[list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]],
-                            Body(min_length=1, max_length=500)],
-    options=Depends(_equipment_search_options),
+    part_numbers: Annotated[list[PartNumber], Body(min_length=1, max_length=500)],
+    options: EquipmentSearchOptions,
 ):
     return _search_equipment(options, part_numbers)
 
@@ -305,9 +343,14 @@ def _search_equipment(options, part_numbers=None):
     try:
         cursor = conn.cursor()
         total = cursor.execute('SELECT COUNT(DISTINCT i.item_id) ' + ITEM_IDS_FROM + conditions, *params).fetchone()[0]
-        id_rows = _rows(cursor.execute('''SELECT DISTINCT i.item_id, i.item_num, i.item_name_kor '''
-            + ITEM_IDS_FROM + conditions + f' ORDER BY {order} {direction}, i.item_id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY',
-            *(params + [(page - 1) * size, size])))
+        id_rows = _rows(cursor.execute(f"""
+            SELECT item_id FROM (
+                SELECT DISTINCT i.item_id, NULLIF(LTRIM(RTRIM(CONVERT(nvarchar(4000), {order}))), '') AS sort_value
+                {ITEM_IDS_FROM}{conditions}
+            ) AS matches
+            ORDER BY CASE WHEN sort_value IS NULL THEN 1 ELSE 0 END, sort_value {direction}, item_id
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+            """, *(params + [(page - 1) * size, size])))
         ids = [r['item_id'] for r in id_rows]
         return {'items': _assemble(cursor, ids), 'page': page, 'size': size,
                 'totalElements': total, 'totalPages': max(1, (total + size - 1) // size), 'source': 'sqlserver'}
@@ -363,27 +406,35 @@ def suggest_equipment(
         conn.close()
 
 
-def _classifications(cursor, item_id: int) -> dict:
-    sql = """
-    SELECT f.field_name, f.code, label.code_name
+def _classifications(cursor, item_ids: list[int]) -> dict:
+    placeholders = ', '.join('?' for _ in item_ids)
+    sql = f"""
+    SELECT f.item_id, f.field_name, f.code, label.code_name
     FROM (
-        SELECT 'category' AS field_name, 'CATEG' AS group_code, code_CATEG AS code FROM Item WHERE item_id = ?
-        UNION ALL SELECT 'system', 'SSYST', code_SSYST FROM Match_Item_SubSystem WHERE item_id = ?
-        UNION ALL SELECT 'level', 'LOM', code_LOM FROM Match_Item_LevelOfMaintenance WHERE item_id = ?
+        SELECT item_id, 'category' AS field_name, 'CATEG' AS group_code, code_CATEG AS code
+        FROM Item WHERE item_id IN ({placeholders})
+        UNION ALL SELECT item_id, 'system', 'SSYST', code_SSYST
+        FROM Match_Item_SubSystem WHERE item_id IN ({placeholders})
+        UNION ALL SELECT item_id, 'level', 'LOM', code_LOM
+        FROM Match_Item_LevelOfMaintenance WHERE item_id IN ({placeholders})
     ) AS f
     OUTER APPLY (
         SELECT TOP (1) code_name FROM Common_Code_Detail
         WHERE group_code = f.group_code AND code = f.code ORDER BY sort_order, code_name
     ) AS label
     WHERE NULLIF(LTRIM(RTRIM(f.code)), '') IS NOT NULL
-    ORDER BY f.field_name, f.code
+    ORDER BY f.item_id, f.field_name, f.code
     """
-    values = defaultdict(dict)
-    for row in _rows(cursor.execute(sql, item_id, item_id, item_id)):
+    values = defaultdict(lambda: defaultdict(dict))
+    for row in _rows(cursor.execute(sql, *item_ids, *item_ids, *item_ids)):
         code = row['code'].strip()
-        values[row['field_name']][code] = {'code': code, 'name': (row['code_name'] or '').strip() or code}
-    return {'category': next(iter(values['category'].values()), None),
-            'systems': list(values['system'].values()), 'maintenanceLevels': list(values['level'].values())}
+        label = (row['code_name'] or '').strip() or code
+        values[row['item_id']][row['field_name']][code] = {'code': code, 'name': label}
+    return {
+        item_id: {'category': next(iter(fields['category'].values()), None),
+                  'systems': list(fields['system'].values()), 'maintenanceLevels': list(fields['level'].values())}
+        for item_id, fields in values.items()
+    }
 
 
 @router.get('/equipment-search/{item_id}')
@@ -397,6 +448,6 @@ def detail_equipment(item_id: int):
         items = _assemble(cursor, [item_id])
         if not items:
             raise HTTPException(404, '품목을 찾을 수 없습니다.')
-        return {**items[0], **_classifications(cursor, item_id)}
+        return items[0]
     finally:
         conn.close()

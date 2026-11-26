@@ -8,7 +8,7 @@ import { preferenceKey } from '../features/preferences/pagePreferences';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import { equipmentService } from '../services';
 import type { Equipment, EquipmentAdvancedFilters, EquipmentFilterOptions, EquipmentFilters, EquipmentSortKey, SortDirection } from '../types/domain';
-import { columns, defaultPageSize, pageSizeOptions } from '../features/equipment-search/searchConfig';
+import { defaultPageSize, pageSizeOptions } from '../features/equipment-search/searchConfig';
 import { EquipmentDetail } from '../features/equipment-search/components/EquipmentSearchDetail';
 import { EquipmentSearchFilters } from '../features/equipment-search/components/EquipmentSearchFilters';
 import { EquipmentAdvancedFiltersPanel } from '../features/equipment-search/components/EquipmentAdvancedFiltersPanel';
@@ -17,7 +17,7 @@ import { basicFilterFields, readHiddenFilters, saveHiddenFilters, type FilterBox
 import { EquipmentSuggestionInput } from '../features/equipment-search/components/EquipmentSuggestionInput';
 import { EquipmentBatchDialog } from '../features/equipment-search/components/EquipmentBatchDialog';
 import { EquipmentColumnDialog } from '../features/equipment-search/components/EquipmentColumnDialog';
-import { readColumnSettings, saveColumnSettings, visibleColumns, type ColumnLayout, type LayoutPreset } from '../features/equipment-search/resultColumns';
+import { readColumnSettings, resultColumns, saveColumnSettings, visibleColumns, type ColumnLayout, type LayoutPreset } from '../features/equipment-search/resultColumns';
 import { usePagePreference } from '../features/preferences/pagePreferences';
 import { EquipmentSearchResults } from '../features/equipment-search/components/EquipmentSearchResults';
 
@@ -97,7 +97,7 @@ export function EquipmentSearchPage() {
   }), [partNumbers, searchParams]);
 
   const requestedSortKey = searchParams.get('sort') as EquipmentSortKey | null;
-  const sortKey = columns.some((column) => column.key === requestedSortKey)
+  const sortKey = resultColumns.some((column) => column.sortKey === requestedSortKey)
     ? requestedSortKey!
     : 'itemNum';
   const sortDirection: SortDirection = searchParams.get('direction') === 'desc' ? 'desc' : 'asc';

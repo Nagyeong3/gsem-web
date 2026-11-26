@@ -6,6 +6,7 @@ import type {
 } from '../../types/domain';
 
 import { matchesQuickSearch, quickSearchFields } from './quickSearchFields';
+import { sortTableRows } from '../../utils/sortTableRows';
 import { matchesAdvancedFilters } from './advancedFilters';
 
 export const emptyEquipmentFilters: EquipmentFilters = {
@@ -73,7 +74,11 @@ export function filterEquipment(items: Equipment[], filters: EquipmentFilters) {
 }
 
 function getSortValue(item: Equipment, key: EquipmentSortKey) {
-  const valueMap: Record<EquipmentSortKey, string> = {
+  const valueMap: Record<EquipmentSortKey, string | undefined> = {
+    kaiPartNumber: item.kaiPartNumber,
+    itemNsn: item.itemNsn,
+    itemNameEng: item.itemNameEng,
+    manufacturer: item.manufacturer,
     itemNum: item.itemNum,
     itemNameKor: item.itemNameKor,
     aircraftType: getAircraftTypes(item)[0] ?? '',
@@ -85,7 +90,8 @@ function getSortValue(item: Equipment, key: EquipmentSortKey) {
     status: item.status,
     recentChangeDate: item.recentChangeDate,
   };
-  return valueMap[key];
+  const value = valueMap[key]?.trim();
+  return value === '-' || value === '미연결' || value === '미확인' ? undefined : value;
 }
 
 export function sortEquipment(
@@ -93,8 +99,5 @@ export function sortEquipment(
   key: EquipmentSortKey,
   direction: SortDirection,
 ) {
-  return [...items].sort((left, right) => {
-    const comparison = getSortValue(left, key).localeCompare(getSortValue(right, key), 'ko');
-    return direction === 'asc' ? comparison : -comparison;
-  });
+  return sortTableRows(items, { column: key, direction }, item => getSortValue(item, key));
 }

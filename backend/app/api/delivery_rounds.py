@@ -234,15 +234,16 @@ def round_items(
     conn = _connect()
     try:
         records = _rows(conn.cursor().execute("""
-SELECT m.match_id, i.item_id, i.item_num, i.item_name_kor,
+SELECT m.match_id, i.item_id, i.item_num, i.item_name_kor, si.KAI_PN AS kai_part_number,
        m.[count] AS quantity, m.date_receiving_expect, m.date_receiving,
-       m.date_deliver, m.price_contract,
+       m.date_deliver, m.price_contract, m.date_receiving_warranty, m.date_deliver_warranty,
        m.purchase_request_Number, m.purchase_order_Number,
        v.vendor_name, buyer.user_name AS buyer_name
 FROM Match_Sub_Contract_Item AS m
 JOIN Sub_Contract AS sc ON sc.sub_contract_id = m.sub_contract_id
 JOIN Contract AS c ON c.contract_id = sc.contract_id
 JOIN Item AS i ON i.item_id = m.item_id
+LEFT JOIN dbo.SERD_Info AS si ON si.serd_info_id = i.serd_info_id
 LEFT JOIN Vendor AS v ON v.vendor_id = m.vendor_id
 LEFT JOIN Users AS buyer ON buyer.user_id = m.buyer
 WHERE m.sub_contract_id = ? AND c.business_id = ?
@@ -257,10 +258,13 @@ ORDER BY m.match_id
             "itemId": row["item_id"],
             "itemNumber": row["item_num"],
             "itemName": row["item_name_kor"],
+            "kaiPartNumber": (row["kai_part_number"] or "").strip() or None,
             "quantity": row["quantity"],
             "receivingExpected": _date(row["date_receiving_expect"]),
             "receivedAt": _date(row["date_receiving"]),
             "deliveredAt": _date(row["date_deliver"]),
+            "receivingWarrantyDate": _date(row["date_receiving_warranty"]),
+            "deliveryWarrantyDate": _date(row["date_deliver_warranty"]),
             "contractPrice": float(row["price_contract"]) if row["price_contract"] is not None else None,
             "purchaseRequestNumber": row["purchase_request_Number"],
             "purchaseOrderNumber": row["purchase_order_Number"],

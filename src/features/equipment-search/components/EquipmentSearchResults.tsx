@@ -1,11 +1,11 @@
-import { Box, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
+import { Box, LinearProgress, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
 import { QueryStatePanel } from '../../../components/common/QueryStatePanel';
 import { StatusChip } from '../../../components/common/StatusChip';
 import { resultCell, type ResultColumn } from '../resultColumns';
 import type { Equipment, EquipmentSortKey, SortDirection } from '../../../types/domain';
 import { EquipmentImagePreview } from './EquipmentSearchImage';
 import { matchesQuickSearch, quickSearchFields } from '../quickSearchFields';
-import { runtimeConfig } from '../../../config/runtime';
+import { tableSortLabelSx } from '../../../components/common/tableSortLabelStyle';
 
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!matchesQuickSearch(text, query)) return <>{text}</>;
@@ -32,8 +32,9 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
   const hiddenFields = quickSearchFields.filter(([key]) => !columns.some(column => column.key === key));
   const showHiddenMatches = hiddenFields.some(([key]) => equipment.some(item => matchesQuickSearch(item[key], keyword)));
   return (
-        <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
-          {isLoading ? (
+        <Paper variant="outlined" sx={{ overflow: 'hidden', position: 'relative' }}>
+          {isLoading && equipment.length > 0 && <LinearProgress aria-label="장비 검색 결과 갱신 중" sx={{ position: 'absolute', inset: '0 0 auto', zIndex: 1 }} />}
+          {isLoading && equipment.length === 0 ? (
             <QueryStatePanel state="loading" loadingMessage="장비 정보를 불러오고 있습니다." minHeight={302} />
           ) : isError ? (
             <QueryStatePanel state="error" errorMessage="장비 정보를 불러오지 못했습니다." onRetry={refetch} minHeight={302} />
@@ -44,6 +45,7 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
               <Table
                 size="small"
                 aria-label="장비 검색 결과"
+                aria-busy={isLoading}
                 sx={{
                   minWidth: 120 + columns.length * 76,
                   '& .MuiTableCell-root': {
@@ -59,10 +61,10 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                     <TableCell padding="checkbox" sx={{ width: 42 }} />
                     {columns.map((column) => {
                       const key = column.sortKey;
-                      const sortable = key && (runtimeConfig.dataSource !== 'api' || key === 'itemNum' || key === 'itemNameKor');
-                      return <TableCell key={column.key} sortDirection={sortable && sortKey === key ? sortDirection : false}>
-                        {sortable ? <TableSortLabel active={sortKey === key} direction={sortKey === key ? sortDirection : 'asc'}
-                          onClick={() => changeSort(key)}>{column.label}</TableSortLabel> : column.label}
+                      const active = key === sortKey;
+                      return <TableCell key={column.key} sortDirection={active ? sortDirection : false}>
+                        {key ? <TableSortLabel active={active} direction={active ? sortDirection : 'asc'} hideSortIcon={false}
+                          sx={tableSortLabelSx(active)} onClick={() => changeSort(key)}>{column.label}</TableSortLabel> : column.label}
                       </TableCell>;
                     })}
                     {showHiddenMatches && <TableCell>일치 항목</TableCell>}

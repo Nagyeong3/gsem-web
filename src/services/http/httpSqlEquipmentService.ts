@@ -92,7 +92,7 @@ export function createHttpSqlEquipmentService(client: ApiClient): EquipmentServi
       const advanced = request.filters.advanced;
       for (const [key] of advancedTextFields) if (advanced?.[key]) params.set(key, advanced[key]);
       for (const [key] of advancedChoiceFields) advanced?.[key]?.forEach(value => params.append(key, value));
-      const field = request.sortKey === 'itemNameKor' ? 'itemNameKor' : 'itemNumber';
+      const field = request.sortKey === 'itemNum' ? 'itemNumber' : request.sortKey;
       params.set('sort', `${field},${request.sortDirection}`);
       type SearchResponse = { items: DbEquipment[]; page: number; size: number; totalElements: number; totalPages: number };
       const result = request.filters.partNumbers?.length
