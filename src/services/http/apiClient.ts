@@ -24,16 +24,26 @@ export class ApiClient {
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
 
-  async get<T>(path: string, query?: URLSearchParams): Promise<T> {
+  get<T>(path: string, query?: URLSearchParams, signal?: AbortSignal): Promise<T> {
+    return this.request<T>(path, { method: 'GET', headers: { Accept: 'application/json' } }, query, signal);
+  }
+
+  post<T>(path: string, body: unknown, query?: URLSearchParams): Promise<T> {
+    return this.request<T>(path, {
+      method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, query);
+  }
+
+  private async request<T>(path: string, init: RequestInit, query?: URLSearchParams, signal?: AbortSignal): Promise<T> {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), this.options.timeoutMs);
     const url = `${this.options.baseUrl}${path}${query?.size ? `?${query.toString()}` : ''}`;
 
     try {
       const response = await this.fetcher(url, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
+        ...init,
+        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
       });
 
       if (!response.ok) {

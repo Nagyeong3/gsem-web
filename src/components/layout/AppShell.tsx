@@ -25,6 +25,8 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useThemeMode } from '../../theme/themeModeContext';
+import { ReleaseHistoryPanel } from '../../features/release-history/ReleaseHistoryPanel';
+import { APP_VERSION } from '../../config/appVersion';
 
 interface AppShellProps {
   children: ReactNode;
@@ -45,6 +47,7 @@ const navItems = [
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [releaseHistoryOpen, setReleaseHistoryOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('gsem.sidebar.collapsed.v1') === 'true');
   useEffect(() => { localStorage.setItem('gsem.sidebar.collapsed.v1', String(collapsed)); }, [collapsed]);
@@ -154,9 +157,10 @@ export function AppShell({ children }: AppShellProps) {
             bottom: 0,
             left: 8,
             right: 8,
-            height: 64,
+            minHeight: 88,
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
+            justifyContent: 'center',
             borderTop: '1px solid rgba(255,255,255,0.14)',
           }}
         >
@@ -170,6 +174,16 @@ export function AppShell({ children }: AppShellProps) {
             </ListItemIcon>
             {!collapsed && <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>메뉴 접기</Typography>}
           </ListItemButton>
+          <Box role="note" aria-label={`GSEM 버전 ${APP_VERSION}`}>
+            <Tooltip title="버전 변경 이력" placement="right">
+              <ListItemButton aria-label="버전 변경 이력" aria-haspopup="dialog" aria-expanded={releaseHistoryOpen}
+                onClick={() => setReleaseHistoryOpen(true)}
+                sx={{ color: 'rgba(255,255,255,0.76)', fontSize: 11, letterSpacing: 0.3,
+                  justifyContent: 'center', py: 0.5, px: 0, borderRadius: 1 }}>
+                {collapsed ? APP_VERSION : `GSEM ${APP_VERSION}`}
+              </ListItemButton>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
 
@@ -215,6 +229,11 @@ export function AppShell({ children }: AppShellProps) {
               )}
             </IconButton>
           </Tooltip>
+          <IconButton aria-label="버전 변경 이력" aria-haspopup="dialog" aria-expanded={releaseHistoryOpen}
+            size="small" onClick={() => setReleaseHistoryOpen(true)}
+            sx={{ display: 'none', '@media (max-width: 900px)': { display: 'inline-flex' } }}>
+            <History sx={{ color: 'text.secondary' }} />
+          </IconButton>
           <IconButton aria-label="알림" size="small" onClick={() => setNoticeOpen(true)}>
             <NotificationsNone sx={{ color: 'text.secondary' }} />
           </IconButton>
@@ -248,6 +267,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </Box>
 
+      <ReleaseHistoryPanel open={releaseHistoryOpen} onClose={() => setReleaseHistoryOpen(false)} />
       <Snackbar
         open={noticeOpen}
         autoHideDuration={2400}

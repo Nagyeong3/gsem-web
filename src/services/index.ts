@@ -6,7 +6,7 @@ import { mockChangeRequestService } from './changeRequestService';
 import { mockReplacementHistoryService } from './replacementHistoryService';
 import { ApiClient } from './http/apiClient';
 import { createHttpDashboardService } from './http/httpDashboardService';
-import { createHttpEquipmentService } from './http/httpEquipmentService';
+import { createHttpSqlEquipmentService } from './http/httpSqlEquipmentService';
 import { createHttpDeliveryScheduleService } from './http/httpDeliveryScheduleService';
 import { createHttpChangeRequestService } from './http/httpChangeRequestService';
 import { createHttpReplacementHistoryService } from './http/httpReplacementHistoryService';
@@ -23,7 +23,7 @@ export const dashboardService =
 
 export const equipmentService =
   runtimeConfig.dataSource === 'api'
-    ? createHttpEquipmentService(apiClient)
+    ? createHttpSqlEquipmentService(apiClient)
     : mockEquipmentService;
 
 export const deliveryScheduleService =

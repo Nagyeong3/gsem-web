@@ -20,7 +20,7 @@ test('통합현황과 장비 검색 사이드바는 정확히 하나만 선택�
 
 test('장비 검색 조건 칩 X는 URL과 검색 입력창을 동시에 초기화한다', async ({ page }) => {
   await page.goto('/equipment?q=FC-PO-49');
-  const input = page.getByRole('textbox', { name: '품번, 품명, 용도 검색' });
+  const input = page.getByRole('combobox', { name: '품번, 품명 검색' });
   await expect(input).toHaveValue('FC-PO-49');
   const chip = page.locator('.MuiChip-root').filter({ hasText: '검색어: FC-PO-49' });
   await expect(chip).toBeVisible();

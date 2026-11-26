@@ -33,6 +33,8 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await capture(page, '02-equipment-search-result');
 
   await page.goto('/equipment');
+  await expect(page.getByRole('heading', { name: '검색 결과 1건' })).toBeVisible();
+  await page.getByRole('button', { name: '초기화', exact: true }).click();
   await expect(page.getByRole('heading', { name: '검색 결과 12건' })).toBeVisible();
   await page.getByLabel('사업').click();
   await page.getByRole('option', { name: '나 사업' }).click();
@@ -51,8 +53,8 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
   await expect(page).toHaveURL(/size=50/);
   await capture(page, '05-equipment-page-size-50');
 
-  await page.getByLabel('품번, 품명, 용도 검색').fill('존재하지 않는 품목');
-  await page.getByLabel('품번, 품명, 용도 검색').press('Enter');
+  await page.getByLabel('품번, 품명 검색').fill('존재하지 않는 품목');
+  await page.getByLabel('품번, 품명 검색').press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
   await capture(page, '06-equipment-empty');
 
@@ -62,7 +64,7 @@ test('V6 주요 동작 상태를 1440×900 화면으로 기록한다', async ({ 
 
   await page.goto('/deliveries');
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
   await capture(page, '08-delivery-completed-filter');
 
   await page.goto('/history');

@@ -10,6 +10,7 @@ export type DemoRound = {
   destination: string; subContractName: string; deliveryDate: string;
   itemCount: number; pointCount: number; prCount: number; poCount: number;
   receivedCount: number; deliveredCount: number;
+  deliveredQuantity: number; latestDeliveredAt: string | null;
   deliveryCompleted: boolean; deliveryAmount: number;
 };
 export const mockBusinesses = [
@@ -56,13 +57,17 @@ export const mockRoundItems: Record<number, DemoLine[]> = {
 };
 
 export function aggregateDemoLines(lines: DemoLine[]) {
+  const delivered = lines.filter(item => item.deliveredAt !== null);
   return {
     itemCount: new Set(lines.map((item) => item.itemId)).size,
     pointCount: lines.reduce((sum, item) => sum + item.quantity, 0),
     prCount: lines.filter((item) => item.purchaseRequestNumber !== null).length,
     poCount: lines.filter((item) => item.purchaseOrderNumber !== null).length,
     receivedCount: lines.filter((item) => item.receivedAt !== null).length,
-    deliveredCount: lines.filter((item) => item.deliveredAt !== null).length,
+    deliveredCount: delivered.length,
+    deliveredQuantity: delivered.reduce((sum, item) => sum + item.quantity, 0),
+    latestDeliveredAt: delivered.reduce<string | null>((latest, item) =>
+      !latest || item.deliveredAt! > latest ? item.deliveredAt : latest, null),
     // Reproduce the SQL expression COUNT(item_id) = COUNT(date_deliver), including empty groups.
     deliveryCompleted: lines.length === lines.filter((item) => item.deliveredAt !== null).length,
     deliveryAmount: lines.reduce((sum, item) => sum + item.quantity * item.contractPrice, 0),

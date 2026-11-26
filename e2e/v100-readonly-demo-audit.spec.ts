@@ -50,7 +50,7 @@ test('1차 데모: 통합현황 두 보기의 테이블에서만 스크롤하고
 
 test('1차 데모: 장비 검색에서 키보드 Enter 검색, 칩 삭제, 필터 초기화가 이어진다', async ({ page }) => {
   await page.goto('/equipment');
-  const search = page.getByRole('textbox', { name: '품번, 품명, 용도 검색' });
+  const search = page.getByRole('combobox', { name: '품번, 품명 검색' });
   await search.fill('존재하지 않는 품목');
   await search.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();

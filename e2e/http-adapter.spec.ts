@@ -15,7 +15,7 @@ test('HTTP Adapter 모드에서 대시보드와 장비 검색 흐름이 동작�
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByText('4건')).toBeVisible();
 
-  const searchInput = page.getByLabel('품번, 품명, 용도 검색');
+  const searchInput = page.getByLabel('품번, 품명 검색');
   await searchInput.fill('존재하지 않는 품목');
   await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
@@ -40,7 +40,7 @@ test('HTTP Adapter 모드에서 상세·납품·변경·대체 이력 화면이 
 
   await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
 
   await page.getByLabel('주요 메뉴').getByRole('button', { name: '변경 이력' }).click();
   await expect(page.getByRole('heading', { name: '장비 변경 이력' })).toBeVisible();

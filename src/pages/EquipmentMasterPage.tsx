@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Button, FormControl, InputLabel, MenuItem, Pagination, Paper, Select, Tab, Tabs, Tooltip, Typography, type SelectChangeEvent } from '@mui/material';
 import { DownloadOutlined, TableRowsOutlined, ViewModuleOutlined } from '@mui/icons-material';
+import { SearchableOptionFilter } from '../components/common/SearchableOptionFilter';
 import { PageHeader } from '../components/common/PageHeader';
+import { usePagePreference } from '../features/preferences/pagePreferences';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
 import { runtimeConfig } from '../config/runtime';
 import { initialEquipmentMasterItems, masterUnits } from '../data/equipmentMasterMock';
@@ -15,18 +17,18 @@ import { EditDialog } from '../features/equipment-master/editor';
 export function EquipmentMasterPage() {
   const [items, setItems] = useState(() => initialEquipmentMasterItems.map(cloneItem));
   const [mode, setMode] = useState<MasterViewMode>('excel');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = usePagePreference<string>('equipment-master', 'search', '', (v): v is string => typeof v === 'string');
   const [isComposing, setIsComposing] = useState(false);
-  const [risk, setRisk] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [progress, setProgress] = useState('');
+  const [risk, setRisk] = usePagePreference<string>('equipment-master', 'risk', '', (v): v is string => typeof v === 'string');
+  const [supplier, setSupplier] = usePagePreference<string>('equipment-master', 'supplier', '', (v): v is string => typeof v === 'string');
+  const [progress, setProgress] = usePagePreference<string>('equipment-master', 'progress', '', (v): v is string => typeof v === 'string');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState('50');
+  const [pageSize, setPageSize] = usePagePreference<string>('equipment-master', 'pageSize', '50', (v): v is string => v === '20' || v === '50' || v === '100');
   const [draft, setDraft] = useState<EquipmentMasterItem | null>(null);
   const [page, setPage] = useState(1);
-  const [businessId, setBusinessId] = useState<number | null>(null);
-  const [vendorFilter, setVendorFilter] = useState('');
-  const [buyerFilter, setBuyerFilter] = useState('');
+  const [businessId, setBusinessId] = usePagePreference<number | null>('equipment-master', 'businessId', null, (v): v is number | null => v === null || (Number.isSafeInteger(v) && (v as number) > 0));
+  const [vendorFilter, setVendorFilter] = usePagePreference<string>('equipment-master', 'vendorFilter', '', (v): v is string => typeof v === 'string');
+  const [buyerFilter, setBuyerFilter] = usePagePreference<string>('equipment-master', 'buyerFilter', '', (v): v is string => typeof v === 'string');
   const [downloading, setDownloading] = useState(false);
   const loadFilterOptions = useCallback(() => fetchMasterFilterOptions(), []);
   const masterFilterOptions = useAsyncQuery({ queryFn: loadFilterOptions, enabled: realDataMode });
@@ -40,9 +42,9 @@ export function EquipmentMasterPage() {
   useEffect(() => {
     if (!realDataMode) return;
     const allowedId = demoBusiness?.businessId ?? null;
-    setBusinessId((current) => current === allowedId ? current : allowedId);
+    setBusinessId((current) => current && (businessesQuery.data ?? []).some(b => b.businessId === current) ? current : allowedId);
     setPage(1);
-  }, [demoBusiness?.businessId]);
+  }, [demoBusiness?.businessId, businessesQuery.data, setBusinessId]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   // Korean IME input should never trigger a request before composition ends.
   useEffect(() => {
@@ -147,12 +149,12 @@ export function EquipmentMasterPage() {
                 </MenuItem>)}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 190 }}><InputLabel id="gsem-vendor-label">조달원</InputLabel><Select labelId="gsem-vendor-label" label="조달원" value={vendorFilter} onChange={(event) => { setVendorFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 조달원</MenuItem>{(masterFilterOptions.data?.vendors ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
-          <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel id="gsem-buyer-label">바이어</InputLabel><Select labelId="gsem-buyer-label" label="바이어" value={buyerFilter} onChange={(event) => { setBuyerFilter(event.target.value); setPage(1); }}><MenuItem value="">전체 바이어</MenuItem>{(masterFilterOptions.data?.buyers ?? []).map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</Select></FormControl>
+          <SearchableOptionFilter id="gsem-vendor" label="조달원" value={vendorFilter} options={masterFilterOptions.data?.vendors ?? []} minWidth={190} onChange={value => { setVendorFilter(value); setPage(1); }} />
+          <SearchableOptionFilter id="gsem-buyer" label="바이어" value={buyerFilter} options={masterFilterOptions.data?.buyers ?? []} minWidth={170} onChange={value => { setBuyerFilter(value); setPage(1); }} />
           {masterFilterOptions.isError && <Button size="small" onClick={masterFilterOptions.refetch}>조달원·바이어 다시 조회</Button>}
           <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>1차 데모는 LAH 2차 PBL 사업만 조회할 수 있습니다. 나머지 사업은 추후 오픈 예정입니다.</Typography>
           {businessesQuery.isError && <Button size="small" onClick={businessesQuery.refetch}>사업 목록 다시 조회</Button>}
-          {!businessesQuery.isLoading && !businessesQuery.isError && !demoBusiness && <Typography color="error" sx={{ fontSize: 12 }}>LAH 2차 PBL 사업을 찾지 못했습니다. 조회를 중단했습니다. DB의 사업명을 확인하세요.</Typography>}
+          {!businessesQuery.isLoading && !businessesQuery.isError && !demoBusiness && <Typography sx={{ color: 'error.main', fontSize: 12 }}>LAH 2차 PBL 사업을 찾지 못했습니다. 조회를 중단했습니다. DB의 사업명을 확인하세요.</Typography>}
         </Paper>}
         <FilterBar search={search} setSearch={setSearch} onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)} risk={risk} setRisk={setRisk} supplier={supplier} setSupplier={setSupplier} progress={progress} setProgress={setProgress} reset={resetFilters} items={allItems} apiMode={realDataMode} />
 
@@ -179,7 +181,7 @@ export function EquipmentMasterPage() {
         <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {realDataMode && dbQuery.isLoading && <Typography role="status" aria-live="polite" sx={{ px: 1, py: 0.5, fontSize: 12, color: 'text.secondary' }}>검색 결과 갱신 중... 기존 결과를 표시합니다.</Typography>}
-            {realDataMode && dbQuery.isError && <Box role="alert" sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}><Typography color="error" sx={{ fontSize: 12 }}>조회 실패. 이전 결과를 유지합니다.</Typography><Button size="small" onClick={dbQuery.refetch}>재시도</Button></Box>}
+            {realDataMode && dbQuery.isError && <Box role="alert" sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}><Typography sx={{ color: 'error.main', fontSize: 12 }}>조회 실패. 이전 결과를 유지합니다.</Typography><Button size="small" onClick={dbQuery.refetch}>재시도</Button></Box>}
             {mode === 'excel'
               ? <StableExcelFriendlyTable items={visibleItems} unitNames={unitNames} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />
               : <StableOptimizedTable items={visibleItems} selectedId={selectedId} onSelect={setSelectedId} onEdit={openEditDialog} />}

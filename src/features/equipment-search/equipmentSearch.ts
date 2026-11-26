@@ -5,6 +5,9 @@ import type {
   SortDirection,
 } from '../../types/domain';
 
+import { matchesQuickSearch, quickSearchFields } from './quickSearchFields';
+import { matchesAdvancedFilters } from './advancedFilters';
+
 export const emptyEquipmentFilters: EquipmentFilters = {
   query: '',
   aircraftType: '',
@@ -51,20 +54,13 @@ export function summarizeManagers(item: Equipment) {
 
 export function filterEquipment(items: Equipment[], filters: EquipmentFilters) {
   const query = filters.query.trim().toLocaleLowerCase('ko-KR');
+  const partNumbers = new Set(filters.partNumbers?.map(value => value.toUpperCase()));
 
   return items.filter((item) => {
-    const searchableText = [
-      item.itemNum,
-      item.itemNameKor,
-      item.itemNameEng,
-      item.itemUsageKor,
-      item.itemUsageEng,
-    ]
-      .join(' ')
-      .toLocaleLowerCase('ko-KR');
-
     return (
-      (!query || searchableText.includes(query)) &&
+      (!partNumbers.size || partNumbers.has(item.itemNum.trim().toUpperCase())) &&
+      matchesAdvancedFilters(item, filters.advanced) &&
+      (!query || quickSearchFields.some(([field]) => matchesQuickSearch(item[field], query))) &&
       (!filters.aircraftType || getAircraftTypes(item).includes(filters.aircraftType)) &&
       (!filters.business || getBusinesses(item).includes(filters.business)) &&
       (!filters.system || item.systems.some((system) => system.name === filters.system)) &&

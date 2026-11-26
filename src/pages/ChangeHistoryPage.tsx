@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { PageHeader } from '../components/common/PageHeader';
+import { usePagePreference } from '../features/preferences/pagePreferences';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { replacementHistoryService } from '../services';
 import { useAsyncQuery } from '../hooks/useAsyncQuery';
@@ -71,9 +72,9 @@ function findConnected(graph: ReplacementGraph, relation?: ReplacementRelation) 
 
 export function ChangeHistoryPage() {
   const theme = useTheme();
-  const [query, setQuery] = useState('');
-  const [business, setBusiness] = useState('');
-  const [status, setStatus] = useState('');
+  const [query, setQuery] = usePagePreference<string>('change-history', 'query', '', (v): v is string => typeof v === 'string');
+  const [business, setBusiness] = usePagePreference<string>('change-history', 'business', '', (v): v is string => typeof v === 'string');
+  const [status, setStatus] = usePagePreference<string>('change-history', 'status', '', (v): v is string => typeof v === 'string');
   const [selectedRelationId, setSelectedRelationId] = useState('r9');
   const loadGraph = useCallback(() => replacementHistoryService.getGraph(), []);
   const graphQuery = useAsyncQuery<ReplacementGraph>({ queryFn: loadGraph });

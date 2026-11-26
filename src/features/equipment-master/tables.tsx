@@ -20,7 +20,7 @@ export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onE
       ['business', 180, '사업명'], ['itemNumber', 150, '품번'], ['material', 150, 'Material'],
       ['buyer', 132, '담당 바이어'], ['supplier', 158, '조달원'], ['progress', 160, '진행 상세현황'],
     ].map(([key, width, title]) => ({ key: String(key), width: Number(width), title: String(title) })),
-    ...unitNames.flatMap((unit) => ['계약', '입고예정', '계약상 납기', '입고', '납품', '수량'].map((title, index) => ({ key: `unit:${unit}:${index}`, width: index === 0 || index === 5 ? 74 : 124, title }))),
+    ...unitNames.flatMap((unit) => ['계약', '입고예정', '납품 예정일', '입고', '납품', '수량'].map((title, index) => ({ key: `unit:${unit}:${index}`, width: index === 0 || index === 5 ? 74 : 124, title }))),
     ...[
       ['priority', 90, '납품 우선순위'], ['serviceable', 116, '운영/서비스성'],
       ['hour100', 78, '100시간'], ['hour600', 78, '600시간'],
@@ -139,7 +139,7 @@ export function ExcelFriendlyTable({ items, unitNames, selectedId, onSelect, onE
             <TableCell data-resize-index={9 + unitNames.length * 6 + 8} rowSpan={2} sx={{ ...baseHeaderSx, bgcolor: '#DDF5DA' }}>장비설명</TableCell>
           </TableRow>
           <TableRow>
-            {unitNames.flatMap((unit) => ['계약', '입고예정', '계약상 납기', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} data-resize-index={9 + unitNames.indexOf(unit) * 6 + ['계약', '입고예정', '계약상 납기', '입고', '납품', '수량'].indexOf(label)} sx={{ ...baseHeaderSx, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}
+            {unitNames.flatMap((unit) => ['계약', '입고예정', '납품 예정일', '입고', '납품', '수량'].map((label) => <TableCell key={`${unit}-${label}`} data-resize-index={9 + unitNames.indexOf(unit) * 6 + ['계약', '입고예정', '납품 예정일', '입고', '납품', '수량'].indexOf(label)} sx={{ ...baseHeaderSx, bgcolor: '#FFF9E8' }}>{label}</TableCell>))}
             <TableCell data-resize-index={9 + unitNames.length * 6 + 5} sx={{ ...baseHeaderSx, bgcolor: '#EAF3FF' }}>계획</TableCell>
             <TableCell data-resize-index={9 + unitNames.length * 6 + 6} sx={{ ...baseHeaderSx, bgcolor: '#EAF3FF' }}>비계획</TableCell>
           </TableRow>

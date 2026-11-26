@@ -2,6 +2,7 @@ import { CircularProgress, Box } from '@mui/material';
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
+import { deliveryRoundPath, LazyDeliveryRoundPage, type DeliveryRoundPageComponent } from './deliveryRoundRoute';
 
 const DashboardPage = lazy(() =>
   import('../pages/DashboardPage').then((module) => ({ default: module.DashboardPage })),
@@ -10,9 +11,6 @@ const EquipmentMasterPage = lazy(() =>
   import('../pages/EquipmentMasterPage').then((module) => ({
     default: module.EquipmentMasterPage,
   })),
-);
-const DeliveryRoundMasterPage = lazy(() =>
-  import('../pages/DeliveryRoundMasterPage').then((module) => ({ default: module.DeliveryRoundMasterPage })),
 );
 const EquipmentSearchPage = lazy(() =>
   import('../pages/EquipmentSearchPage').then((module) => ({
@@ -33,20 +31,23 @@ const ChangeHistoryPage = lazy(() =>
   import('../pages/ChangeHistoryPage').then((module) => ({ default: module.ChangeHistoryPage })),
 );
 
-export function App() {
+export function App({ initialDeliveryRoundPage, loadingInitialDeliveryRound }: {
+  initialDeliveryRoundPage?: DeliveryRoundPageComponent;
+  loadingInitialDeliveryRound?: boolean;
+}) {
+  const RoundPage = initialDeliveryRoundPage ?? LazyDeliveryRoundPage;
+  const loadingPage = (
+    <Box sx={{ height: 'calc(100vh - 58px)', display: 'grid', placeItems: 'center' }}>
+      <CircularProgress size={28} />
+    </Box>
+  );
   return (
     <AppShell>
-      <Suspense
-        fallback={
-          <Box sx={{ height: 'calc(100vh - 58px)', display: 'grid', placeItems: 'center' }}>
-            <CircularProgress size={28} />
-          </Box>
-        }
-      >
+      <Suspense fallback={loadingPage}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/equipment-master" element={<EquipmentMasterPage />} />
-          <Route path="/equipment-master-rounds" element={<DeliveryRoundMasterPage />} />
+          <Route path={deliveryRoundPath} element={loadingInitialDeliveryRound ? loadingPage : <RoundPage />} />
           <Route path="/equipment" element={<EquipmentSearchPage />} />
           <Route path="/equipment/:itemId" element={<EquipmentDetailPage />} />
           <Route path="/deliveries" element={<DeliverySchedulePage />} />

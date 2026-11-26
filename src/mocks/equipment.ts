@@ -24,6 +24,7 @@ export const equipmentFixtures: Equipment[] = [
   {
     itemId: 1,
     itemNum: 'XXXXXX-01',
+    kaiPartNumber: 'KAI-DEMO-01',
     itemNameKor: 'A장비',
     itemNameEng: 'Equipment A',
     itemUsageKor: 'A장비 점검에 사용하는 품목',

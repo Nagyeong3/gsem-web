@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHttpException
 
+from backend.app.api.equipment_search import router as equipment_search_router
+from backend.app.api.delivery_calendar import router as delivery_calendar_router
 from backend.app.api.delivery_rounds import router as delivery_rounds_router
 from backend.app.api.equipment_master import router as equipment_master_router
 from backend.app.api.router import create_api_router
@@ -48,7 +50,7 @@ def create_app(service: GsemService | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.allowed_origins),
-        allow_methods=["GET", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Accept", "Content-Type", "X-Request-ID"],
         expose_headers=["X-Request-ID"],
     )
@@ -57,7 +59,9 @@ def create_app(service: GsemService | None = None) -> FastAPI:
     active_service = service or GsemService(InMemoryGsemRepository())
     app.include_router(create_api_router(active_service), prefix=settings.api_prefix)
     app.include_router(equipment_master_router, prefix=settings.api_prefix)
+    app.include_router(equipment_search_router, prefix=settings.api_prefix)
     app.include_router(delivery_rounds_router, prefix=settings.api_prefix)
+    app.include_router(delivery_calendar_router, prefix=settings.api_prefix)
 
     @app.get("/health")
     def health(request: Request) -> dict[str, Any]:
@@ -83,8 +87,14 @@ def create_app(service: GsemService | None = None) -> FastAPI:
     async def http_error(request: Request, error: StarletteHttpException) -> JSONResponse:
         if error.status_code == 405:
             code, message = "METHOD_NOT_ALLOWED", "지원하지 않는 요청 방식입니다."
-        else:
+        elif error.status_code == 404:
             code, message = "NOT_FOUND", "요청한 경로가 없습니다."
+        elif error.status_code == 503:
+            code, message = "SERVICE_UNAVAILABLE", str(error.detail)
+        elif error.status_code == 422:
+            code, message = "INVALID_REQUEST", str(error.detail)
+        else:
+            code, message = f"HTTP_{error.status_code}", str(error.detail)
         return JSONResponse(status_code=error.status_code, content=error_body(code, message, _request_id(request)))
 
     @app.exception_handler(Exception)

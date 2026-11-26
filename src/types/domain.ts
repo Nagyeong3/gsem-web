@@ -1,4 +1,4 @@
-export type EquipmentStatus = '사용 중' | '대체 검토' | '보류';
+export type EquipmentStatus = '사용 중' | '대체 검토' | '보류' | '미확인';
 export type DeliveryStatus = '예정' | '진행' | '완료';
 export type ManagerRole = '지원장비 담당자' | '구매 담당자';
 export type AssignmentType = '정' | '부';
@@ -34,6 +34,9 @@ export interface BusinessApplication {
 export interface Equipment {
   itemId: number;
   itemNum: string;
+  itemNsn?: string;
+  kaiPartNumber?: string;
+  commonName?: string;
   itemNameKor: string;
   itemNameEng: string;
   itemUsageKor: string;
@@ -46,9 +49,26 @@ export interface Equipment {
   managers: Manager[];
   status: EquipmentStatus;
   recentChangeDate: string;
+  imageUrl?: string;
+  databaseDetails?: {
+    diminishing: boolean;
+    applications: Array<{ integratedId: number; businessId: number; businessName: string; aircraftTypeCode: string | null }>;
+    deliveries: Array<{
+      matchId: number; subContractId: number; subContractName: string | null;
+      destination: string | null; contractDate: string | null; quantity: number;
+      receivingExpected: string | null; receivedAt: string | null; deliveredAt: string | null;
+      contractPrice: number | null; purchaseRequestNumber: string | null;
+      purchaseOrderNumber: string | null; vendorName: string | null; buyerName: string | null;
+      receivingWarrantyDate?: string | null; deliveryWarrantyDate?: string | null;
+    }>;
+  };
   itemType?: string;
   serd?: {
     serdNumber?: string;
+    lengthCm?: number | null;
+    widthCm?: number | null;
+    heightCm?: number | null;
+    weightKg?: number | null;
     size?: string;
     weight?: string;
     primaryUsage?: string;
@@ -67,7 +87,23 @@ export interface Equipment {
   };
 }
 
+export interface EquipmentAdvancedFilters {
+  kaiPartNumber?: string;
+  serdNumber?: string;
+  itemNum?: string;
+  itemNameKor?: string;
+  itemNameEng?: string;
+  itemUsageKor?: string;
+  itemUsageEng?: string;
+  itemNsn?: string;
+  subsystems?: string[];
+  maintenanceLevels?: string[];
+  categories?: string[];
+}
+
 export interface EquipmentFilters {
+  advanced?: EquipmentAdvancedFilters;
+  partNumbers?: string[];
   query: string;
   aircraftType: string;
   business: string;
@@ -81,6 +117,7 @@ export interface EquipmentFilters {
 export interface EquipmentFilterOptions {
   aircraftTypes: string[];
   businesses: string[];
+  advanced?: { subsystems: CodeLabel[]; maintenanceLevels: CodeLabel[]; categories: CodeLabel[] };
   systems: string[];
   categories: string[];
   managers: string[];

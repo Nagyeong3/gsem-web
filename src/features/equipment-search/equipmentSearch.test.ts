@@ -9,7 +9,7 @@ import {
 } from './equipmentSearch';
 
 describe('장비 검색', () => {
-  it('품번과 품명, 용도를 부분 일치로 검색한다', () => {
+  it('통합검색은 품번과 품명에 적용하고 용도는 상세 조건에서만 검색한다', () => {
     const byNumber = filterEquipment(equipmentFixtures, {
       ...emptyEquipmentFilters,
       query: 'XXXXXX-01',
@@ -25,7 +25,10 @@ describe('장비 검색', () => {
 
     expect(byNumber).toHaveLength(1);
     expect(byName[0]?.itemNum).toBe('XXXXXX-01');
-    expect(byUsage[0]?.itemNameKor).toBe('J장비');
+    expect(byUsage).toEqual([]);
+    expect(filterEquipment(equipmentFixtures, {
+      ...emptyEquipmentFilters, advanced: { itemUsageKor: '기준 측정' },
+    })[0]?.itemNameKor).toBe('J장비');
   });
 
   it('복수 사업과 복수 계통을 포함해 조건을 조합한다', () => {
@@ -56,4 +59,22 @@ describe('장비 검색', () => {
     const result = sortEquipment(equipmentFixtures, 'recentChangeDate', 'desc');
     expect(result[0]?.itemNum).toBe('XXXXXX-01');
   });
+});
+
+it('상세 조건은 같은 분류 안에서 OR, 품번과 분류 사이에서 AND로 조회한다', () => {
+  const item = equipmentFixtures.find(entry => entry.systems.length && entry.maintenanceLevels.length)!;
+  const results = filterEquipment(equipmentFixtures, {
+    ...emptyEquipmentFilters,
+    advanced: {
+      itemNum: item.itemNum,
+      subsystems: ['NO_MATCH', item.systems[0].code],
+      maintenanceLevels: [item.maintenanceLevels[0].code],
+      categories: [item.category.code],
+    },
+  });
+  expect(results.map(entry => entry.itemId)).toEqual([item.itemId]);
+  expect(filterEquipment(equipmentFixtures, {
+    ...emptyEquipmentFilters,
+    advanced: { itemNum: item.itemNum, categories: ['NO_MATCH'] },
+  })).toEqual([]);
 });

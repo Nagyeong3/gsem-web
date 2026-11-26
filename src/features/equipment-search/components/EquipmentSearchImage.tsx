@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import type { Equipment } from '../../../types/domain';
 
 function getEquipmentImageDataUrl(equipment: Equipment) {
@@ -30,12 +30,12 @@ function getEquipmentImageDataUrl(equipment: Equipment) {
 }
 
 export function EquipmentImagePreview({ equipment }: { equipment: Equipment }) {
-  const imageUrl = getEquipmentImageDataUrl(equipment);
+  const imageUrl = equipment.imageUrl ?? (equipment.databaseDetails ? '' : getEquipmentImageDataUrl(equipment));
   const alt = `${equipment.itemNameKor || equipment.itemNum} 이미지`;
 
   return (
     <Box className="equipment-thumbnail-trigger" sx={{ position: 'relative', width: 54, height: 38 }}>
-      <Box
+      {imageUrl ? <Box
         component="img"
         src={imageUrl}
         alt={alt}
@@ -49,8 +49,11 @@ export function EquipmentImagePreview({ equipment }: { equipment: Equipment }) {
           bgcolor: 'background.default',
           display: 'block',
         }}
-      />
-      <Box
+      /> : <Box sx={{ width: 54, height: 38, border: '1px solid', borderColor: 'divider', borderRadius: 1,
+        display: 'grid', placeItems: 'center', bgcolor: 'action.hover' }}>
+        <Typography sx={{ fontSize: 9, color: 'text.secondary' }}>사진 없음</Typography>
+      </Box>}
+      {imageUrl && <Box
         className="equipment-image-preview"
         sx={{
           position: 'fixed',
@@ -86,7 +89,7 @@ export function EquipmentImagePreview({ equipment }: { equipment: Equipment }) {
             display: 'block',
           }}
         />
-      </Box>
+      </Box>}
     </Box>
   );
 }

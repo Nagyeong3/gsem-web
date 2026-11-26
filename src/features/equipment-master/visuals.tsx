@@ -1,7 +1,8 @@
 /** Shared read-only presentation widgets and equipment detail panel. */
 import { useState, type ReactNode } from 'react';
-import { Box, Button, Chip, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, type SelectChangeEvent } from '@mui/material';
+import { Box, Button, Chip, IconButton, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
 import { Close, EditOutlined } from '@mui/icons-material';
+import { SearchableOptionFilter } from '../../components/common/SearchableOptionFilter';
 import { runtimeConfig } from '../../config/runtime';
 import type { EquipmentMasterItem, RiskLevel } from '../../types/equipmentMaster';
 import { equipmentImageDataUrl, getRiskStyle, getProgressStyle, realDataMode } from './model';
@@ -43,7 +44,7 @@ export function EquipmentThumbnail({ item }: { item: EquipmentMasterItem }) {
 }
 
 export function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <FormControl size="small" sx={{ minWidth: 154 }}><InputLabel>{label}</InputLabel><Select value={value} label={label} onChange={(event: SelectChangeEvent) => onChange(event.target.value)}><MenuItem value="">전체</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</Select></FormControl>;
+  return <SearchableOptionFilter label={label} value={value} options={options} onChange={onChange} minWidth={154} />;
 }
 
 export function SummaryCard({ label, value, helper, tone = '#0F6BFF' }: { label: string; value: string; helper: string; tone?: string }) {
@@ -96,7 +97,7 @@ export function DetailPanel({ item, onClose, onEdit }: { item: EquipmentMasterIt
           </TableContainer>
         </DetailSection>
         {realDataMode && <DetailSection title="정합성 확인">
-          {item.validationIssues?.length ? item.validationIssues.map((issue, index) => <Typography key={`${issue}-${index}`} color="warning.main" sx={{ fontSize: 12, mb: 0.5 }}>• {issue}</Typography>) : <Typography sx={{ fontSize: 12 }}>현재 조회된 계약 데이터에서 이상 항목 없음 (전수검증 결과 아님)</Typography>}
+          {item.validationIssues?.length ? item.validationIssues.map((issue, index) => <Typography key={`${issue}-${index}`} sx={{ color: 'warning.main', fontSize: 12, mb: 0.5 }}>• {issue}</Typography>) : <Typography sx={{ fontSize: 12 }}>현재 조회된 계약 데이터에서 이상 항목 없음 (전수검증 결과 아님)</Typography>}
         </DetailSection>}
         {realDataMode && <DetailSection title="개별 계약·납품 내역 (합산 근거)">
           {item.contractLines?.length ? <TableContainer sx={{ maxHeight: 270 }}><Table size="small" stickyHeader><TableHead><TableRow>{['계약', '납지', '수량', '입고예정', '입고', '납품'].map((key) => <TableCell key={key} sx={{ fontSize: 11, fontWeight: 800 }}>{key}</TableCell>)}</TableRow></TableHead><TableBody>{item.contractLines.map((line) => <TableRow key={line.matchId}><TableCell sx={{ fontSize: 11 }}>{line.subContractName} (#{line.matchId})</TableCell><TableCell sx={{ fontSize: 11 }}>{line.destination}</TableCell><TableCell>{line.quantity ?? '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.receivingExpected || '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.receivedAt || '-'}</TableCell><TableCell sx={{ fontSize: 11 }}>{line.deliveredAt || '-'}</TableCell></TableRow>)}</TableBody></Table></TableContainer> : <Typography sx={{ fontSize: 12 }}>연결된 계약·납품정보 없음</Typography>}

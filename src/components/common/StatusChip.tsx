@@ -10,6 +10,7 @@ const toneMap = {
   '사용 중': 'primary',
   '대체 검토': 'warning',
   보류: 'neutral',
+  미확인: 'neutral',
   완료: 'success',
   '검토 중': 'warning',
   임박: 'error',

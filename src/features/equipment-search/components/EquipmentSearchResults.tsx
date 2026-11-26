@@ -1,13 +1,23 @@
-import { Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
+import { Box, Paper, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel } from '@mui/material';
 import { QueryStatePanel } from '../../../components/common/QueryStatePanel';
 import { StatusChip } from '../../../components/common/StatusChip';
-import { getAircraftTypes, getBusinesses, getDestinations, summarize, summarizeManagers } from '../equipmentSearch';
+import { resultCell, type ResultColumn } from '../resultColumns';
 import type { Equipment, EquipmentSortKey, SortDirection } from '../../../types/domain';
 import { EquipmentImagePreview } from './EquipmentSearchImage';
-import { columns } from '../searchConfig';
+import { matchesQuickSearch, quickSearchFields } from '../quickSearchFields';
+import { runtimeConfig } from '../../../config/runtime';
 
-export function EquipmentSearchResults({ equipment, selectedId, isLoading, isError, refetch, resetFilters, sortKey, sortDirection, changeSort, onSelect }: {
+function Highlight({ text, query }: { text: string; query: string }) {
+  if (!matchesQuickSearch(text, query)) return <>{text}</>;
+  const literal = Array.from(query).map(char => '\\^$.*+?()[]{}|'.includes(char) ? '\\' + char : char).join('');
+  return <>{text.split(new RegExp(`(${literal})`, 'giu')).map((part, index) => index % 2 === 0 ? part :
+    <Box key={index} component="mark" sx={{ bgcolor: '#FFE66D', color: '#342A00', borderRadius: 0.25 }}>{part}</Box>)}</>;
+}
+
+export function EquipmentSearchResults({ equipment, selectedId, isLoading, isError, refetch, resetFilters, sortKey, sortDirection, changeSort, onSelect, columns, query }: {
   equipment: Equipment[];
+  query: string;
+  columns: ResultColumn[];
   selectedId: number | null;
   isLoading: boolean;
   isError: boolean;
@@ -18,6 +28,9 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
   changeSort: (key: EquipmentSortKey) => void;
   onSelect: (id: number) => void;
 }) {
+  const keyword = query.trim();
+  const hiddenFields = quickSearchFields.filter(([key]) => !columns.some(column => column.key === key));
+  const showHiddenMatches = hiddenFields.some(([key]) => equipment.some(item => matchesQuickSearch(item[key], keyword)));
   return (
         <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
           {isLoading ? (
@@ -32,7 +45,7 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                 size="small"
                 aria-label="장비 검색 결과"
                 sx={{
-                  minWidth: 850,
+                  minWidth: 120 + columns.length * 76,
                   '& .MuiTableCell-root': {
                     px: 0.75,
                     maxWidth: 112,
@@ -44,18 +57,15 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ width: 42 }} />
-                    <TableCell sx={{ width: 70 }}>이미지</TableCell>
-                    {columns.map((column) => (
-                      <TableCell key={column.key}>
-                        <TableSortLabel
-                          active={sortKey === column.key}
-                          direction={sortKey === column.key ? sortDirection : 'asc'}
-                          onClick={() => changeSort(column.key)}
-                        >
-                          {column.label}
-                        </TableSortLabel>
-                      </TableCell>
-                    ))}
+                    {columns.map((column) => {
+                      const key = column.sortKey;
+                      const sortable = key && (runtimeConfig.dataSource !== 'api' || key === 'itemNum' || key === 'itemNameKor');
+                      return <TableCell key={column.key} sortDirection={sortable && sortKey === key ? sortDirection : false}>
+                        {sortable ? <TableSortLabel active={sortKey === key} direction={sortKey === key ? sortDirection : 'asc'}
+                          onClick={() => changeSort(key)}>{column.label}</TableSortLabel> : column.label}
+                      </TableCell>;
+                    })}
+                    {showHiddenMatches && <TableCell>일치 항목</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -100,23 +110,19 @@ export function EquipmentSearchResults({ equipment, selectedId, isLoading, isErr
                             }}
                           />
                         </TableCell>
-                        <TableCell>
-                          <EquipmentImagePreview equipment={item} />
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>{item.itemNum}</TableCell>
-                        <TableCell>{item.itemNameKor}</TableCell>
-                        <TableCell>{summarize(getAircraftTypes(item))}</TableCell>
-                        <TableCell>{summarize(getBusinesses(item))}</TableCell>
-                        <TableCell>
-                          {summarize(item.systems.map((system) => system.name))}
-                        </TableCell>
-                        <TableCell>{item.category.name}</TableCell>
-                        <TableCell>{summarizeManagers(item)}</TableCell>
-                        <TableCell>{summarize(getDestinations(item))}</TableCell>
-                        <TableCell>
-                          <StatusChip status={item.status} />
-                        </TableCell>
-                        <TableCell>{item.recentChangeDate}</TableCell>
+                        {columns.map(({ key }) => (
+                          <TableCell key={key} title={key === 'image' ? undefined : resultCell(item, key, true)}
+                            sx={{ fontWeight: key === 'itemNum' ? 600 : 400 }}>
+                            {key === 'image' ? <EquipmentImagePreview equipment={item} /> :
+                              key === 'status' ? <StatusChip status={item.status} /> :
+                              quickSearchFields.some(([field]) => field === key && matchesQuickSearch(item[field], keyword))
+                                ? <Highlight text={resultCell(item, key)} query={keyword} /> : resultCell(item, key)}
+                          </TableCell>
+                        ))}
+                        {showHiddenMatches && <TableCell sx={{ whiteSpace: 'normal' }}>
+                          {hiddenFields.filter(([key]) => matchesQuickSearch(item[key], keyword)).map(([key, label]) =>
+                            <Box key={key} component="div">{label}: <Highlight text={item[key]!} query={keyword} /></Box>)}
+                        </TableCell>}
                       </TableRow>
                     );
                   })}

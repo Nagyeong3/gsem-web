@@ -1,13 +1,15 @@
 import { ArrowForward, AssignmentOutlined, Search } from '@mui/icons-material';
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControl, InputAdornment, InputLabel, MenuItem, Paper, Select, Snackbar,
+  InputAdornment, Paper, Snackbar,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { SearchableOptionFilter } from '../components/common/SearchableOptionFilter';
 import { PageHeader } from '../components/common/PageHeader';
+import { usePagePreference } from '../features/preferences/pagePreferences';
 import { QueryStatePanel } from '../components/common/QueryStatePanel';
 import { SectionCard } from '../components/common/SectionCard';
 import { changeRequestService } from '../services';
@@ -24,8 +26,7 @@ function RequestStatus({ status }: { status: ChangeRequestStatus }) {
 }
 
 function FilterSelect({ id, label, value, options, onChange }: { id: string; label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  const labelId = `request-${id}-label`;
-  return <FormControl size="small" fullWidth><InputLabel id={labelId}>{label}</InputLabel><Select id={`request-${id}`} labelId={labelId} label={label} value={value} onChange={(event) => onChange(event.target.value)}><MenuItem value="">전체</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</Select></FormControl>;
+  return <SearchableOptionFilter id={`request-${id}`} label={label} value={value} options={options} onChange={onChange} />;
 }
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
@@ -40,7 +41,9 @@ export function ChangeRequestPage() {
   const [draftOpen, setDraftOpen] = useState(false);
   const [draftReason, setDraftReason] = useState('');
   const [draftSaved, setDraftSaved] = useState(false);
-  const [filters, setFilters] = useState<ChangeRequestFilters>({ query: '', changeType: '', status: searchParams.get('status') ?? '', requester: '' });
+  const [filters, setFilters] = usePagePreference<ChangeRequestFilters>('change-requests', 'filters',
+    () => ({ query: '', changeType: '', status: searchParams.get('status') ?? '', requester: '' }),
+    (v): v is ChangeRequestFilters => v !== null && typeof v === 'object' && ['query', 'changeType', 'status', 'requester'].every(key => typeof (v as Record<string, unknown>)[key] === 'string'));
 
   const itemIdParam = searchParams.get('itemId') ?? '';
   const loadAllRequests = useCallback(

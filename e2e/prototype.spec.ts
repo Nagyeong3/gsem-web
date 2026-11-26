@@ -40,7 +40,7 @@ test('장비 검색의 필터·빈 결과·상세 패널이 동작한다', async
   await page.getByRole('option', { name: '나 사업' }).click();
   await expect(page.getByText('4건')).toBeVisible();
 
-  const searchInput = page.getByLabel('품번, 품명, 용도 검색');
+  const searchInput = page.getByLabel('품번, 품명 검색');
   await searchInput.fill('존재하지 않는 품목');
   await searchInput.press('Enter');
   await expect(page.getByText('검색 결과가 없습니다.')).toBeVisible();
@@ -97,18 +97,15 @@ test('대시보드와 메뉴에서 납품 일정 미리보기로 이동한다', 
   await page.getByRole('button', { name: /이번 달 납품 예정/ }).click();
   await expect(page).toHaveURL(/\/deliveries$/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByText('현재는 1차 데모를 위한 미리보기 화면입니다.')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
-  await expect(page.getByRole('table', { name: '납품 일정 목록' })).toHaveCount(0);
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
   await expect(page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' })).toHaveAttribute('aria-current', 'page');
   await page.goto('/');
   await page.getByLabel('주요 메뉴').getByRole('button', { name: '납품 일정' }).click();
   await expect(page).toHaveURL(/\/deliveries$/);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${screenshotDirectory}/delivery-schedule.png`, fullPage: false });
-  for (const label of ['예정', '진행', '완료', '연기']) {
-    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
-  }
+  await expect(page.getByRole('checkbox', { name: '납품완료된 차수 숨김' })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '입고 예정일', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 });
 
@@ -138,7 +135,7 @@ test('추가 화면이 다크 모드에서도 콘솔 오류와 가로 넘침 없
     await page.goto(route);
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     if (route === '/deliveries') {
-      await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
+      await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
     }
     await page.evaluate(() => window.scrollTo({ top: 0, left: 0 }));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
@@ -246,7 +243,7 @@ test('V5 전체 업무 흐름과 Mock 역할·URL 상태가 연결된다', async
   await page.locator('main').getByRole('button', { name: '납품 일정' }).click();
   await expect(page).toHaveURL(/\/deliveries\?itemId=1/);
   await expect(page.getByRole('heading', { name: '납품 일정 관리' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '달력형 납품 일정 화면 개발 예정' })).toBeVisible();
+  await expect(page.getByRole('grid', { name: /납품 달력/ })).toBeVisible();
 
   await page.goto('/equipment/1');
   await page.locator('main').getByRole('button', { name: '변경 이력' }).click();
